@@ -1,0 +1,11 @@
+{
+  "name": "byrons-virtual-museum",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "test": "node ./scripts/smoke-test.js"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}

@@ -1,0 +1,673 @@
+/* Reset y configuración base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body, html {
+    height: 100%;
+    font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #0a0a0a;
+    overflow: hidden;
+    color: #ffffff;
+    font-weight: 300;
+}
+
+/* Loader */
+#loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+#loader.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+#loader.force-hidden {
+    display: none !important;
+}
+
+.loader-content {
+    text-align: center;
+    color: #ffffff;
+}
+
+.loader-spinner {
+    width: 50px;
+    height: 50px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-top: 2px solid #ffffff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loader-content p {
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+#container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+}
+
+/* Canvas Three.js */
+#canvas-container {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+/* Crosshair para navegación */
+#crosshair {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 4px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 100;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+}
+
+#crosshair.active {
+    opacity: 1;
+}
+
+#crosshair::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    animation: crosshairPulse 2s infinite;
+}
+
+@keyframes crosshairPulse {
+    0% {
+        opacity: 0.6;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        opacity: 0.2;
+        transform: translate(-50%, -50%) scale(1.2);
+    }
+    100% {
+        opacity: 0.6;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+/* Logo del museo */
+#logo {
+    position: absolute;
+    top: 30px;
+    left: 30px;
+    z-index: 10;
+    font-weight: 500;
+    letter-spacing: 2px;
+    backdrop-filter: blur(15px);
+    background-color: rgba(255, 255, 255, 0.12);
+    padding: 12px 18px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
+    white-space: nowrap;
+}
+
+.logo-text {
+    font-size: 14px;
+    font-weight: 600;
+    display: inline;
+}
+
+.logo-text::after {
+    content: '•';
+    margin: 0 8px;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 10px;
+    vertical-align: middle;
+}
+
+.logo-subtitle {
+    font-size: 10px;
+    opacity: 0.75;
+    letter-spacing: 1.5px;
+    font-weight: 400;
+    display: inline;
+}
+
+/* Controles de navegación */
+#navigation-controls {
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+    backdrop-filter: blur(20px);
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    padding: 16px 18px;
+    z-index: 10;
+    min-width: 200px;
+    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.control-group h4 {
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    text-align: center;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+}
+
+.key-hints {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.key {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 5px;
+    padding: 5px 8px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #ffffff;
+    min-width: 24px;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+}
+
+.key:active,
+.key.active {
+    background: rgba(255, 255, 255, 0.25);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 8px rgba(255, 255, 255, 0.3);
+    transform: translateY(1px);
+}
+
+.key-hints span:not(.key) {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.85);
+    flex: 1;
+}
+
+/* Iconos SVG en teclas */
+.key svg {
+    display: block;
+    margin: 0 auto;
+    width: 14px;
+    height: 14px;
+}
+
+/* Indicador de estado */
+#status-indicator {
+    position: absolute;
+    top: 40px;
+    right: 40px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 12px 16px;
+    z-index: 10;
+    font-size: 12px;
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    gap: 12px;
+}
+
+.status-item:last-child {
+    margin-bottom: 0;
+}
+
+.status-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 400;
+}
+
+#movement-mode,
+#position-display {
+    color: #ffffff;
+    font-weight: 500;
+}
+
+/* Mapa de navegación mejorado */
+#navigation-map {
+    position: absolute;
+    bottom: 30px;
+    left: 30px;
+    width: 90px;
+    height: 90px;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(20px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+#navigation-map::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    background: linear-gradient(45deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+}
+
+.map-indicator {
+    width: 10px;
+    height: 10px;
+    background: #4ade80;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 0 12px rgba(74, 222, 128, 0.6);
+}
+
+.map-indicator::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    width: 20px;
+    height: 20px;
+    border: 1px solid rgba(74, 222, 128, 0.4);
+    border-radius: 50%;
+    animation: mapPulse 2s infinite;
+}
+
+@keyframes mapPulse {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(2);
+    }
+}
+
+/* Información de obra */
+.info-panel {
+    position: absolute;
+    top: 50%;
+    left: 40px;
+    transform: translateY(-50%);
+    width: 300px;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 25px;
+    z-index: 10;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.info-panel.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.info-content h3 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #ffffff;
+}
+
+.info-content p {
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 8px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.info-content p:last-child {
+    margin-bottom: 0;
+    margin-top: 15px;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+/* Hints de interacción mejorados */
+#interaction-hints {
+    position: absolute;
+    top: 50%;
+    right: 40px;
+    transform: translateY(-50%);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.hint {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 18px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 30px;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    opacity: 0.8;
+    transition: all 0.3s ease;
+    font-weight: 400;
+    text-transform: uppercase;
+}
+
+.hint:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.12);
+    transform: translateX(-5px);
+}
+
+.hint .icon {
+    font-size: 16px;
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
+}
+
+/* Modal de video mejorado */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(0,0,0,0.95) 0%, rgba(20,20,20,0.98) 100%);
+    backdrop-filter: blur(20px);
+    transition: all 0.4s ease;
+}
+
+.modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 1000px;
+    background: linear-gradient(145deg, #111 0%, #222 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+}
+
+.close-btn {
+    position: absolute;
+    top: 20px;
+    right: 25px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    z-index: 1001;
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.close-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+#video-player {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 20px;
+}
+
+/* Estados de la modal */
+.modal.show {
+    display: block;
+    animation: modalFadeIn 0.4s ease;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Efectos adicionales */
+.modal-content::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+}
+
+/* Cursor personalizado para hotspots */
+.hotspot-cursor {
+    cursor: pointer;
+}
+
+/* Responsive mejorado */
+@media (max-width: 768px) {
+    #logo {
+        top: 15px;
+        left: 15px;
+        padding: 10px 14px;
+    }
+    
+    .logo-text {
+        font-size: 12px;
+    }
+    
+    .logo-subtitle {
+        font-size: 9px;
+    }
+    
+    #navigation-map {
+        bottom: 15px;
+        left: 15px;
+        width: 70px;
+        height: 70px;
+    }
+    
+    #navigation-controls {
+        bottom: 15px;
+        right: 15px;
+        padding: 12px 14px;
+        min-width: 160px;
+    }
+    
+    .control-group h4 {
+        font-size: 11px;
+    }
+    
+    .key {
+        padding: 4px 6px;
+        font-size: 9px;
+    }
+    
+    .key-hints span:not(.key) {
+        font-size: 9px;
+    }
+    
+    #interaction-hints {
+        right: 20px;
+        gap: 12px;
+    }
+    
+    .hint {
+        padding: 10px 14px;
+        font-size: 10px;
+        gap: 10px;
+    }
+    
+    .hint .icon {
+        font-size: 14px;
+    }
+    
+    .modal-content {
+        width: 95%;
+        margin: 20px;
+        border-radius: 15px;
+    }
+    
+    .info-panel {
+        left: 20px;
+        width: calc(100vw - 40px);
+        max-width: 350px;
+        padding: 20px;
+    }
+    
+    .info-content h3 {
+        font-size: 18px;
+    }
+    
+    .info-content p {
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal-content {
+        width: 98%;
+        margin: 10px;
+        border-radius: 12px;
+    }
+    
+    .close-btn {
+        top: 15px;
+        right: 20px;
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+    }
+    
+    #interaction-hints {
+        right: 15px;
+    }
+    
+    .hint {
+        padding: 8px 12px;
+        font-size: 9px;
+    }
+}
+
+/* Efectos de partículas de fondo */
+@keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    33% { transform: translateY(-10px) rotate(5deg); }
+    66% { transform: translateY(5px) rotate(-5deg); }
+}
+
+/* Mejoras de accesibilidad */
+@media (prefers-reduced-motion: reduce) {
+    .loader-spinner,
+    .map-indicator::before,
+    * {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* Modo alto contraste */
+@media (prefers-contrast: high) {
+    #logo,
+    .hint,
+    .modal-content {
+        border: 2px solid #ffffff;
+        background: #000000;
+    }
+    
+    .loader-content p,
+    .logo-text,
+    .hint {
+        color: #ffffff;
+        text-shadow: none;
+    }
+}
+
+/* Efectos de profundidad */
+.depth-effect {
+    box-shadow: 
+        0 4px 8px rgba(0,0,0,0.3),
+        0 8px 16px rgba(0,0,0,0.15),
+        inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+/* Animaciones suaves para elementos interactivos */
+.interactive {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.interactive:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+}

@@ -524,8 +524,38 @@ body, html {
     cursor: pointer;
 }
 
+/* Controles móviles */
+#mobile-joystick {
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+}
+
+#mobile-joystick:active {
+    opacity: 1;
+}
+
+#mobile-look-area {
+    pointer-events: auto;
+}
+
+/* Ocultar controles móviles en desktop */
+@media (min-width: 769px) {
+    #mobile-joystick,
+    #mobile-look-area {
+        display: none !important;
+    }
+}
+
 /* Responsive mejorado */
 @media (max-width: 768px) {
+    /* Prevenir zoom en móvil */
+    * {
+        touch-action: pan-y;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+    }
+    
     #logo {
         top: 15px;
         left: 15px;

@@ -2614,8 +2614,12 @@ function createRealisticArtwork(config) {
     }
 
     if (imageUrl) {
-        // Priorizar imágenes reales
+        // Priorizar imágenes reales con optimizaciones para móvil
         const textureLoader = new THREE.TextureLoader();
+        
+        // Configurar crossOrigin para evitar problemas de CORS
+        textureLoader.crossOrigin = 'anonymous';
+        
         const texture = textureLoader.load(
             imageUrl,
             (loadedTexture) => {
@@ -2644,14 +2648,17 @@ function createRealisticArtwork(config) {
                 // Crear marco con el tamaño correcto
                 createFrameWithSize(finalSize);
 
-                // Configuración optimizada para prevenir parpadeo
+                // Configuración optimizada para móviles
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                
                 loadedTexture.generateMipmaps = true;
-                loadedTexture.minFilter = THREE.LinearMipmapLinearFilter;
+                loadedTexture.minFilter = isMobile ? THREE.LinearFilter : THREE.LinearMipmapLinearFilter;
                 loadedTexture.magFilter = THREE.LinearFilter;
                 loadedTexture.wrapS = THREE.ClampToEdgeWrapping;
                 loadedTexture.wrapT = THREE.ClampToEdgeWrapping;
                 loadedTexture.flipY = true;
-                loadedTexture.anisotropy = renderer.capabilities.getMaxAnisotropy(); // Mejor calidad
+                loadedTexture.anisotropy = isMobile ? 2 : Math.min(4, renderer.capabilities.getMaxAnisotropy());
+                loadedTexture.encoding = THREE.sRGBEncoding;
                 loadedTexture.needsUpdate = true;
 
                 // Crear el material y el artwork con las dimensiones correctas
@@ -2673,18 +2680,36 @@ function createRealisticArtwork(config) {
                 setupAdditionalElements(finalSize);
             },
             (progress) => {
-                console.log('Cargando imagen:', imageUrl, progress);
+                if (progress.lengthComputable) {
+                    const percentComplete = (progress.loaded / progress.total) * 100;
+                    console.log('Cargando imagen:', imageUrl, percentComplete.toFixed(0) + '%');
+                }
             },
             (error) => {
-                console.warn('Error cargando imagen:', imageUrl, error);
-                // Si no se puede cargar la imagen, usar un patrón procedural
+                console.error('❌ Error cargando imagen:', imageUrl, error);
+                console.log('🔄 Intentando cargar imagen de respaldo...');
+                
+                // Crear material de respaldo con color
+                finalSize = size; // Usar tamaño predeterminado
+                createFrameWithSize(finalSize);
+                
+                artworkMaterial = new THREE.MeshPhysicalMaterial({
+                    color: isMainArtwork ? 0x4488ff : 0x888888,
+                    roughness: 0.9,
+                    metalness: 0.0,
+                    envMapIntensity: 0.1,
+                    side: THREE.FrontSide
+                });
+                
+                // Si hay textura procedural, usarla
                 if (proceduralTexture) {
                     const fallbackTexture = createProceduralTexture(proceduralTexture, 512, 512);
                     artworkMaterial.map = fallbackTexture;
-                } else {
-                    artworkMaterial.color.setHex(isMainArtwork ? 0x4488ff : 0x888888);
                 }
+                
                 artworkMaterial.needsUpdate = true;
+                createArtworkWithSize(finalSize);
+                setupAdditionalElements(finalSize);
             }
         );
 
@@ -4959,7 +4984,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tryInit();
 
-    // Precargar recursos críticos
+    // Precargar recursos críticos con soporte móvil mejorado
     const preloadImages = [
         'src/assets/images/Amanecer - Byron.jpeg',
         'src/assets/images/Bailarina - Byron.jpg',
@@ -4972,32 +4997,58 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let loadedImages = 0;
     const totalImages = preloadImages.length;
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    console.log('📱 Dispositivo móvil detectado:', isMobileDevice);
+    console.log('🖼️ Iniciando precarga de', totalImages, 'imágenes...');
 
     preloadImages.forEach((src, index) => {
         const img = new Image();
+        
+        // Configurar crossOrigin para evitar problemas de CORS
+        img.crossOrigin = 'anonymous';
+        
+        // Timeout específico para cada imagen (más largo en móvil)
+        const imageTimeout = setTimeout(() => {
+            if (!img.complete) {
+                console.warn(`⏱️ Timeout para imagen ${index + 1}/${totalImages}:`, src);
+                loadedImages++;
+                checkPreloadComplete();
+            }
+        }, isMobileDevice ? 15000 : 10000); // 15s en móvil, 10s en desktop
+        
         img.onload = () => {
+            clearTimeout(imageTimeout);
             loadedImages++;
-            console.log(`Imagen ${index + 1}/${totalImages} cargada: ${src}`);
-            if (loadedImages === totalImages) {
-                console.log('Todas las imágenes cargadas exitosamente');
-            }
+            console.log(`✅ Imagen ${index + 1}/${totalImages} cargada (${img.width}x${img.height}): ${src}`);
+            checkPreloadComplete();
         };
-        img.onerror = () => {
+        
+        img.onerror = (error) => {
+            clearTimeout(imageTimeout);
             loadedImages++;
-            console.warn(`Error cargando imagen ${index + 1}/${totalImages}:`, src);
-            if (loadedImages === totalImages) {
-                console.log('Precarga completada (con algunos errores)');
-            }
+            console.error(`❌ Error cargando imagen ${index + 1}/${totalImages}:`, src, error);
+            checkPreloadComplete();
         };
-        img.src = src;
+        
+        // Agregar cache busting solo si es necesario
+        const cacheBuster = isMobileDevice ? `?t=${Date.now()}` : '';
+        img.src = src + cacheBuster;
     });
 
-    // Timeout de seguridad para precarga
+    function checkPreloadComplete() {
+        if (loadedImages === totalImages) {
+            console.log(`🎉 Precarga completada: ${loadedImages}/${totalImages} imágenes procesadas`);
+        }
+    }
+
+    // Timeout de seguridad para precarga (más largo en móvil)
     setTimeout(() => {
         if (loadedImages < totalImages) {
-            console.warn(`Timeout de precarga: ${loadedImages}/${totalImages} imágenes cargadas`);
+            console.warn(`⏱️ Timeout de precarga: ${loadedImages}/${totalImages} imágenes cargadas`);
+            console.log('⚠️ Continuando de todos modos...');
         }
-    }, 5000);
+    }, isMobileDevice ? 20000 : 10000);
 });
 
 // Exportar funciones principales para depuración

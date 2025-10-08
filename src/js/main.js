@@ -68,15 +68,24 @@ const REALISTIC_CONFIG = {
 };
 
 // Configuración inicial mejorada
-function init() {
+async function init() {
     try {
         console.log('Iniciando museo virtual...');
         showLoader();
+
+        // PASO 1: Precargar todas las imágenes primero
+        updateLoaderProgress(0, 100, 'Preparando recursos');
+        await preloadImagesWithProgress();
+        
+        console.log('✅ Todas las imágenes precargadas');
+        updateLoaderProgress(10, 100, 'Inicializando WebGL');
 
         // Verificar compatibilidad WebGL
         if (!checkWebGLSupport()) {
             throw new Error('WebGL no está disponible en este navegador');
         }
+
+        updateLoaderProgress(20, 100, 'Creando escena');
 
         // Crear escena
         scene = new THREE.Scene();
@@ -86,6 +95,8 @@ function init() {
         // Clock para animaciones
         clock = new THREE.Clock();
 
+        updateLoaderProgress(30, 100, 'Configurando cámara');
+
         // Configurar cámara con parámetros más realistas
         camera = new THREE.PerspectiveCamera(
             60, // FOV más natural
@@ -94,6 +105,8 @@ function init() {
             200
         );
         camera.position.set(0, 1.7, 8);
+
+        updateLoaderProgress(40, 100, 'Inicializando renderer');
 
         // Configurar renderizador con mayor calidad pero estable
         renderer = new THREE.WebGLRenderer({
@@ -140,6 +153,8 @@ function init() {
             console.error('❌ No se encontró el contenedor canvas-container');
         }
 
+        updateLoaderProgress(50, 100, 'Configurando controles');
+
         // Configurar controles para navegación tipo walking
         setupWalkingControls();
 
@@ -147,19 +162,30 @@ function init() {
         raycaster = new THREE.Raycaster();
         mouse = new THREE.Vector2();
 
+        updateLoaderProgress(60, 100, 'Creando galería');
+
         // Crear ambiente
         loadEnvironmentMap();
         createRealisticGallery();
+        
+        updateLoaderProgress(70, 100, 'Configurando iluminación');
+        
         setupAdvancedLighting();
+        
+        updateLoaderProgress(80, 100, 'Cargando obras de arte');
+        
         createRealisticArtworks();
         createMuseumObjects(); // Cambiar de createRealisticSculptures
         registerAllCollisions(); // Registrar todas las colisiones
+        
+        updateLoaderProgress(90, 100, 'Configurando interactividad');
+        
         setupAdvancedInteractivity();
         setupAudio();
 
-        
+        updateLoaderProgress(95, 100, 'Finalizando');
 
-        // Verificar estado de la escena
+                // Verificar estado de la escena
         console.log('🎭 Estado de la escena:', {
             children: scene.children.length,
             fog: !!scene.fog,
@@ -413,6 +439,88 @@ function hideLoader() {
             loader.classList.add('force-hidden');
         }, 600);
     }
+}
+
+// Actualizar texto del loader con progreso
+function updateLoaderProgress(current, total, message = 'Cargando recursos') {
+    const loaderText = document.querySelector('.loader-content p');
+    if (loaderText) {
+        const percentage = Math.round((current / total) * 100);
+        loaderText.textContent = `${message}... ${percentage}%`;
+    }
+}
+
+// Precargar imágenes con progreso visible
+function preloadImagesWithProgress() {
+    return new Promise((resolve) => {
+        const imageUrls = [
+            'src/assets/images/Amanecer - Byron.jpeg',
+            'src/assets/images/Bailarina - Byron.jpg',
+            'src/assets/images/Naturaleza Muerta - Byron.jpg',
+            'src/assets/images/Rocas y Cielo - Byron.jpg',
+            'src/assets/images/Musicos - Byron.jpg',
+            'src/assets/images/Escultura de pie - Byron.jpg',
+            'src/assets/images/Escultura sentada - Byron.jpg',
+            'src/assets/images/Vela.jpg',
+            'src/assets/images/Pintura abstracta.jpg'
+        ];
+
+        let loadedCount = 0;
+        const totalImages = imageUrls.length;
+        const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        console.log('📱 Dispositivo:', isMobileDevice ? 'Móvil' : 'Desktop');
+        console.log('🖼️ Iniciando precarga de', totalImages, 'imágenes...');
+        
+        updateLoaderProgress(0, totalImages, 'Cargando imágenes');
+
+        const loadImage = (url, index) => {
+            return new Promise((resolveImage) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                
+                // Timeout por imagen (más largo en móvil)
+                const timeout = setTimeout(() => {
+                    console.warn(`⏱️ Timeout imagen ${index + 1}/${totalImages}:`, url);
+                    loadedCount++;
+                    updateLoaderProgress(loadedCount, totalImages, 'Cargando imágenes');
+                    resolveImage();
+                }, isMobileDevice ? 15000 : 10000);
+
+                img.onload = () => {
+                    clearTimeout(timeout);
+                    loadedCount++;
+                    console.log(`✅ ${loadedCount}/${totalImages} - ${url} (${img.width}x${img.height})`);
+                    updateLoaderProgress(loadedCount, totalImages, 'Cargando imágenes');
+                    resolveImage();
+                };
+
+                img.onerror = (error) => {
+                    clearTimeout(timeout);
+                    loadedCount++;
+                    console.error(`❌ ${loadedCount}/${totalImages} - Error:`, url);
+                    updateLoaderProgress(loadedCount, totalImages, 'Cargando imágenes');
+                    resolveImage();
+                };
+
+                // Cache busting en móviles
+                const cacheBuster = isMobileDevice ? `?v=${Date.now()}` : '';
+                img.src = url + cacheBuster;
+            });
+        };
+
+        // Cargar todas las imágenes en paralelo
+        Promise.all(imageUrls.map((url, index) => loadImage(url, index)))
+            .then(() => {
+                console.log(`🎉 Precarga completada: ${loadedCount}/${totalImages} imágenes`);
+                updateLoaderProgress(totalImages, totalImages, 'Imágenes cargadas');
+                setTimeout(resolve, 500); // Pequeña pausa para mostrar 100%
+            })
+            .catch((error) => {
+                console.error('Error en precarga:', error);
+                resolve(); // Resolver de todos modos
+            });
+    });
 }
 
 // Verificar progreso de carga

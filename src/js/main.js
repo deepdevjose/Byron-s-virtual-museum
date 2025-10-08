@@ -3025,14 +3025,15 @@ function createMuseumObjects() {
     });
 }
 
-// Crear escultura monumental central - PUNTO FOCAL PRINCIPAL
+// Crear escultura monumental central - PUNTO FOCAL PRINCIPAL (reducida al 50%)
 function createMonumentalSculpture(config) {
     const { position, title, description } = config;
 
     const sculptureGroup = new THREE.Group();
+    const sizeMultiplier = 0.5; // Reducción al 50%
 
     // Base circular de mármol oscuro
-    const baseGeometry = new THREE.CylinderGeometry(1.8, 2.0, 0.3, 32);
+    const baseGeometry = new THREE.CylinderGeometry(1.8 * sizeMultiplier, 2.0 * sizeMultiplier, 0.3 * sizeMultiplier, 32);
     const baseMaterial = new THREE.MeshPhysicalMaterial({
         color: 0x1a1a1a,
         roughness: 0.2,
@@ -3042,13 +3043,13 @@ function createMonumentalSculpture(config) {
         envMapIntensity: 1.0
     });
     const base = new THREE.Mesh(baseGeometry, baseMaterial);
-    base.position.set(0, 0.15, 0);
+    base.position.set(0, 0.15 * sizeMultiplier, 0);
     base.castShadow = true;
     base.receiveShadow = true;
     sculptureGroup.add(base);
 
     // Pedestal de bronce
-    const pedestalGeometry = new THREE.CylinderGeometry(0.6, 0.8, 1.2, 16);
+    const pedestalGeometry = new THREE.CylinderGeometry(0.6 * sizeMultiplier, 0.8 * sizeMultiplier, 1.2 * sizeMultiplier, 16);
     const pedestalMaterial = new THREE.MeshPhysicalMaterial({
         color: 0x8B6914,
         roughness: 0.3,
@@ -3056,20 +3057,20 @@ function createMonumentalSculpture(config) {
         envMapIntensity: 1.2
     });
     const pedestal = new THREE.Mesh(pedestalGeometry, pedestalMaterial);
-    pedestal.position.set(0, 0.9, 0);
+    pedestal.position.set(0, 0.9 * sizeMultiplier, 0);
     pedestal.castShadow = true;
     pedestal.receiveShadow = true;
     sculptureGroup.add(pedestal);
 
     // Escultura abstracta principal - forma de torsión ascendente
-    const sculptureHeight = 2.5;
+    const sculptureHeight = 2.5 * sizeMultiplier;
     const segments = 20;
     
     // Crear geometría de torsión personalizada
     const points = [];
     for (let i = 0; i <= segments; i++) {
         const y = (i / segments) * sculptureHeight;
-        const radius = 0.4 - (i / segments) * 0.15; // Se adelgaza hacia arriba
+        const radius = (0.4 - (i / segments) * 0.15) * sizeMultiplier; // Se adelgaza hacia arriba
         const angle = (i / segments) * Math.PI * 2; // Giro completo
         const x = Math.cos(angle) * radius;
         const z = Math.sin(angle) * radius;
@@ -3091,7 +3092,7 @@ function createMonumentalSculpture(config) {
     });
 
     const sculpture = new THREE.Mesh(sculptureGeometry, sculptureMaterial);
-    sculpture.position.set(0, 1.5, 0);
+    sculpture.position.set(0, 1.5 * sizeMultiplier, 0);
     sculpture.castShadow = true;
     sculpture.receiveShadow = true;
     sculptureGroup.add(sculpture);
@@ -3099,9 +3100,9 @@ function createMonumentalSculpture(config) {
     // Elementos decorativos flotantes alrededor
     for (let i = 0; i < 4; i++) {
         const angle = (i / 4) * Math.PI * 2;
-        const radius = 1.2;
+        const radius = 1.2 * sizeMultiplier;
         
-        const sphereGeometry = new THREE.SphereGeometry(0.08, 16, 16);
+        const sphereGeometry = new THREE.SphereGeometry(0.08 * sizeMultiplier, 16, 16);
         const sphereMaterial = new THREE.MeshPhysicalMaterial({
             color: 0xFFD700, // Dorado
             roughness: 0.1,
@@ -3113,7 +3114,7 @@ function createMonumentalSculpture(config) {
         const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
         sphere.position.set(
             Math.cos(angle) * radius,
-            2.5 + Math.sin(i) * 0.3,
+            2.5 * sizeMultiplier + Math.sin(i) * 0.3 * sizeMultiplier,
             Math.sin(angle) * radius
         );
         sphere.castShadow = true;
@@ -3123,7 +3124,7 @@ function createMonumentalSculpture(config) {
     // Iluminación dedicada para la escultura
     const sculptureLight1 = new THREE.SpotLight(0xffffff, 40, 8, Math.PI / 6, 0.5, 2);
     sculptureLight1.position.set(0, 4.5, 0);
-    sculptureLight1.target.position.set(0, 1.5, 0);
+    sculptureLight1.target.position.set(0, 1.5 * sizeMultiplier, 0);
     scene.add(sculptureLight1);
     scene.add(sculptureLight1.target);
 
@@ -3961,65 +3962,65 @@ function showControlInstructions() {
         left: 50%;
         transform: translate(-50%, -50%);
         background: rgba(0, 0, 0, 0.13);
-        backdrop-filter: blur(25px);
+        backdrop-filter: blur(13.125px);
         color: white;
-        padding: 30px 35px;
-        border-radius: 14px;
+        padding: 15.75px 18.375px;
+        border-radius: 7.35px;
         text-align: center;
         z-index: 2000;
-        max-width: 380px;
+        max-width: 199.5px;
         border: 1px solid rgba(255, 255, 255, 0.2);
-        box-shadow: 0px 8px 25px rgba(0, 0, 0, 0.4);
+        box-shadow: 0px 4.2px 13.125px rgba(0, 0, 0, 0.4);
     `;
 
     instructions.innerHTML = `
         <h3 style="
-            margin-bottom: 12px; 
+            margin-bottom: 6.3px; 
             color: #ffffff; 
             font-weight: 700;
-            font-size: 22px;
-            letter-spacing: 0.8px;
+            font-size: 11.55px;
+            letter-spacing: 0.42px;
             text-transform: uppercase;
         ">Bienvenido al Museo Virtual</h3>
         <p style="
-            margin-bottom: 24px; 
-            font-size: 13px;
+            margin-bottom: 12.6px; 
+            font-size: 6.825px;
             line-height: 1.5;
             color: rgba(255, 255, 255, 0.85);
             font-weight: 400;
         ">Elige tu modo de exploración</p>
-        <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; flex-direction: column; gap: 5.25px;">
             <button id="start-walking" style="
                 background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.85) 100%);
                 color: #000;
                 border: none;
-                padding: 12px 24px;
-                border-radius: 8px;
+                padding: 6.3px 12.6px;
+                border-radius: 4.2px;
                 border: 1px solid rgba(255, 255, 255, 0.3);
                 cursor: pointer;
                 font-weight: 700;
-                font-size: 13px;
-                letter-spacing: 0.5px;
+                font-size: 6.825px;
+                letter-spacing: 0.2625px;
                 text-transform: uppercase;
                 transition: all 0.3s ease;
-                box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
-            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(255, 255, 255, 0.3)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(255, 255, 255, 0.2)';">Recorrido Libre</button>
+                box-shadow: 0 2.1px 6.3px rgba(255, 255, 255, 0.2);
+            " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 3.15px 8.4px rgba(255, 255, 255, 0.3)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2.1px 6.3px rgba(255, 255, 255, 0.2)';">Recorrido Libre</button>
             
             <button id="start-tour" style="
                 background: linear-gradient(135deg, rgba(74, 222, 128, 0.9) 0%, rgba(34, 197, 94, 0.9) 100%);
                 color: #000;
                 border: none;
-                padding: 12px 24px;
-                border-radius: 8px;
+                padding: 6.3px 12.6px;
+                border-radius: 4.2px;
                 border: 1px solid rgba(255, 255, 255, 0.3);
                 cursor: pointer;
                 font-weight: 700;
-                font-size: 13px;
-                letter-spacing: 0.5px;
+                font-size: 6.825px;
+                letter-spacing: 0.2625px;
                 text-transform: uppercase;
                 transition: all 0.3s ease;
-                box-shadow: 0 4px 12px rgba(74, 222, 128, 0.3);
-            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(74, 222, 128, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(74, 222, 128, 0.3)';">Recorrido Dinámico</button>
+                box-shadow: 0 2.1px 6.3px rgba(74, 222, 128, 0.3);
+            " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 3.15px 8.4px rgba(74, 222, 128, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2.1px 6.3px rgba(74, 222, 128, 0.3)';">Recorrido Dinámico</button>
         </div>
     `;
 
@@ -4038,15 +4039,31 @@ function showControlInstructions() {
     });
 }
 
-// Función para el recorrido dinámico (a implementar)
+// Función para el recorrido dinámico (redirige a Google y cierra el museo)
 function startDynamicTour() {
-    console.log('🎬 Iniciando recorrido dinámico...');
-    // Aquí puedes implementar la lógica del recorrido automático
-    // Por ahora, simplemente iniciamos el modo normal
-    renderer.domElement.requestPointerLock();
+    console.log('🎬 Redirigiendo a recorrido dinámico...');
     
-    // TODO: Implementar animación de cámara automática que recorra el museo
-    // visitando cada obra de arte en secuencia
+    // Abrir Google en la misma ventana
+    window.location.href = 'https://www.google.com';
+    
+    // Limpiar recursos del museo antes de redirigir
+    if (renderer) {
+        renderer.dispose();
+    }
+    if (scene) {
+        scene.traverse((object) => {
+            if (object.geometry) {
+                object.geometry.dispose();
+            }
+            if (object.material) {
+                if (Array.isArray(object.material)) {
+                    object.material.forEach(material => material.dispose());
+                } else {
+                    object.material.dispose();
+                }
+            }
+        });
+    }
 }
 
 // Manejar clicks avanzados
@@ -4266,20 +4283,20 @@ function hideArtworkInfo() {
     }
 }
 
-// Crear control de audio
+// Crear control de audio (reducido 50%)
 function createAudioToggle() {
     const audioToggle = document.createElement('button');
     audioToggle.style.cssText = `
         position: fixed;
         bottom: 30px;
         left: 40px;
-        width: 50px;
-        height: 50px;
+        width: 25px;
+        height: 25px;
         border-radius: 50%;
         border: 1px solid rgba(255, 255, 255, 0.1);
         background: rgba(255, 255, 255, 0.29);
         color: white;
-        font-size: 20px;
+        font-size: 10px;
         cursor: pointer;
         z-index: 100;
         backdrop-filter: blur(10px);

@@ -19,6 +19,16 @@ let velocity = new THREE.Vector3();
 let direction = new THREE.Vector3();
 let prevTime = performance.now();
 
+// Variables para efecto de caminar (head bob)
+let walkingTime = 0;
+let headBobActive = false;
+const headBobConfig = {
+    frequency: 4.5,        // Frecuencia del balanceo (pasos por segundo)
+    amplitude: 0.03,       // Amplitud vertical (altura del balanceo)
+    amplitudeHorizontal: 0.015, // Amplitud horizontal (balanceo lateral)
+    enabled: true
+};
+
 // Variables para colisiones
 let museumObjects = [];
 let collisionBounds = {
@@ -155,6 +165,14 @@ function init() {
             fog: !!scene.fog,
             camera: camera.position
         });
+
+        // Detectar y configurar controles móviles
+        detectMobileDevice();
+        if (isMobileDevice) {
+            createMobileControls();
+            adjustUIForMobile();
+            console.log('📱 Controles móviles activados');
+        }
 
         // Iniciar loop de animación
         animate();
@@ -3818,8 +3836,8 @@ function updateMovement(deltaTime) {
         velocity.z = 0;
     }
 
-    // Mantener altura constante (simular altura de ojos humanos)
-    camera.position.y = 1.7;
+    // Nota: La altura Y ahora la maneja updateHeadBob() para el efecto de caminar
+    // camera.position.y = 1.7; // Comentado - ahora se controla en updateHeadBob
 
     // Verificar colisiones con objetos del museo
     checkMuseumObjectCollisions();
@@ -3891,6 +3909,56 @@ function checkMuseumObjectCollisions() {
     });
 }
 
+// Efecto de balanceo al caminar (head bob)
+function updateHeadBob(deltaTime) {
+    if (!headBobConfig.enabled) return;
+
+    // Verificar si el jugador se está moviendo
+    const isMoving = moveForward || moveBackward || moveLeft || moveRight;
+    
+    if (isMoving) {
+        headBobActive = true;
+        
+        // Incrementar el tiempo de caminar basado en la velocidad
+        const currentSpeed = velocity.length();
+        const speedMultiplier = isRunning ? 1.8 : 1.0; // Mayor multiplicador cuando corre
+        walkingTime += deltaTime * headBobConfig.frequency * speedMultiplier;
+        
+        // Amplitud aumenta al correr
+        const amplitudeMultiplier = isRunning ? 1.5 : 1.0;
+        
+        // Calcular el balanceo vertical (arriba y abajo)
+        const verticalBob = Math.sin(walkingTime * 2) * headBobConfig.amplitude * amplitudeMultiplier;
+        
+        // Calcular el balanceo horizontal (izquierda y derecha)
+        const horizontalBob = Math.cos(walkingTime) * headBobConfig.amplitudeHorizontal * amplitudeMultiplier;
+        
+        // Aplicar el balanceo a la posición Y de la cámara
+        const baseHeight = 1.7; // Altura base de los ojos
+        camera.position.y = baseHeight + verticalBob;
+        
+        // Pequeña rotación lateral para mayor realismo
+        const tiltAngle = horizontalBob * 0.5;
+        camera.rotation.z = tiltAngle;
+        
+    } else {
+        // Suavizar la vuelta a la posición normal cuando se detiene
+        if (headBobActive) {
+            const baseHeight = 1.7;
+            camera.position.y += (baseHeight - camera.position.y) * deltaTime * 5;
+            camera.rotation.z += (0 - camera.rotation.z) * deltaTime * 5;
+            
+            // Detener el efecto cuando esté muy cerca de la posición base
+            if (Math.abs(camera.position.y - baseHeight) < 0.001) {
+                camera.position.y = baseHeight;
+                camera.rotation.z = 0;
+                headBobActive = false;
+                walkingTime = 0;
+            }
+        }
+    }
+}
+
 // Registrar todas las colisiones después de crear los objetos
 function registerAllCollisions() {
     console.log('📍 Registrando colisiones de objetos del museo...');
@@ -3956,6 +4024,11 @@ function setupAdvancedInteractivity() {
 function showControlInstructions() {
     const instructions = document.createElement('div');
     instructions.id = 'control-instructions';
+    
+    // Detectar si es móvil para el modal
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+        || (window.innerWidth <= 768);
+    
     instructions.style.cssText = `
         position: fixed;
         top: 50%;
@@ -3964,58 +4037,68 @@ function showControlInstructions() {
         background: rgba(0, 0, 0, 0.13);
         backdrop-filter: blur(13.125px);
         color: white;
-        padding: 15.75px 18.375px;
+        padding: ${isMobile ? '20px 25px' : '15.75px 18.375px'};
         border-radius: 7.35px;
         text-align: center;
         z-index: 2000;
-        max-width: 199.5px;
+        max-width: ${isMobile ? '90%' : '199.5px'};
         border: 1px solid rgba(255, 255, 255, 0.2);
         box-shadow: 0px 4.2px 13.125px rgba(0, 0, 0, 0.4);
     `;
+
+    const instructionText = isMobile 
+        ? `<p style="
+            margin-bottom: 12.6px; 
+            font-size: ${isMobile ? '14px' : '6.825px'};
+            line-height: 1.5;
+            color: rgba(255, 255, 255, 0.85);
+            font-weight: 400;
+        ">Usa el joystick izquierdo para moverte y desliza el dedo en la pantalla para mirar. El botón verde te permite interactuar con las obras.</p>`
+        : `<p style="
+            margin-bottom: 12.6px; 
+            font-size: 6.825px;
+            line-height: 1.5;
+            color: rgba(255, 255, 255, 0.85);
+            font-weight: 400;
+        ">Elige tu modo de exploración</p>`;
 
     instructions.innerHTML = `
         <h3 style="
             margin-bottom: 6.3px; 
             color: #ffffff; 
             font-weight: 700;
-            font-size: 11.55px;
+            font-size: ${isMobile ? '18px' : '11.55px'};
             letter-spacing: 0.42px;
             text-transform: uppercase;
         ">Bienvenido al Museo Virtual</h3>
-        <p style="
-            margin-bottom: 12.6px; 
-            font-size: 6.825px;
-            line-height: 1.5;
-            color: rgba(255, 255, 255, 0.85);
-            font-weight: 400;
-        ">Elige tu modo de exploración</p>
+        ${instructionText}
         <div style="display: flex; flex-direction: column; gap: 5.25px;">
             <button id="start-walking" style="
                 background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.85) 100%);
                 color: #000;
                 border: none;
-                padding: 6.3px 12.6px;
+                padding: ${isMobile ? '14px 24px' : '6.3px 12.6px'};
                 border-radius: 4.2px;
                 border: 1px solid rgba(255, 255, 255, 0.3);
                 cursor: pointer;
                 font-weight: 700;
-                font-size: 6.825px;
+                font-size: ${isMobile ? '14px' : '6.825px'};
                 letter-spacing: 0.2625px;
                 text-transform: uppercase;
                 transition: all 0.3s ease;
                 box-shadow: 0 2.1px 6.3px rgba(255, 255, 255, 0.2);
-            " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 3.15px 8.4px rgba(255, 255, 255, 0.3)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2.1px 6.3px rgba(255, 255, 255, 0.2)';">Recorrido Libre</button>
+            " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 3.15px 8.4px rgba(255, 255, 255, 0.3)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2.1px 6.3px rgba(255, 255, 255, 0.2)';">${isMobile ? 'Iniciar Recorrido' : 'Recorrido Libre'}</button>
             
             <button id="start-tour" style="
                 background: linear-gradient(135deg, rgba(74, 222, 128, 0.9) 0%, rgba(34, 197, 94, 0.9) 100%);
                 color: #000;
                 border: none;
-                padding: 6.3px 12.6px;
+                padding: ${isMobile ? '14px 24px' : '6.3px 12.6px'};
                 border-radius: 4.2px;
                 border: 1px solid rgba(255, 255, 255, 0.3);
                 cursor: pointer;
                 font-weight: 700;
-                font-size: 6.825px;
+                font-size: ${isMobile ? '14px' : '6.825px'};
                 letter-spacing: 0.2625px;
                 text-transform: uppercase;
                 transition: all 0.3s ease;
@@ -4029,7 +4112,10 @@ function showControlInstructions() {
     // Modo libre (exploración manual)
     document.getElementById('start-walking').addEventListener('click', () => {
         document.body.removeChild(instructions);
-        renderer.domElement.requestPointerLock();
+        if (!isMobile) {
+            renderer.domElement.requestPointerLock();
+        }
+        // En móvil, los controles táctiles ya están activos
     });
 
     // Modo recorrido dinámico
@@ -4476,6 +4562,9 @@ function animate() {
 
     // Actualizar movimiento y colisiones
     updateMovement(deltaTime);
+    
+    // Actualizar efecto de caminar (head bob)
+    updateHeadBob(deltaTime);
 
     // Animar hotspots
     hotspots.forEach(hotspot => {
@@ -4525,6 +4614,272 @@ function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// ==========================================
+// CONTROLES MÓVILES
+// ==========================================
+
+let isMobileDevice = false;
+let touchStartX = 0;
+let touchStartY = 0;
+let touchMoveX = 0;
+let touchMoveY = 0;
+let joystickActive = false;
+let lookTouchId = null;
+let moveTouchId = null;
+
+// Detectar si es dispositivo móvil
+function detectMobileDevice() {
+    isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+        || (window.innerWidth <= 768);
+    console.log('📱 Dispositivo móvil detectado:', isMobileDevice);
+    return isMobileDevice;
+}
+
+// Crear controles táctiles en pantalla
+function createMobileControls() {
+    if (!isMobileDevice) return;
+
+    // Crear joystick virtual para movimiento (lado derecho inferior)
+    const joystickContainer = document.createElement('div');
+    joystickContainer.id = 'mobile-joystick';
+    joystickContainer.style.cssText = `
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 120px;
+        height: 120px;
+        background: rgba(255, 255, 255, 0.15);
+        border: 3px solid rgba(255, 255, 255, 0.4);
+        border-radius: 50%;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        touch-action: none;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    `;
+
+    const joystickHandle = document.createElement('div');
+    joystickHandle.id = 'joystick-handle';
+    joystickHandle.style.cssText = `
+        width: 50px;
+        height: 50px;
+        background: rgba(255, 255, 255, 0.7);
+        border: 2px solid rgba(255, 255, 255, 0.9);
+        border-radius: 50%;
+        position: absolute;
+        transition: all 0.1s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    `;
+
+    joystickContainer.appendChild(joystickHandle);
+    document.body.appendChild(joystickContainer);
+
+    // Área de mirar (toda la pantalla excepto el joystick)
+    const lookArea = document.createElement('div');
+    lookArea.id = 'mobile-look-area';
+    lookArea.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 998;
+        touch-action: none;
+        pointer-events: auto;
+    `;
+    document.body.appendChild(lookArea);
+    
+    // Asegurar que el joystick esté por encima
+    joystickContainer.style.zIndex = '1001';
+
+    // Añadir crosshair para móvil
+    if (isMobileDevice) {
+        const crosshair = document.getElementById('crosshair');
+        if (crosshair) {
+            crosshair.classList.add('active');
+            crosshair.style.opacity = '0.6';
+        }
+    }
+
+    setupMobileEventListeners(joystickContainer, joystickHandle, lookArea);
+}
+
+// Configurar event listeners para móvil
+function setupMobileEventListeners(joystick, handle, lookArea) {
+    // Joystick para movimiento
+    joystick.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation(); // Evitar que se propague al lookArea
+        moveTouchId = e.touches[0].identifier;
+        joystickActive = true;
+        const rect = joystick.getBoundingClientRect();
+        touchStartX = rect.left + rect.width / 2;
+        touchStartY = rect.top + rect.height / 2;
+    }, { passive: false });
+
+    joystick.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        e.stopPropagation(); // Evitar que se propague al lookArea
+        if (!joystickActive) return;
+
+        const touch = Array.from(e.touches).find(t => t.identifier === moveTouchId);
+        if (!touch) return;
+
+        const rect = joystick.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        const deltaX = touch.clientX - centerX;
+        const deltaY = touch.clientY - centerY;
+        
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        const maxDistance = 35;
+        
+        const clampedDistance = Math.min(distance, maxDistance);
+        const angle = Math.atan2(deltaY, deltaX);
+        
+        const handleX = Math.cos(angle) * clampedDistance;
+        const handleY = Math.sin(angle) * clampedDistance;
+        
+        handle.style.transform = `translate(${handleX}px, ${handleY}px)`;
+
+        // Actualizar movimiento basado en el joystick
+        const normalizedX = deltaX / maxDistance;
+        const normalizedY = deltaY / maxDistance;
+
+        // Actualizar variables de movimiento
+        moveForward = normalizedY < -0.3;
+        moveBackward = normalizedY > 0.3;
+        moveLeft = normalizedX < -0.3;
+        moveRight = normalizedX > 0.3;
+
+    }, { passive: false });
+
+    joystick.addEventListener('touchend', (e) => {
+        e.stopPropagation(); // Evitar que se propague al lookArea
+        const touch = Array.from(e.changedTouches).find(t => t.identifier === moveTouchId);
+        if (!touch) return;
+
+        joystickActive = false;
+        moveTouchId = null;
+        handle.style.transform = 'translate(0, 0)';
+        
+        // Detener movimiento
+        moveForward = false;
+        moveBackward = false;
+        moveLeft = false;
+        moveRight = false;
+    }, { passive: false });
+
+    // Área de mirar (drag para rotar cámara) - toda la pantalla
+    lookArea.addEventListener('touchstart', (e) => {
+        // Verificar si el toque está sobre el joystick
+        const rect = joystick.getBoundingClientRect();
+        const touch = e.touches[0];
+        const isOverJoystick = (
+            touch.clientX >= rect.left &&
+            touch.clientX <= rect.right &&
+            touch.clientY >= rect.top &&
+            touch.clientY <= rect.bottom
+        );
+        
+        // Si está sobre el joystick, no procesar
+        if (isOverJoystick) return;
+        
+        e.preventDefault();
+        if (lookTouchId !== null) return;
+        
+        lookTouchId = touch.identifier;
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+    }, { passive: false });
+
+    lookArea.addEventListener('touchmove', (e) => {
+        const touch = Array.from(e.touches).find(t => t.identifier === lookTouchId);
+        if (!touch) return;
+        
+        e.preventDefault();
+
+        touchMoveX = touch.clientX - touchStartX;
+        touchMoveY = touch.clientY - touchStartY;
+
+        // Actualizar rotación de cámara con mayor sensibilidad
+        targetRotationY -= touchMoveX * 0.005; // Sensibilidad horizontal
+        targetRotationX -= touchMoveY * 0.005; // Sensibilidad vertical
+
+        const maxVerticalAngle = Math.PI / 3;
+        targetRotationX = Math.max(-maxVerticalAngle, Math.min(maxVerticalAngle, targetRotationX));
+
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+    }, { passive: false });
+
+    lookArea.addEventListener('touchend', (e) => {
+        const touch = Array.from(e.changedTouches).find(t => t.identifier === lookTouchId);
+        if (!touch) return;
+        
+        lookTouchId = null;
+    }, { passive: false });
+}
+
+// Ajustar UI para móvil
+function adjustUIForMobile() {
+    if (!isMobileDevice) return;
+
+    const style = document.createElement('style');
+    style.innerHTML = `
+        @media (max-width: 768px) {
+            #logo {
+                top: 10px !important;
+                left: 10px !important;
+                font-size: 0.8em !important;
+                padding: 5px 8px !important;
+            }
+            
+            #navigation-controls {
+                display: none !important;
+            }
+            
+            #audio-toggle {
+                top: 10px !important;
+                right: 10px !important;
+                width: 40px !important;
+                height: 40px !important;
+                font-size: 16px !important;
+            }
+            
+            #control-instructions {
+                max-width: 90% !important;
+                padding: 20px !important;
+            }
+            
+            #control-instructions h3 {
+                font-size: 16px !important;
+            }
+            
+            #control-instructions p {
+                font-size: 12px !important;
+            }
+            
+            #control-instructions button {
+                font-size: 12px !important;
+                padding: 12px 20px !important;
+            }
+            
+            .loader-content {
+                transform: scale(1) !important;
+            }
+            
+            .loader-spinner {
+                width: 50px !important;
+                height: 50px !important;
+            }
+        }
+    `;
+    document.head.appendChild(style);
 }
 
 // Event listeners

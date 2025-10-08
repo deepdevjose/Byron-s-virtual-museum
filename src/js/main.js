@@ -1,0 +1,4640 @@
+// Variables globales
+let scene, camera, renderer;
+let raycaster, mouse;
+let artworks = [];
+let hotspots = [];
+let currentVideoModal = null;
+let ambientAudio;
+let clock;
+let footstepAudio;
+let envMap;
+
+// Variables para navegación tipo walking
+let moveForward = false;
+let moveBackward = false;
+let moveLeft = false;
+let moveRight = false;
+let isRunning = false;
+let velocity = new THREE.Vector3();
+let direction = new THREE.Vector3();
+let prevTime = performance.now();
+
+// Variables para colisiones
+let museumObjects = [];
+let collisionBounds = {
+    minX: -13,
+    maxX: 13,
+    minZ: -13,
+    maxZ: 11 // Permitir algo de espacio en la parte frontal
+};
+
+// Array para almacenar cajas de colisión de decoraciones
+let decorationCollisions = [];
+
+// Configuración realista
+const REALISTIC_CONFIG = {
+    shadows: {
+        enabled: true,
+        type: THREE.PCFSoftShadowMap,
+        mapSize: 2048 // Reducido de 4096 para optimización
+    },
+    lighting: {
+        physicallyCorrect: true,
+        exposure: 1.2,
+        shadowBias: -0.0001
+    },
+    materials: {
+        enablePBR: true,
+        envMapIntensity: 0.8
+    },
+    movement: {
+        walkSpeed: 4.0,    // Aumentado de 2.5 para más rapidez
+        runSpeed: 7.0,     // Aumentado de 4.5 para correr más rápido
+        lookSpeed: 0.002,  // Aumentado de 0.0015 para rotación más rápida
+        smoothing: 0.18,   // Reducido de 0.25 para menos "lag"
+        acceleration: 12.0, // Aumentado de 8.0 para respuesta más rápida
+        friction: 10.0     // Reducido de 12.0 para menos resistencia
+    }
+};
+
+// Configuración inicial mejorada
+function init() {
+    try {
+        console.log('Iniciando museo virtual...');
+        showLoader();
+
+        // Verificar compatibilidad WebGL
+        if (!checkWebGLSupport()) {
+            throw new Error('WebGL no está disponible en este navegador');
+        }
+
+        // Crear escena
+        scene = new THREE.Scene();
+        scene.fog = new THREE.Fog(0x202020, 20, 100);
+        console.log('Escena creada exitosamente');
+
+        // Clock para animaciones
+        clock = new THREE.Clock();
+
+        // Configurar cámara con parámetros más realistas
+        camera = new THREE.PerspectiveCamera(
+            60, // FOV más natural
+            window.innerWidth / window.innerHeight,
+            0.1,
+            200
+        );
+        camera.position.set(0, 1.7, 8);
+
+        // Configurar renderizador con mayor calidad pero estable
+        renderer = new THREE.WebGLRenderer({
+            antialias: true,
+            powerPreference: "high-performance",
+            stencil: false,
+            depth: true,
+            preserveDrawingBuffer: false,
+            failIfMajorPerformanceCaveat: false
+        });
+
+        console.log('🖥️ Creando renderer...', renderer ? '✅' : '❌');
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x202020, 1);
+
+        // Configuración de renderizado optimizada
+        renderer.shadowMap.enabled = REALISTIC_CONFIG.shadows.enabled;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Tipo optimizado
+        renderer.physicallyCorrectLights = true;
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 0.8; // Reducido para evitar sobreexposición
+
+        // Configuraciones adicionales para evitar parpadeo
+        renderer.sortObjects = false; // Desactivar sorting automático para evitar z-fighting
+        renderer.logarithmicDepthBuffer = false;
+        renderer.autoClear = true;
+        renderer.autoClearColor = true;
+        renderer.autoClearDepth = true;
+        renderer.autoClearStencil = true;
+
+        console.log('📺 Renderer configurado:', {
+            size: { width: renderer.domElement.width, height: renderer.domElement.height },
+            shadowMap: renderer.shadowMap.enabled,
+            canvas: !!renderer.domElement
+        });
+
+        const container = document.getElementById('canvas-container');
+        if (container) {
+            container.appendChild(renderer.domElement);
+            console.log('✅ Canvas agregado al contenedor');
+        } else {
+            console.error('❌ No se encontró el contenedor canvas-container');
+        }
+
+        // Configurar controles para navegación tipo walking
+        setupWalkingControls();
+
+        // Configurar raycaster
+        raycaster = new THREE.Raycaster();
+        mouse = new THREE.Vector2();
+
+        // Crear ambiente
+        loadEnvironmentMap();
+        createRealisticGallery();
+        setupAdvancedLighting();
+        createRealisticArtworks();
+        createMuseumObjects(); // Cambiar de createRealisticSculptures
+        registerAllCollisions(); // Registrar todas las colisiones
+        setupAdvancedInteractivity();
+        setupAudio();
+
+        
+
+        // Verificar estado de la escena
+        console.log('🎭 Estado de la escena:', {
+            children: scene.children.length,
+            fog: !!scene.fog,
+            camera: camera.position
+        });
+
+        // Iniciar loop de animación
+        animate();
+
+        // Ocultar loader después de cargar (múltiples métodos de seguridad)
+        checkLoadingProgress();
+
+        // Método de seguridad #1: Timer simple
+        setTimeout(() => {
+            console.log('🔄 Timer de seguridad 1: ocultando loader a los 2 segundos');
+            hideLoader();
+        }, 2000);
+
+        // Método de seguridad #2: Timer de emergencia
+        setTimeout(() => {
+            console.log('🚨 Timer de emergencia: forzando ocultación del loader');
+            const loader = document.getElementById('loader');
+            if (loader) {
+                loader.style.display = 'none';
+            }
+        }, 3000);
+
+        console.log('Museo inicializado exitosamente');
+
+    } catch (error) {
+        console.error('Error inicializando el museo:', error);
+        console.error('Stack trace:', error.stack);
+
+        // Solo mostrar alerta si es un error crítico
+        if (error.message.includes('THREE') || error.message.includes('WebGL')) {
+            setTimeout(() => {
+                hideLoader();
+                alert('Error crítico: ' + error.message + '\nPor favor, verifica que tu navegador soporte WebGL.');
+            }, 1000);
+        } else {
+            // Para otros errores, solo loggear y continuar
+            console.warn('Error no crítico, continuando carga...');
+            hideLoader();
+        }
+    }
+}
+
+// Configurar controles tipo walking
+function setupWalkingControls() {
+    // Desactivar los controles orbit predeterminados
+    controls = null;
+
+    // Inicializar rotaciones objetivo y actuales
+    targetRotationX = camera.rotation.x;
+    targetRotationY = camera.rotation.y;
+    currentRotationX = camera.rotation.x;
+    currentRotationY = camera.rotation.y;
+
+    // Asegurar orden de rotación correcto
+    camera.rotation.order = 'YXZ';
+
+    // Configurar eventos de teclado
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('keyup', onKeyUp);
+
+    // Configurar controles de mouse para mirar
+    document.addEventListener('mousemove', onMouseLook);
+    document.addEventListener('click', () => {
+        // Bloquear puntero para mejor control
+        if (document.pointerLockElement !== renderer.domElement) {
+            renderer.domElement.requestPointerLock();
+        }
+    });
+
+    // Configurar events de pointer lock
+    document.addEventListener('pointerlockchange', onPointerLockChange);
+}
+
+// Manejar eventos de teclado
+function onKeyDown(event) {
+    // Resaltar tecla en UI
+    highlightKey(event.code, true);
+    
+    switch (event.code) {
+        case 'ArrowUp':
+        case 'KeyW':
+            moveForward = true;
+            break;
+        case 'ArrowLeft':
+        case 'KeyA':
+            moveLeft = true;
+            break;
+        case 'ArrowDown':
+        case 'KeyS':
+            moveBackward = true;
+            break;
+        case 'ArrowRight':
+        case 'KeyD':
+            moveRight = true;
+            break;
+        case 'ShiftLeft':
+        case 'ShiftRight':
+            isRunning = true;
+            updateMovementMode();
+            break;
+    }
+}
+
+function onKeyUp(event) {
+    // Quitar resaltado de tecla en UI
+    highlightKey(event.code, false);
+    
+    switch (event.code) {
+        case 'ArrowUp':
+        case 'KeyW':
+            moveForward = false;
+            break;
+        case 'ArrowLeft':
+        case 'KeyA':
+            moveLeft = false;
+            break;
+        case 'ArrowDown':
+        case 'KeyS':
+            moveBackward = false;
+            break;
+        case 'ArrowRight':
+        case 'KeyD':
+            moveRight = false;
+            break;
+        case 'ShiftLeft':
+        case 'ShiftRight':
+            isRunning = false;
+            updateMovementMode();
+            break;
+    }
+}
+
+// Función para resaltar teclas en la UI
+function highlightKey(code, isActive) {
+    const keyMap = {
+        'KeyW': 'w',
+        'KeyA': 'a',
+        'KeyS': 's',
+        'KeyD': 'd',
+        'ShiftLeft': 'shift',
+        'ShiftRight': 'shift'
+    };
+    
+    const keyName = keyMap[code];
+    if (keyName) {
+        const keyElement = document.querySelector(`[data-key="${keyName}"]`);
+        if (keyElement) {
+            if (isActive) {
+                keyElement.classList.add('active');
+            } else {
+                keyElement.classList.remove('active');
+            }
+        }
+    }
+}
+
+// Variables para suavizado de cámara
+let targetRotationX = 0;
+let targetRotationY = 0;
+let currentRotationX = 0;
+let currentRotationY = 0;
+
+// Manejar movimiento del mouse para mirar
+function onMouseLook(event) {
+    if (document.pointerLockElement === renderer.domElement) {
+        const movementX = event.movementX || 0;
+        const movementY = event.movementY || 0;
+
+        // Actualizar rotación objetivo en lugar de directamente
+        targetRotationY -= movementX * REALISTIC_CONFIG.movement.lookSpeed;
+        targetRotationX -= movementY * REALISTIC_CONFIG.movement.lookSpeed;
+
+        // Limitar ángulo vertical (solo se puede mirar hacia arriba/abajo naturalmente)
+        // -60° a +60° es un rango natural para la cabeza humana
+        const maxVerticalAngle = Math.PI / 3; // 60 grados
+        targetRotationX = Math.max(-maxVerticalAngle, Math.min(maxVerticalAngle, targetRotationX));
+        
+        // NO limitar la rotación horizontal (puedes girar 360°)
+    }
+}
+
+// Manejar cambios de pointer lock
+function onPointerLockChange() {
+    const crosshair = document.getElementById('crosshair');
+    const instructions = document.querySelector('.instructions');
+
+    if (document.pointerLockElement === renderer.domElement) {
+        // Pointer está bloqueado - mostrar crosshair y ocultar cursor
+        renderer.domElement.style.cursor = 'none';
+        if (crosshair) crosshair.classList.add('active');
+        
+        // Ocultar cartel de instrucciones si aún está visible
+        if (instructions && instructions.parentNode) {
+            instructions.parentNode.removeChild(instructions);
+        }
+    } else {
+        // Pointer desbloqueado - ocultar crosshair y mostrar cursor
+        renderer.domElement.style.cursor = 'default';
+        if (crosshair) crosshair.classList.remove('active');
+    }
+}
+
+// Actualizar modo de movimiento en UI
+function updateMovementMode() {
+    const modeElement = document.getElementById('movement-mode');
+    if (modeElement) {
+        modeElement.textContent = isRunning ? 'Correr' : 'Caminar';
+    }
+}
+
+// Actualizar posición en UI
+function updatePositionDisplay() {
+    const posElement = document.getElementById('position-display');
+    if (posElement) {
+        const x = Math.round(camera.position.x * 10) / 10;
+        const z = Math.round(camera.position.z * 10) / 10;
+        posElement.textContent = `${x}, ${z}`;
+    }
+}
+
+// Funciones de loader
+function showLoader() {
+    const loader = document.getElementById('loader');
+    if (loader) {
+        loader.style.display = 'flex';
+        console.log('Mostrando loader');
+    }
+}
+
+function hideLoader() {
+    const loader = document.getElementById('loader');
+    if (loader) {
+        loader.classList.add('hidden');
+        console.log('Ocultando loader - Museo cargado completamente');
+
+        // Forzar ocultación después de la transición
+        setTimeout(() => {
+            loader.classList.add('force-hidden');
+        }, 600);
+    }
+}
+
+// Verificar progreso de carga
+function checkLoadingProgress() {
+    let attempts = 0;
+    const maxAttempts = 30; // 3 segundos máximo
+
+    const checkInterval = setInterval(() => {
+        attempts++;
+
+        // Verificar que Three.js esté inicializado
+        const sceneReady = scene && scene.children.length > 0;
+        const rendererReady = renderer && renderer.domElement;
+
+        console.log(`Intento ${attempts}: Escena lista: ${sceneReady}, Renderer listo: ${rendererReady}`);
+
+        if (sceneReady && rendererReady) {
+            // Todo listo, ocultar loader
+            console.log('✅ Museo completamente cargado');
+            clearInterval(checkInterval);
+            setTimeout(hideLoader, 300);
+        } else if (attempts >= maxAttempts) {
+            // Timeout alcanzado, forzar ocultación
+            console.warn('⚠️ Timeout alcanzado, forzando ocultación del loader');
+            clearInterval(checkInterval);
+            hideLoader();
+        }
+    }, 100); // Revisar cada 100ms
+
+    // Timeout de seguridad adicional
+    setTimeout(() => {
+        console.log('🔄 Timeout de seguridad: forzando ocultación del loader');
+        hideLoader();
+    }, 4000);
+}
+
+// Cargar mapa de entorno para reflejos realistas
+function loadEnvironmentMap() {
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    pmremGenerator.compileEquirectangularShader();
+
+    // Crear un gradiente de cielo realista
+    const skyGeometry = new THREE.SphereGeometry(100, 32, 32);
+    const skyMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+            topColor: { value: new THREE.Color(0x87CEEB) },
+            bottomColor: { value: new THREE.Color(0xffffff) },
+            offset: { value: 10 },
+            exponent: { value: 0.6 }
+        },
+        vertexShader: `
+            varying vec3 vWorldPosition;
+            void main() {
+                vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                vWorldPosition = worldPosition.xyz;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `,
+        fragmentShader: `
+            uniform vec3 topColor;
+            uniform vec3 bottomColor;
+            uniform float offset;
+            uniform float exponent;
+            varying vec3 vWorldPosition;
+            void main() {
+                float h = normalize(vWorldPosition + offset).y;
+                gl_FragColor = vec4(mix(bottomColor, topColor, max(pow(max(h, 0.0), exponent), 0.0)), 1.0);
+            }
+        `,
+        side: THREE.BackSide
+    });
+
+    const sky = new THREE.Mesh(skyGeometry, skyMaterial);
+    scene.add(sky);
+}
+
+// Crear textura de mármol de lujo para el piso con máximo realismo
+function createLuxuryMarbleTexture() {
+    const size = 2048; // Alta resolución para el piso
+    
+    // Crear textura difusa con algoritmos avanzados
+    function generateLuxuryMarbleDiffuse() {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = size;
+        canvas.height = size;
+
+        // Base con variación sutil de color usando ruido Perlin simulado
+        const imageData = ctx.createImageData(size, size);
+        const data = imageData.data;
+        
+        // Función de ruido simplificada para variaciones naturales
+        function noise(x, y, scale = 0.01) {
+            return (Math.sin(x * scale) + Math.cos(y * scale) + Math.sin((x + y) * scale * 0.5)) / 3;
+        }
+        
+        // Crear base con variación de color muy sutil
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                const i = (y * size + x) * 4;
+                const baseVariation = noise(x, y, 0.008) * 15;
+                const baseColor = 248 + baseVariation;
+                
+                data[i] = Math.min(255, Math.max(240, baseColor));     // R
+                data[i + 1] = Math.min(255, Math.max(240, baseColor)); // G
+                data[i + 2] = Math.min(255, Math.max(245, baseColor + 2)); // B (ligeramente más azul)
+                data[i + 3] = 255; // A
+            }
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+
+        // Función avanzada para crear vetas orgánicas ultra-realistas
+        function drawAdvancedVein(startX, startY, color, opacity, thickness, complexity = 8, turbulence = 1) {
+            ctx.globalCompositeOperation = 'multiply';
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            // Crear múltiples capas para una veta más realista
+            for (let layer = 0; layer < 3; layer++) {
+                ctx.strokeStyle = color;
+                ctx.globalAlpha = opacity * (0.4 + layer * 0.2);
+                ctx.lineWidth = thickness * (1 - layer * 0.3);
+                
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+
+                let currentX = startX;
+                let currentY = startY;
+                let direction = Math.random() * Math.PI * 2;
+                
+                for (let i = 0; i < complexity; i++) {
+                    // Evolución más natural de la dirección
+                    direction += (Math.random() - 0.5) * 0.8 * turbulence;
+                    const distance = (Math.random() * 120 + 80) * (1 - i / complexity * 0.3);
+                    
+                    const nextX = currentX + Math.cos(direction) * distance;
+                    const nextY = currentY + Math.sin(direction) * distance;
+                    
+                    // Control points más sofisticados para curvas naturales
+                    const cp1X = currentX + Math.cos(direction - 0.5) * distance * 0.3;
+                    const cp1Y = currentY + Math.sin(direction - 0.5) * distance * 0.3;
+                    const cp2X = nextX - Math.cos(direction + 0.5) * distance * 0.3;
+                    const cp2Y = nextY - Math.sin(direction + 0.5) * distance * 0.3;
+                    
+                    ctx.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, nextX, nextY);
+                    
+                    // Añadir ramificaciones ocasionales
+                    if (Math.random() < 0.3 && i > 2) {
+                        const branchLength = distance * 0.6;
+                        const branchAngle = direction + (Math.random() - 0.5) * Math.PI * 0.8;
+                        const branchX = currentX + Math.cos(branchAngle) * branchLength;
+                        const branchY = currentY + Math.sin(branchAngle) * branchLength;
+                        
+                        ctx.moveTo(currentX, currentY);
+                        ctx.lineTo(branchX, branchY);
+                        ctx.moveTo(nextX, nextY);
+                    }
+                    
+                    currentX = nextX;
+                    currentY = nextY;
+                }
+                
+                ctx.stroke();
+            }
+            
+            ctx.globalAlpha = 1.0;
+        }
+
+        // Vetas principales negras/grises ultra-realistas
+        for (let i = 0; i < 8; i++) {
+            const x = Math.random() * size;
+            const y = Math.random() * size;
+            const grayValue = Math.random() * 40 + 20; // Grises muy oscuros para contraste
+            const blueTint = Math.random() * 10; // Ligero tinte azul natural
+            drawAdvancedVein(x, y, `rgb(${grayValue}, ${grayValue}, ${grayValue + blueTint})`, 0.7 + Math.random() * 0.2, Math.random() * 20 + 12, 8 + Math.random() * 4, 1.2);
+        }
+
+        // Vetas secundarias de transición
+        for (let i = 0; i < 15; i++) {
+            const x = Math.random() * size;
+            const y = Math.random() * size;
+            const grayValue = Math.random() * 60 + 70; // Grises medios
+            drawAdvancedVein(x, y, `rgb(${grayValue}, ${grayValue}, ${grayValue + 5})`, 0.4 + Math.random() * 0.3, Math.random() * 12 + 6, 5 + Math.random() * 3, 0.8);
+        }
+
+        // Vetas finas de detalle
+        for (let i = 0; i < 25; i++) {
+            const x = Math.random() * size;
+            const y = Math.random() * size;
+            const grayValue = Math.random() * 40 + 120; // Grises claros
+            drawAdvancedVein(x, y, `rgb(${grayValue}, ${grayValue}, ${grayValue})`, 0.2 + Math.random() * 0.2, Math.random() * 6 + 2, 3 + Math.random() * 2, 0.5);
+        }
+
+        // Vetas doradas premium (como en mármol de lujo)
+        for (let i = 0; i < 6; i++) {
+            const x = Math.random() * size;
+            const y = Math.random() * size;
+            const goldR = Math.random() * 40 + 180;
+            const goldG = Math.random() * 30 + 150;
+            const goldB = Math.random() * 20 + 80;
+            drawAdvancedVein(x, y, `rgb(${goldR}, ${goldG}, ${goldB})`, 0.35 + Math.random() * 0.15, Math.random() * 8 + 3, 4 + Math.random() * 2, 0.7);
+        }
+
+        // Manchas y variaciones sutiles
+        ctx.globalCompositeOperation = 'overlay';
+        for (let i = 0; i < 30; i++) {
+            const x = Math.random() * size;
+            const y = Math.random() * size;
+            const radius = Math.random() * 80 + 20;
+            
+            const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+            const variation = Math.random() * 20 + 235;
+            gradient.addColorStop(0, `rgba(${variation}, ${variation}, ${variation}, 0.3)`);
+            gradient.addColorStop(1, `rgba(${variation}, ${variation}, ${variation}, 0)`);
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Cristalizaciones y brillos (efecto de mármol pulido)
+        ctx.globalCompositeOperation = 'screen';
+        for (let i = 0; i < 15; i++) {
+            const x = Math.random() * size;
+            const y = Math.random() * size;
+            const radius = Math.random() * 30 + 5;
+            
+            const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        const texture = new THREE.CanvasTexture(canvas);
+        try {
+            texture.generateMipmaps = true;
+            texture.minFilter = THREE.LinearMipmapLinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(4, 4);
+            texture.encoding = THREE.sRGBEncoding;
+            texture.needsUpdate = true;
+            return texture;
+        } catch (error) {
+            console.error('Error configurando textura de mármol:', error);
+            // Retornar textura básica en caso de error
+            const basicTexture = new THREE.CanvasTexture(canvas);
+            basicTexture.needsUpdate = true;
+            return basicTexture;
+        }
+    }
+
+    // Crear normal map para el mármol
+    function generateLuxuryMarbleNormal() {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = size;
+        canvas.height = size;
+
+        // Base del normal map
+        ctx.fillStyle = '#8080ff';
+        ctx.fillRect(0, 0, size, size);
+
+        // Relieve de las vetas principales
+        function drawNormalVein(startX, startY, intensity, thickness, complexity = 6) {
+            ctx.globalCompositeOperation = 'normal';
+            ctx.strokeStyle = `rgba(${100 + intensity}, ${100 + intensity}, 255, 0.6)`;
+            ctx.lineWidth = thickness;
+            ctx.lineCap = 'round';
+
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+
+            let currentX = startX;
+            let currentY = startY;
+            
+            for (let i = 0; i < complexity; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * 150 + 40;
+                const nextX = currentX + Math.cos(angle) * distance;
+                const nextY = currentY + Math.sin(angle) * distance;
+                
+                ctx.quadraticCurveTo(
+                    currentX + (Math.random() - 0.5) * 80,
+                    currentY + (Math.random() - 0.5) * 80,
+                    nextX, nextY
+                );
+                
+                currentX = nextX;
+                currentY = nextY;
+            }
+            
+            ctx.stroke();
+        }
+
+        // Normal map para vetas principales
+        for (let i = 0; i < 15; i++) {
+            const x = Math.random() * size;
+            const y = Math.random() * size;
+            const intensity = Math.random() * 30 + 20;
+            drawNormalVein(x, y, intensity, Math.random() * 12 + 6, 5 + Math.random() * 4);
+        }
+
+        // Variaciones sutiles para superficie pulida
+        for (let i = 0; i < 100; i++) {
+            const x = Math.random() * size;
+            const y = Math.random() * size;
+            const radius = Math.random() * 20 + 5;
+            
+            const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+            gradient.addColorStop(0, `rgba(${125 + Math.random() * 10}, ${125 + Math.random() * 10}, 255, 0.3)`);
+            gradient.addColorStop(1, 'rgba(128, 128, 255, 0)');
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.generateMipmaps = true;
+        texture.minFilter = THREE.LinearMipmapLinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(4, 4);
+        texture.encoding = THREE.LinearEncoding; // Normal maps use linear encoding
+        return texture;
+    }
+
+    console.log('🎨 Creando textura de mármol de lujo para el piso...');
+    
+    return {
+        diffuse: generateLuxuryMarbleDiffuse(),
+        normal: generateLuxuryMarbleNormal()
+    };
+}
+
+// Crear texturas procedurales para las paredes del museo
+function createWallTextures() {
+    const textures = {};
+
+    // Función auxiliar para crear textura con normal map
+    function createTextureWithNormal(diffuseGenerator, normalGenerator, size = 512) {
+        const diffuseTexture = diffuseGenerator(size);
+        const normalTexture = normalGenerator(size);
+        
+        return {
+            diffuse: diffuseTexture,
+            normal: normalTexture
+        };
+    }
+
+    // 1. Textura de mármol de pared ultra-realista
+    function generateMarbleTexture(size) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = size;
+        canvas.height = size;
+
+        // Base de mármol con variación natural usando ruido
+        const imageData = ctx.createImageData(size, size);
+        const data = imageData.data;
+        
+        // Crear variación de base más realista
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                const i = (y * size + x) * 4;
+                
+                // Ruido múltiple para variación natural
+                const noise1 = Math.sin(x * 0.01) * Math.cos(y * 0.01);
+                const noise2 = Math.sin(x * 0.005 + y * 0.008) * 0.5;
+                const noise3 = (Math.random() - 0.5) * 0.1;
+                
+                const variation = (noise1 + noise2 + noise3) * 12;
+                const baseColor = 245 + variation;
+                
+                data[i] = Math.min(255, Math.max(230, baseColor));     // R
+                data[i + 1] = Math.min(255, Math.max(230, baseColor)); // G
+                data[i + 2] = Math.min(255, Math.max(235, baseColor + 3)); // B
+                data[i + 3] = 255; // A
+            }
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+
+        // Vetas de mármol
+        ctx.globalCompositeOperation = 'multiply';
+        for (let i = 0; i < 15; i++) {
+            ctx.strokeStyle = `rgba(200, 200, 200, ${0.3 + Math.random() * 0.4})`;
+            ctx.lineWidth = Math.random() * 8 + 2;
+            ctx.beginPath();
+            ctx.moveTo(Math.random() * size, Math.random() * size);
+            
+            for (let j = 0; j < 5; j++) {
+                const x = Math.random() * size;
+                const y = Math.random() * size;
+                ctx.quadraticCurveTo(
+                    Math.random() * size, Math.random() * size,
+                    x, y
+                );
+            }
+            ctx.stroke();
+        }
+
+        // Vetas más finas
+        ctx.globalCompositeOperation = 'darken';
+        for (let i = 0; i < 20; i++) {
+            ctx.strokeStyle = `rgba(180, 180, 180, ${0.2 + Math.random() * 0.3})`;
+            ctx.lineWidth = Math.random() * 3 + 1;
+            ctx.beginPath();
+            ctx.moveTo(Math.random() * size, Math.random() * size);
+            ctx.lineTo(Math.random() * size, Math.random() * size);
+            ctx.stroke();
+        }
+
+        return new THREE.CanvasTexture(canvas);
+    }
+
+    function generateMarbleNormal(size) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = size;
+        canvas.height = size;
+
+        // Base azul para normal map
+        ctx.fillStyle = '#8080ff';
+        ctx.fillRect(0, 0, size, size);
+
+        // Variaciones sutiles
+        for (let i = 0; i < 30; i++) {
+            const x = Math.random() * size;
+            const y = Math.random() * size;
+            const radius = Math.random() * 20 + 5;
+            
+            const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+            gradient.addColorStop(0, `rgba(${120 + Math.random() * 20}, ${120 + Math.random() * 20}, 255, 0.3)`);
+            gradient.addColorStop(1, 'rgba(128, 128, 255, 0)');
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        return new THREE.CanvasTexture(canvas);
+    }
+
+    // 2. Textura de piedra natural ultra-realista
+    function generateStoneTexture(size) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = size;
+        canvas.height = size;
+
+        // Base de piedra con múltiples capas de ruido
+        const imageData = ctx.createImageData(size, size);
+        const data = imageData.data;
+
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                const i = (y * size + x) * 4;
+                
+                // Múltiples frecuencias de ruido para textura natural
+                const noise1 = Math.sin(x * 0.02) * Math.cos(y * 0.02) * 20;
+                const noise2 = Math.sin(x * 0.05 + y * 0.03) * 15;
+                const noise3 = Math.sin(x * 0.1 + y * 0.15) * 8;
+                const noise4 = (Math.random() - 0.5) * 25;
+                
+                const totalNoise = noise1 + noise2 + noise3 + noise4;
+                
+                // Colores base de piedra natural
+                const baseR = 240 + totalNoise * 0.3;
+                const baseG = 238 + totalNoise * 0.35;
+                const baseB = 220 + totalNoise * 0.4;
+                
+                data[i] = Math.min(255, Math.max(200, baseR));     // R
+                data[i + 1] = Math.min(255, Math.max(200, baseG)); // G
+                data[i + 2] = Math.min(255, Math.max(180, baseB)); // B
+                data[i + 3] = 255; // A
+            }
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+
+        // Grietas y fisuras
+        ctx.globalCompositeOperation = 'multiply';
+        for (let i = 0; i < 8; i++) {
+            ctx.strokeStyle = `rgba(200, 200, 200, ${0.4 + Math.random() * 0.3})`;
+            ctx.lineWidth = Math.random() * 2 + 1;
+            ctx.beginPath();
+            ctx.moveTo(Math.random() * size, Math.random() * size);
+            
+            const segments = 3 + Math.random() * 5;
+            for (let j = 0; j < segments; j++) {
+                ctx.lineTo(
+                    Math.random() * size,
+                    Math.random() * size
+                );
+            }
+            ctx.stroke();
+        }
+
+        return new THREE.CanvasTexture(canvas);
+    }
+
+    function generateStoneNormal(size) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = size;
+        canvas.height = size;
+
+        ctx.fillStyle = '#8080ff';
+        ctx.fillRect(0, 0, size, size);
+
+        // Relieve de piedra
+        for (let i = 0; i < 100; i++) {
+            const x = Math.random() * size;
+            const y = Math.random() * size;
+            const radius = Math.random() * 15 + 3;
+            
+            ctx.fillStyle = `rgba(${100 + Math.random() * 40}, ${100 + Math.random() * 40}, 255, 0.4)`;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        return new THREE.CanvasTexture(canvas);
+    }
+
+    // 3. Textura de concreto moderno ultra-realista
+    function generateConcreteTexture(size) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = size;
+        canvas.height = size;
+
+        // Base de concreto con múltiples capas de realismo
+        const imageData = ctx.createImageData(size, size);
+        const data = imageData.data;
+
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                const i = (y * size + x) * 4;
+                
+                // Simulación de agregados en el concreto
+                const aggregate1 = Math.sin(x * 0.03) * Math.cos(y * 0.025) * 12;
+                const aggregate2 = Math.sin(x * 0.08 + y * 0.06) * 8;
+                const fine_texture = Math.sin(x * 0.2 + y * 0.18) * 4;
+                const randomness = (Math.random() - 0.5) * 20;
+                
+                const totalVariation = aggregate1 + aggregate2 + fine_texture + randomness;
+                
+                // Color base de concreto moderno
+                const baseColor = 235 + totalVariation * 0.4;
+                
+                data[i] = Math.min(255, Math.max(210, baseColor));     // R
+                data[i + 1] = Math.min(255, Math.max(210, baseColor)); // G
+                data[i + 2] = Math.min(255, Math.max(210, baseColor)); // B
+                data[i + 3] = 255; // A
+            }
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+
+        // Líneas de moldaje más realistas
+        ctx.globalCompositeOperation = 'overlay';
+        const lineSpacing = size / 3;
+        for (let i = 1; i < 3; i++) {
+            // Línea principal
+            ctx.strokeStyle = 'rgba(200, 200, 200, 0.8)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, i * lineSpacing);
+            ctx.lineTo(size, i * lineSpacing);
+            ctx.stroke();
+            
+            // Sombra de la línea
+            ctx.strokeStyle = 'rgba(180, 180, 180, 0.4)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, i * lineSpacing + 2);
+            ctx.lineTo(size, i * lineSpacing + 2);
+            ctx.stroke();
+        }
+
+        // Manchas y variaciones de humedad
+        ctx.globalCompositeOperation = 'multiply';
+        for (let i = 0; i < 8; i++) {
+            const x = Math.random() * size;
+            const y = Math.random() * size;
+            const radius = Math.random() * 60 + 20;
+            
+            const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+            gradient.addColorStop(0, 'rgba(220, 220, 220, 0.7)');
+            gradient.addColorStop(0.7, 'rgba(230, 230, 230, 0.3)');
+            gradient.addColorStop(1, 'rgba(240, 240, 240, 0)');
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        return new THREE.CanvasTexture(canvas);
+    }
+
+    function generateConcreteNormal(size) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = size;
+        canvas.height = size;
+
+        ctx.fillStyle = '#8080ff';
+        ctx.fillRect(0, 0, size, size);
+
+        // Relieve del concreto
+        for (let i = 0; i < 150; i++) {
+            const x = Math.random() * size;
+            const y = Math.random() * size;
+            const radius = Math.random() * 8 + 2;
+            
+            ctx.fillStyle = `rgba(${120 + Math.random() * 20}, ${120 + Math.random() * 20}, 255, 0.3)`;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Líneas de moldaje en normal
+        for (let i = 1; i < 4; i++) {
+            const y = (i / 4) * size;
+            ctx.strokeStyle = 'rgba(140, 140, 255, 0.6)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(size, y);
+            ctx.stroke();
+        }
+
+        return new THREE.CanvasTexture(canvas);
+    }
+
+    // 4. Textura de yeso artesanal ultra-realista
+    function generatePlasterTexture(size) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = size;
+        canvas.height = size;
+
+        // Base de yeso con variación natural
+        const imageData = ctx.createImageData(size, size);
+        const data = imageData.data;
+
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                const i = (y * size + x) * 4;
+                
+                // Simulación de textura de yeso aplicado a mano
+                const brush1 = Math.sin(x * 0.015 + y * 0.008) * 8;
+                const brush2 = Math.sin(x * 0.03 + y * 0.025) * 5;
+                const trowel = Math.sin(x * 0.007 + y * 0.012) * 12;
+                const fine_detail = (Math.random() - 0.5) * 6;
+                
+                const texture_variation = brush1 + brush2 + trowel + fine_detail;
+                
+                // Color base de yeso natural
+                const baseR = 252 + texture_variation * 0.3;
+                const baseG = 250 + texture_variation * 0.35;
+                const baseB = 246 + texture_variation * 0.4;
+                
+                data[i] = Math.min(255, Math.max(240, baseR));     // R
+                data[i + 1] = Math.min(255, Math.max(240, baseG)); // G
+                data[i + 2] = Math.min(255, Math.max(235, baseB)); // B
+                data[i + 3] = 255; // A
+            }
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+
+        // Marcas de herramientas más realistas
+        ctx.globalCompositeOperation = 'overlay';
+        for (let i = 0; i < 40; i++) {
+            const x = Math.random() * size;
+            const y = Math.random() * size;
+            const length = Math.random() * 80 + 30;
+            const width = Math.random() * 12 + 4;
+            const angle = Math.random() * Math.PI;
+            
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+            
+            // Marca principal de la herramienta
+            const gradient = ctx.createLinearGradient(-length/2, -width/2, length/2, width/2);
+            gradient.addColorStop(0, 'rgba(248, 248, 246, 0)');
+            gradient.addColorStop(0.5, 'rgba(250, 248, 245, 0.6)');
+            gradient.addColorStop(1, 'rgba(248, 248, 246, 0)');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(-length/2, -width/2, length, width);
+            
+            ctx.restore();
+        }
+
+        // Variaciones sutiles de color por secado
+        ctx.globalCompositeOperation = 'soft-light';
+        for (let i = 0; i < 15; i++) {
+            const x = Math.random() * size;
+            const y = Math.random() * size;
+            const radius = Math.random() * 50 + 25;
+            
+            const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+            gradient.addColorStop(0, 'rgba(254, 252, 250, 0.3)');
+            gradient.addColorStop(0.7, 'rgba(251, 249, 247, 0.2)');
+            gradient.addColorStop(1, 'rgba(252, 250, 248, 0)');
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        return new THREE.CanvasTexture(canvas);
+    }
+
+    function generatePlasterNormal(size) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = size;
+        canvas.height = size;
+
+        ctx.fillStyle = '#8080ff';
+        ctx.fillRect(0, 0, size, size);
+
+        // Relieve suave del yeso
+        for (let i = 0; i < 60; i++) {
+            const x = Math.random() * size;
+            const y = Math.random() * size;
+            const radius = Math.random() * 25 + 8;
+            
+            const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+            gradient.addColorStop(0, `rgba(${125 + Math.random() * 10}, ${125 + Math.random() * 10}, 255, 0.2)`);
+            gradient.addColorStop(1, 'rgba(128, 128, 255, 0)');
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        return new THREE.CanvasTexture(canvas);
+    }
+
+    // Configurar texturas con validación
+    function configureTexture(texture) {
+        if (!texture) {
+            console.error('Textura inválida detectada');
+            return null;
+        }
+
+        try {
+            texture.generateMipmaps = true;
+            texture.minFilter = THREE.LinearMipmapLinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(2, 2);
+            texture.encoding = THREE.sRGBEncoding;
+            texture.needsUpdate = true;
+            return texture;
+        } catch (error) {
+            console.error('Error configurando textura:', error);
+            return null;
+        }
+    }
+
+    // Generar todas las texturas
+    textures.marble = configureTexture(generateMarbleTexture(1024));
+    textures.marbleNormal = configureTexture(generateMarbleNormal(1024));
+    
+    textures.stone = configureTexture(generateStoneTexture(1024));
+    textures.stoneNormal = configureTexture(generateStoneNormal(1024));
+    
+    textures.concrete = configureTexture(generateConcreteTexture(1024));
+    textures.concreteNormal = configureTexture(generateConcreteNormal(1024));
+    
+    textures.plaster = configureTexture(generatePlasterTexture(1024));
+    textures.plasterNormal = configureTexture(generatePlasterNormal(1024));
+
+    console.log('🎨 Texturas de paredes creadas exitosamente:', Object.keys(textures));
+    
+    return textures;
+}
+
+// Crear sistema de iluminación de techo en grid para cobertura completa
+function createCeilingLightGrid() {
+    // Grid de luces puntuales en el techo para iluminación uniforme
+    const gridSize = 4; // 4x4 = 16 luces (reducido de 5x5)
+    const spacing = 6;  // Espaciado entre luces (aumentado para cubrir con menos luces)
+    const height = 4.6; // Altura de las luces
+    const startX = -9;
+    const startZ = -9;
+
+    for (let x = 0; x < gridSize; x++) {
+        for (let z = 0; z < gridSize; z++) {
+            const posX = startX + (x * spacing);
+            const posZ = startZ + (z * spacing);
+
+            // Luz puntual principal - intensidad reducida
+            const ceilingLight = new THREE.PointLight(0xfff8e7, 9, 15, 2.0);
+            ceilingLight.position.set(posX, height, posZ);
+            ceilingLight.castShadow = false; // Desactivar sombras para optimizar
+            
+            scene.add(ceilingLight);
+
+            // Fixture visual pequeño para cada luz
+            const fixtureGeometry = new THREE.CylinderGeometry(0.12, 0.15, 0.08, 12);
+            const fixtureMaterial = new THREE.MeshPhysicalMaterial({
+                color: 0x2a2a2a,
+                roughness: 0.3,
+                metalness: 0.8,
+                emissive: 0xffffff,
+                emissiveIntensity: 0.05
+            });
+            const fixture = new THREE.Mesh(fixtureGeometry, fixtureMaterial);
+            fixture.position.set(posX, height + 0.2, posZ);
+            fixture.castShadow = false;
+            scene.add(fixture);
+
+            // Pequeño difusor
+            const diffuserGeometry = new THREE.CircleGeometry(0.18, 16);
+            const diffuserMaterial = new THREE.MeshPhysicalMaterial({
+                color: 0xffffff,
+                roughness: 0.9,
+                metalness: 0.0,
+                emissive: 0xfff5e6,
+                emissiveIntensity: 0.2,
+                transparent: true,
+                opacity: 0.9,
+                side: THREE.DoubleSide
+            });
+            const diffuser = new THREE.Mesh(diffuserGeometry, diffuserMaterial);
+            diffuser.position.set(posX, height + 0.15, posZ);
+            diffuser.rotation.x = -Math.PI / 2;
+            scene.add(diffuser);
+        }
+    }
+
+    console.log('💡 Sistema de iluminación de techo en grid creado: ' + (gridSize * gridSize) + ' luces');
+}
+
+// Crear galería más realista
+function createRealisticGallery() {
+    // Limpiar array de paredes para colisiones
+    walls = [];
+
+    // Material del suelo con textura de mármol mejorada pero compatible
+    const floorTexture = createLuxuryMarbleTexture();
+    const floorMaterial = new THREE.MeshPhysicalMaterial({
+        map: floorTexture.diffuse,
+        normalMap: floorTexture.normal,
+        color: 0xffffff,
+        roughness: 0.05,
+        metalness: 0.0,
+        reflectivity: 0.9,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.05,
+        envMapIntensity: 0.8
+    });
+
+    // Suelo principal con geometría más detallada
+    const floorGeometry = new THREE.PlaneGeometry(120, 120, 100, 100);
+
+    // Añadir variación sutil al suelo para mayor realismo
+    const vertices = floorGeometry.attributes.position.array;
+    for (let i = 2; i < vertices.length; i += 3) {
+        vertices[i] += (Math.random() - 0.5) * 0.008; // Variación muy sutil
+    }
+    floorGeometry.attributes.position.needsUpdate = true;
+    floorGeometry.computeVertexNormals();
+
+    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    // Crear texturas procedurales diferentes para cada pared
+    const wallTextures = createWallTextures();
+
+    // Paredes con más detalle y realismo
+    const wallHeight = 4.8;
+    const wallThickness = 0.25;
+
+    // Pared trasera (la que faltaba) - Textura de mármol elegante
+    const backWallGeometry = new THREE.BoxGeometry(28, wallHeight, wallThickness, 8, 8, 1);
+    const backWallMaterial = new THREE.MeshPhysicalMaterial({
+        map: wallTextures.marble,
+        normalMap: wallTextures.marbleNormal,
+        color: 0xffffff,
+        roughness: 0.2,
+        metalness: 0.0,
+        reflectivity: 0.5,
+        envMapIntensity: 0.7,
+        clearcoat: 0.6,
+        clearcoatRoughness: 0.1
+    });
+    const backWall = new THREE.Mesh(backWallGeometry, backWallMaterial);
+    backWall.position.set(0, wallHeight / 2, -14);
+    backWall.receiveShadow = true;
+    backWall.castShadow = true;
+    scene.add(backWall);
+    walls.push(backWall);
+
+    // Pared frontal (entrada) - Textura de piedra natural
+    const frontWallGeometry = new THREE.BoxGeometry(28, wallHeight, wallThickness, 8, 8, 1);
+    const frontWallMaterial = new THREE.MeshPhysicalMaterial({
+        map: wallTextures.stone,
+        normalMap: wallTextures.stoneNormal,
+        color: 0xffffff,
+        roughness: 0.8,
+        metalness: 0.0,
+        reflectivity: 0.2,
+        envMapIntensity: 0.4
+    });
+    const frontWall = new THREE.Mesh(frontWallGeometry, frontWallMaterial);
+    frontWall.position.set(0, wallHeight / 2, 14);
+    frontWall.receiveShadow = true;
+    frontWall.castShadow = true;
+    scene.add(frontWall);
+    walls.push(frontWall);
+
+    // Paredes laterales
+    const sideWallGeometry = new THREE.BoxGeometry(wallThickness, wallHeight, 28, 1, 8, 8);
+
+    // Pared izquierda - Textura de concreto moderno
+    const leftWallMaterial = new THREE.MeshPhysicalMaterial({
+        map: wallTextures.concrete,
+        normalMap: wallTextures.concreteNormal,
+        color: 0xf5f5f5,
+        roughness: 0.9,
+        metalness: 0.0,
+        reflectivity: 0.1,
+        envMapIntensity: 0.3
+    });
+    const leftWall = new THREE.Mesh(sideWallGeometry, leftWallMaterial);
+    leftWall.position.set(-14, wallHeight / 2, 0);
+    leftWall.receiveShadow = true;
+    leftWall.castShadow = true;
+    scene.add(leftWall);
+    walls.push(leftWall);
+
+    // Pared derecha - Textura de yeso con relieve sutil
+    const rightWallMaterial = new THREE.MeshPhysicalMaterial({
+        map: wallTextures.plaster,
+        normalMap: wallTextures.plasterNormal,
+        color: 0xfafafa,
+        roughness: 0.7,
+        metalness: 0.0,
+        reflectivity: 0.15,
+        envMapIntensity: 0.35
+    });
+    const rightWall = new THREE.Mesh(sideWallGeometry, rightWallMaterial);
+    rightWall.position.set(14, wallHeight / 2, 0);
+    rightWall.receiveShadow = true;
+    rightWall.castShadow = true;
+    scene.add(rightWall);
+    walls.push(rightWall);
+
+    // Techo complejo con tragaluz cerrado completamente
+    createCompleteCeiling();
+
+    // Detalles arquitectónicos adicionales
+    createArchitecturalDetails();
+}
+
+// Crear techo completo sin agujeros
+function createCompleteCeiling() {
+    const ceilingMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xffffff,
+        roughness: 0.7,
+        metalness: 0.0,
+        envMapIntensity: 0.2
+    });
+
+    // Techo principal COMPLETO - sin aberturas
+    const mainCeilingGeometry = new THREE.BoxGeometry(28, 0.2, 28);
+    const mainCeiling = new THREE.Mesh(mainCeilingGeometry, ceilingMaterial);
+    mainCeiling.position.set(0, 4.9, 0);
+    mainCeiling.receiveShadow = true;
+    mainCeiling.castShadow = true;
+    scene.add(mainCeiling);
+
+    // Crear tragaluz con marco de vidrio SOBRE el techo (no un agujero)
+    createSkylight();
+
+    // Vigas estructurales decorativas
+    createCeilingBeams();
+}
+
+// Crear tragaluz realista SOBRE el techo
+function createSkylight() {
+    // Marco del tragaluz elevado
+    const frameThickness = 0.15;
+    const skylightSize = 8;
+    const elevation = 0.3; // Elevación sobre el techo
+
+    const frameMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x666666,
+        roughness: 0.2,
+        metalness: 0.9,
+        envMapIntensity: 1.0
+    });
+
+    // Marco exterior elevado
+    const frameGeometry = new THREE.BoxGeometry(skylightSize + frameThickness * 2, frameThickness, skylightSize + frameThickness * 2);
+    const frame = new THREE.Mesh(frameGeometry, frameMaterial);
+    frame.position.set(0, 5.0 + elevation, 0);
+    frame.castShadow = true;
+    scene.add(frame);
+
+    // Paredes del tragaluz (para crear profundidad)
+    const wallHeight = elevation;
+    const skylightWalls = [
+        { size: [frameThickness, wallHeight, skylightSize + frameThickness * 2], pos: [-(skylightSize / 2 + frameThickness), 5.0 + wallHeight / 2, 0] },
+        { size: [frameThickness, wallHeight, skylightSize + frameThickness * 2], pos: [skylightSize / 2 + frameThickness, 5.0 + wallHeight / 2, 0] },
+        { size: [skylightSize, wallHeight, frameThickness], pos: [0, 5.0 + wallHeight / 2, -(skylightSize / 2 + frameThickness)] },
+        { size: [skylightSize, wallHeight, frameThickness], pos: [0, 5.0 + wallHeight / 2, skylightSize / 2 + frameThickness] }
+    ];
+
+    skylightWalls.forEach(wall => {
+        const wallGeometry = new THREE.BoxGeometry(...wall.size);
+        const wallMesh = new THREE.Mesh(wallGeometry, frameMaterial);
+        wallMesh.position.set(...wall.pos);
+        wallMesh.castShadow = true;
+        wallMesh.receiveShadow = true;
+        scene.add(wallMesh);
+    });
+
+    // Vidrio del tragaluz con propiedades físicas realistas
+    const glassGeometry = new THREE.PlaneGeometry(skylightSize, skylightSize);
+    const glassMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.05,
+        roughness: 0.0,
+        metalness: 0.0,
+        transmission: 0.98,
+        envMapIntensity: 1.0,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.0
+    });
+
+    const glass = new THREE.Mesh(glassGeometry, glassMaterial);
+    glass.position.set(0, 5.0 + elevation + frameThickness / 2, 0);
+    glass.rotation.x = -Math.PI / 2;
+    scene.add(glass);
+}
+
+// Crear vigas del techo
+function createCeilingBeams() {
+    const beamMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xe8e8e8,
+        roughness: 0.6,
+        metalness: 0.1,
+        envMapIntensity: 0.4
+    });
+
+    // Vigas principales
+    const mainBeamPositions = [
+        { size: [0.3, 0.5, 28], pos: [-4, 4.7, 0] },
+        { size: [0.3, 0.5, 28], pos: [4, 4.7, 0] },
+        { size: [28, 0.5, 0.3], pos: [0, 4.7, -4] },
+        { size: [28, 0.5, 0.3], pos: [0, 4.7, 4] }
+    ];
+
+    mainBeamPositions.forEach(beam => {
+        const geometry = new THREE.BoxGeometry(...beam.size);
+        const mesh = new THREE.Mesh(geometry, beamMaterial);
+        mesh.position.set(...beam.pos);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        scene.add(mesh);
+    });
+}
+
+// Detalles arquitectónicos adicionales
+function createArchitecturalDetails() {
+    // Molduras base más detalladas
+    const moldingMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xf5f5f5,
+        roughness: 0.6,
+        metalness: 0.05,
+        envMapIntensity: 0.3
+    });
+
+    // Molduras horizontales en las paredes
+    const moldingConfigs = [
+        { size: [28, 0.08, 0.08], pos: [0, 0.1, -13.9] },
+        { size: [28, 0.08, 0.08], pos: [0, 4.6, -13.9] },
+        { size: [0.08, 4.8, 0.08], pos: [-13.9, 2.4, 0] },
+        { size: [0.08, 4.8, 0.08], pos: [13.9, 2.4, 0] }
+    ];
+
+    moldingConfigs.forEach(molding => {
+        const geometry = new THREE.BoxGeometry(...molding.size);
+        const mesh = new THREE.Mesh(geometry, moldingMaterial);
+        mesh.position.set(...molding.pos);
+        mesh.castShadow = true;
+        scene.add(mesh);
+    });
+
+    // Crear columnas decorativas
+    createDecorativePillars();
+
+    // Añadir rodapiés
+    createBaseboards();
+    
+    // Elementos arquitectónicos sutiles
+    implementWallSconces();
+    createBackWallDecoration();
+}
+
+// Crear columnas decorativas
+function createDecorativePillars() {
+    const pillarMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xf8f8f8,
+        roughness: 0.4,
+        metalness: 0.1,
+        envMapIntensity: 0.6
+    });
+
+    const pillarPositions = [
+        [-12, 2.4, -12],
+        [12, 2.4, -12],
+        [-12, 2.4, 12],
+        [12, 2.4, 12]
+    ];
+
+    pillarPositions.forEach(pos => {
+        // Base de la columna
+        const baseGeometry = new THREE.CylinderGeometry(0.35, 0.4, 0.3, 16);
+        const base = new THREE.Mesh(baseGeometry, pillarMaterial);
+        base.position.set(pos[0], 0.15, pos[2]);
+        base.castShadow = true;
+        base.receiveShadow = true;
+        scene.add(base);
+
+        // Fuste de la columna
+        const shaftGeometry = new THREE.CylinderGeometry(0.25, 0.3, 4.2, 16);
+        const shaft = new THREE.Mesh(shaftGeometry, pillarMaterial);
+        shaft.position.set(pos[0], pos[1], pos[2]);
+        shaft.castShadow = true;
+        shaft.receiveShadow = true;
+        scene.add(shaft);
+
+        // Capitel
+        const capitalGeometry = new THREE.CylinderGeometry(0.4, 0.25, 0.3, 16);
+        const capital = new THREE.Mesh(capitalGeometry, pillarMaterial);
+        capital.position.set(pos[0], 4.65, pos[2]);
+        capital.castShadow = true;
+        capital.receiveShadow = true;
+        scene.add(capital);
+        
+        // Agregar colisión para esta columna
+        decorationCollisions.push({
+            x: pos[0],
+            z: pos[2],
+            radius: 0.5 // Radio de colisión de la columna
+        });
+    });
+    
+    console.log('🏛️ Columnas decorativas creadas con colisiones');
+}
+
+// Crear rodapiés
+function createBaseboards() {
+    const baseboardMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xf0f0f0,
+        roughness: 0.7,
+        metalness: 0.05,
+        polygonOffset: true,
+        polygonOffsetFactor: -1,
+        polygonOffsetUnits: -1
+    });
+
+    const baseboardConfigs = [
+        { size: [28, 0.15, 0.1], pos: [0, 0.075, -13.85] },  // Más afuera y más grueso
+        { size: [0.1, 0.15, 28], pos: [-13.85, 0.075, 0] },  // Más afuera y más grueso
+        { size: [0.1, 0.15, 28], pos: [13.85, 0.075, 0] }    // Más afuera y más grueso
+    ];
+
+    baseboardConfigs.forEach(board => {
+        const geometry = new THREE.BoxGeometry(...board.size);
+        const mesh = new THREE.Mesh(geometry, baseboardMaterial);
+        mesh.position.set(...board.pos);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        mesh.renderOrder = 1; // Asegurar que se renderice correctamente
+        scene.add(mesh);
+    });
+}
+
+// Iluminación avanzada y realista
+function setupAdvancedLighting() {
+    // Luz ambiental reducida para evitar sobreexposición
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.18);
+    scene.add(ambientLight);
+
+    // Sistema de iluminación de techo en grid para cobertura completa
+    createCeilingLightGrid();
+
+    // Luz principal del tragaluz (reducida)
+    const mainSkylight = new THREE.DirectionalLight(0xfff8dc, 0.9);
+    mainSkylight.position.set(2, 20, 3);
+    mainSkylight.target.position.set(0, 0, 0);
+    mainSkylight.castShadow = true;
+
+    // Configuración de sombras optimizada (reducida para performance)
+    mainSkylight.shadow.mapSize.width = 2048; // Reducido de 4096
+    mainSkylight.shadow.mapSize.height = 2048;
+    mainSkylight.shadow.camera.near = 1;
+    mainSkylight.shadow.camera.far = 50;
+    mainSkylight.shadow.camera.left = -25;
+    mainSkylight.shadow.camera.right = 25;
+    mainSkylight.shadow.camera.top = 25;
+    mainSkylight.shadow.camera.bottom = -25;
+    mainSkylight.shadow.bias = REALISTIC_CONFIG.lighting.shadowBias;
+    mainSkylight.shadow.radius = 8; // Reducido de 12
+
+    scene.add(mainSkylight);
+    scene.add(mainSkylight.target);
+
+    // Luces de relleno reducidas
+    const fillLight1 = new THREE.DirectionalLight(0xbde3ff, 0.27);
+    fillLight1.position.set(-15, 12, 8);
+    scene.add(fillLight1);
+
+    const fillLight2 = new THREE.DirectionalLight(0xffe4b5, 0.22);
+    fillLight2.position.set(15, 8, -8);
+    scene.add(fillLight2);
+
+    const fillLight3 = new THREE.DirectionalLight(0xffffff, 0.18);
+    fillLight3.position.set(0, 15, 10);
+    scene.add(fillLight3);
+
+    // Focos LED realistas para obras
+    createRealisticSpotlights();
+
+    // Iluminación de ambiente general
+    createAmbientLighting();
+    
+    console.log('💡 Sistema de iluminación completo inicializado');
+}
+
+// Crear focos LED realistas
+function createRealisticSpotlights() {
+    const spotLightConfigs = [
+        // Pared trasera - obras principales (solo estas con sombras)
+        { pos: [0, 4.4, -12], target: [0, 2.8, -13.7], intensity: 31, color: 0xffffff, castShadow: true },
+        { pos: [-6, 4.4, -12], target: [-6, 2.8, -13.7], intensity: 27, color: 0xfff8dc, castShadow: true },
+        { pos: [6, 4.4, -12], target: [6, 2.8, -13.7], intensity: 27, color: 0xfff8dc, castShadow: true },
+        // Paredes laterales (sin sombras)
+        { pos: [-12, 4.4, -3], target: [-13.7, 2.8, -3], intensity: 22, color: 0xffffff, castShadow: false },
+        { pos: [-12, 4.4, 6], target: [-13.7, 2.5, 6], intensity: 22, color: 0xfff8dc, castShadow: false },
+        { pos: [12, 4.4, 3], target: [13.7, 2.8, 3], intensity: 22, color: 0xffffff, castShadow: false },
+        { pos: [12, 4.4, -6], target: [13.7, 2.5, -6], intensity: 22, color: 0xfff8dc, castShadow: false },
+        // Pared frontal (sin sombras)
+        { pos: [-3, 4.4, 12], target: [-3, 2.0, 13.7], intensity: 19, color: 0xfff8dc, castShadow: false },
+        { pos: [0, 4.4, 12], target: [0, 2.3, 13.7], intensity: 19, color: 0xffffff, castShadow: false },
+        { pos: [3, 4.4, 12], target: [3, 2.0, 13.7], intensity: 19, color: 0xfff8dc, castShadow: false }
+    ];
+
+    spotLightConfigs.forEach((config, index) => {
+        // Spotlight principal con parámetros más realistas
+        const spotLight = new THREE.SpotLight(config.color, config.intensity, 25, Math.PI / 9, 0.6, 1.5);
+        spotLight.position.set(...config.pos);
+        spotLight.target.position.set(...config.target);
+        spotLight.castShadow = config.castShadow;
+
+        if (config.castShadow) {
+            spotLight.shadow.mapSize.width = 1024; // Reducido de 2048
+            spotLight.shadow.mapSize.height = 1024;
+            spotLight.shadow.camera.near = 0.5;
+            spotLight.shadow.camera.far = 25;
+            spotLight.shadow.bias = -0.0002;
+            spotLight.shadow.radius = 8;
+        }
+
+        scene.add(spotLight);
+        scene.add(spotLight.target);
+
+        // Fixture físico del foco
+        createSpotlightFixture(config.pos);
+
+        // Luz de relleno muy suave
+        const fillLight = new THREE.PointLight(config.color, config.intensity * 0.3, 18, 2);
+        fillLight.position.set(config.pos[0], config.pos[1] - 0.8, config.pos[2]);
+        scene.add(fillLight);
+    });
+
+    console.log('🔦 Focos LED creados: ' + spotLightConfigs.length + ' spotlights');
+}
+
+// Crear fixture físico del foco
+function createSpotlightFixture(position) {
+    const fixtureGroup = new THREE.Group();
+
+    // Base del foco con material metálico realista
+    const baseGeometry = new THREE.CylinderGeometry(0.18, 0.18, 0.12, 16);
+    const baseMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x222222,
+        roughness: 0.2,
+        metalness: 0.9,
+        envMapIntensity: 1.0
+    });
+    const base = new THREE.Mesh(baseGeometry, baseMaterial);
+    base.position.set(0, -0.06, 0);
+    base.castShadow = true;
+    fixtureGroup.add(base);
+
+    // Cono del foco con reflector interior
+    const coneGeometry = new THREE.ConeGeometry(0.15, 0.35, 16);
+    const coneMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x333333,
+        roughness: 0.1,
+        metalness: 0.95,
+        envMapIntensity: 1.2
+    });
+    const cone = new THREE.Mesh(coneGeometry, coneMaterial);
+    cone.position.set(0, -0.3, 0);
+    cone.rotation.x = Math.PI;
+    cone.castShadow = true;
+    fixtureGroup.add(cone);
+
+    // Reflector interior
+    const reflectorGeometry = new THREE.ConeGeometry(0.12, 0.25, 16);
+    const reflectorMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xffffff,
+        roughness: 0.05,
+        metalness: 0.95,
+        envMapIntensity: 1.5
+    });
+    const reflector = new THREE.Mesh(reflectorGeometry, reflectorMaterial);
+    reflector.position.set(0, -0.25, 0);
+    reflector.rotation.x = Math.PI;
+    fixtureGroup.add(reflector);
+
+    fixtureGroup.position.set(...position);
+    scene.add(fixtureGroup);
+}
+
+// Iluminación ambiente adicional
+function createAmbientLighting() {
+    // Luces de pared indirectas - reducidas en intensidad
+    const wallLightPositions = [
+        // Pared izquierda
+        [-13.5, 3.2, -8], [-13.5, 3.2, 0], [-13.5, 3.2, 8],
+        // Pared derecha
+        [13.5, 3.2, -8], [13.5, 3.2, 0], [13.5, 3.2, 8],
+        // Pared trasera
+        [-6, 3.2, -13.5], [0, 3.2, -13.5], [6, 3.2, -13.5],
+        // Pared frontal
+        [-6, 3.2, 13.5], [0, 3.2, 13.5], [6, 3.2, 13.5]
+    ];
+
+    wallLightPositions.forEach(pos => {
+        const wallLight = new THREE.PointLight(0xfff5e6, 13, 12, 2);
+        wallLight.position.set(...pos);
+        scene.add(wallLight);
+    });
+
+    // Luces en las esquinas - reducidas
+    const cornerLights = [
+        { pos: [-12, 3.5, -12], intensity: 18 },
+        { pos: [12, 3.5, -12], intensity: 18 },
+        { pos: [-12, 3.5, 12], intensity: 18 },
+        { pos: [12, 3.5, 12], intensity: 18 }
+    ];
+
+    cornerLights.forEach(light => {
+        const cornerLight = new THREE.PointLight(0xffffff, light.intensity, 16, 2);
+        cornerLight.position.set(...light.pos);
+        scene.add(cornerLight);
+    });
+
+    // Iluminación de suelo indirecta - reducida
+    const floorLights = [
+        // Centro y cuadrantes principales
+        { pos: [0, 0.1, 0], color: 0xffffff, intensity: 10 },
+        { pos: [-7, 0.1, -7], color: 0xfff8dc, intensity: 7 },
+        { pos: [7, 0.1, -7], color: 0xfff8dc, intensity: 7 },
+        { pos: [-7, 0.1, 7], color: 0xfff8dc, intensity: 7 },
+        { pos: [7, 0.1, 7], color: 0xfff8dc, intensity: 7 }
+    ];
+
+    floorLights.forEach(light => {
+        const floorLight = new THREE.PointLight(light.color, light.intensity, 12, 2.5);
+        floorLight.position.set(...light.pos);
+        scene.add(floorLight);
+    });
+
+    console.log('💡 Iluminación ambiente creada: ' + (wallLightPositions.length + cornerLights.length + floorLights.length) + ' luces');
+}
+
+// Crear aplique de pared más detallado
+function createWallSconce(position) {
+    const sconceGroup = new THREE.Group();
+
+    // Base del aplique
+    const baseGeometry = new THREE.CylinderGeometry(0.08, 0.1, 0.15, 12);
+    const baseMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x444444,
+        roughness: 0.3,
+        metalness: 0.8,
+        envMapIntensity: 0.8
+    });
+    const base = new THREE.Mesh(baseGeometry, baseMaterial);
+    base.position.set(0, 0, 0.05);
+    base.castShadow = true;
+    sconceGroup.add(base);
+
+    // Pantalla del aplique
+    const shadeGeometry = new THREE.SphereGeometry(0.12, 16, 16);
+    const shadeMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xffffff,
+        roughness: 0.05,
+        metalness: 0.0,
+        transparent: true,
+        opacity: 0.9,
+        emissive: 0xfff5e6,
+        emissiveIntensity: 0.3,
+        transmission: 0.8
+    });
+
+    const shade = new THREE.Mesh(shadeGeometry, shadeMaterial);
+    shade.position.set(0, 0, 0.1);
+    sconceGroup.add(shade);
+
+    sconceGroup.position.set(...position);
+    scene.add(sconceGroup);
+}
+
+// Crear molduras con perfil extruido para zócalos y cornisas
+function createExtrudedMolding() {
+    // Crear perfil de moldura en forma de S elegante
+    const moldingShape = new THREE.Shape();
+    moldingShape.moveTo(0, 0);
+    moldingShape.lineTo(0.15, 0);
+    moldingShape.quadraticCurveTo(0.2, 0.02, 0.18, 0.05);
+    moldingShape.quadraticCurveTo(0.16, 0.08, 0.12, 0.08);
+    moldingShape.quadraticCurveTo(0.08, 0.08, 0.05, 0.12);
+    moldingShape.lineTo(0, 0.12);
+    moldingShape.lineTo(0, 0);
+
+    const moldingMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xf5f5f5,
+        roughness: 0.5,
+        metalness: 0.05,
+        clearcoat: 0.1
+    });
+
+    // Configuraciones para diferentes molduras
+    const moldingConfigs = [
+        // Cornisas superiores (bajo el techo)
+        { 
+            path: [
+                new THREE.Vector3(-14, 4.85, -14),
+                new THREE.Vector3(14, 4.85, -14)
+            ],
+            name: 'cornice-back'
+        },
+        {
+            path: [
+                new THREE.Vector3(-14, 4.85, -14),
+                new THREE.Vector3(-14, 4.85, 14)
+            ],
+            name: 'cornice-left'
+        },
+        {
+            path: [
+                new THREE.Vector3(14, 4.85, -14),
+                new THREE.Vector3(14, 4.85, 14)
+            ],
+            name: 'cornice-right'
+        },
+        // Zócalos mejorados (al nivel del suelo)
+        {
+            path: [
+                new THREE.Vector3(-14, 0.1, -14),
+                new THREE.Vector3(14, 0.1, -14)
+            ],
+            name: 'baseboard-back'
+        },
+        {
+            path: [
+                new THREE.Vector3(-14, 0.1, -14),
+                new THREE.Vector3(-14, 0.1, 14)
+            ],
+            name: 'baseboard-left'
+        },
+        {
+            path: [
+                new THREE.Vector3(14, 0.1, -14),
+                new THREE.Vector3(14, 0.1, 14)
+            ],
+            name: 'baseboard-right'
+        }
+    ];
+
+    moldingConfigs.forEach(config => {
+        const curve = new THREE.CatmullRomCurve3(config.path);
+        const extrudeSettings = {
+            steps: 100,
+            bevelEnabled: false,
+            extrudePath: curve
+        };
+
+        const geometry = new THREE.ExtrudeGeometry(moldingShape, extrudeSettings);
+        const mesh = new THREE.Mesh(geometry, moldingMaterial);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        mesh.userData = { type: 'molding', name: config.name };
+        scene.add(mesh);
+    });
+
+    console.log('🏛️ Molduras arquitectónicas extruidas creadas');
+}
+
+// Crear paneles decorativos en las paredes (wainscoting)
+function createWallPanels() {
+    const panelMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xe8e8e8,
+        roughness: 0.6,
+        metalness: 0.02,
+        clearcoat: 0.05
+    });
+
+    const panelFrameMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xd0d0d0,
+        roughness: 0.4,
+        metalness: 0.1
+    });
+
+    const panelConfigs = [
+        // Pared izquierda - 4 paneles
+        { pos: [-13.85, 2.0, -9], size: [0.05, 1.5, 2.5] },
+        { pos: [-13.85, 2.0, -5], size: [0.05, 1.5, 2.5] },
+        { pos: [-13.85, 2.0, 5], size: [0.05, 1.5, 2.5] },
+        { pos: [-13.85, 2.0, 9], size: [0.05, 1.5, 2.5] },
+        
+        // Pared derecha - 4 paneles
+        { pos: [13.85, 2.0, -9], size: [0.05, 1.5, 2.5] },
+        { pos: [13.85, 2.0, -5], size: [0.05, 1.5, 2.5] },
+        { pos: [13.85, 2.0, 5], size: [0.05, 1.5, 2.5] },
+        { pos: [13.85, 2.0, 9], size: [0.05, 1.5, 2.5] },
+        
+        // Pared trasera - entre obras
+        { pos: [-9, 2.0, -13.85], size: [2.0, 1.5, 0.05] },
+        { pos: [-3, 2.0, -13.85], size: [2.0, 1.5, 0.05] },
+        { pos: [3, 2.0, -13.85], size: [2.0, 1.5, 0.05] },
+        { pos: [9, 2.0, -13.85], size: [2.0, 1.5, 0.05] }
+    ];
+
+    panelConfigs.forEach(config => {
+        // Panel principal
+        const panelGeometry = new THREE.BoxGeometry(...config.size);
+        const panel = new THREE.Mesh(panelGeometry, panelMaterial);
+        panel.position.set(...config.pos);
+        panel.castShadow = true;
+        panel.receiveShadow = true;
+        scene.add(panel);
+
+        // Marco del panel (más oscuro)
+        const frameThickness = 0.03;
+        const frameDepth = config.size[0] > 0.1 ? config.size[0] + 0.01 : config.size[2] + 0.01;
+        
+        // Marco superior
+        const topFrame = new THREE.Mesh(
+            new THREE.BoxGeometry(
+                config.size[0] > 0.1 ? config.size[0] + 0.1 : frameThickness,
+                frameThickness,
+                config.size[2] > 0.1 ? config.size[2] + 0.1 : frameThickness
+            ),
+            panelFrameMaterial
+        );
+        topFrame.position.set(config.pos[0], config.pos[1] + config.size[1]/2 + frameThickness/2, config.pos[2]);
+        topFrame.castShadow = true;
+        scene.add(topFrame);
+
+        // Marco inferior
+        const bottomFrame = topFrame.clone();
+        bottomFrame.position.y = config.pos[1] - config.size[1]/2 - frameThickness/2;
+        scene.add(bottomFrame);
+    });
+
+    console.log('🎨 Paneles decorativos de pared creados');
+}
+
+// Crear marcos de puerta ficticios para sensación de continuidad
+function createDoorFrames() {
+    const doorFrameMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x8b7355,
+        roughness: 0.7,
+        metalness: 0.1,
+        clearcoat: 0.3
+    });
+
+    const doorConfigs = [
+        // Puerta en pared izquierda
+        { pos: [-13.9, 2.0, 0], rotation: [0, Math.PI/2, 0] },
+        // Puerta en pared derecha
+        { pos: [13.9, 2.0, 0], rotation: [0, -Math.PI/2, 0] }
+    ];
+
+    doorConfigs.forEach(config => {
+        const doorGroup = new THREE.Group();
+
+        // Marco vertical izquierdo
+        const leftJamb = new THREE.Mesh(
+            new THREE.BoxGeometry(0.15, 4.0, 0.15),
+            doorFrameMaterial
+        );
+        leftJamb.position.set(-1.1, 2.0, 0);
+        leftJamb.castShadow = true;
+        doorGroup.add(leftJamb);
+
+        // Marco vertical derecho
+        const rightJamb = leftJamb.clone();
+        rightJamb.position.x = 1.1;
+        doorGroup.add(rightJamb);
+
+        // Marco superior (dintel)
+        const lintel = new THREE.Mesh(
+            new THREE.BoxGeometry(2.5, 0.25, 0.15),
+            doorFrameMaterial
+        );
+        lintel.position.set(0, 4.0, 0);
+        lintel.castShadow = true;
+        doorGroup.add(lintel);
+
+        // Detalle arquitectónico sobre la puerta
+        const pediment = new THREE.Mesh(
+            new THREE.BoxGeometry(2.7, 0.1, 0.2),
+            doorFrameMaterial
+        );
+        pediment.position.set(0, 4.2, 0);
+        pediment.castShadow = true;
+        doorGroup.add(pediment);
+
+        doorGroup.position.set(...config.pos);
+        doorGroup.rotation.set(...config.rotation);
+        scene.add(doorGroup);
+    });
+
+    console.log('🚪 Marcos de puerta ficticios creados');
+}
+
+// Crear iluminación toe-kick (iluminación del rodapié)
+function createToeKickLighting() {
+    const toeKickPositions = [
+        // Pared trasera
+        ...Array.from({length: 14}, (_, i) => [-13 + i * 2, 0.05, -13.8]),
+        // Pared izquierda
+        ...Array.from({length: 14}, (_, i) => [-13.8, 0.05, -13 + i * 2]),
+        // Pared derecha
+        ...Array.from({length: 14}, (_, i) => [13.8, 0.05, -13 + i * 2])
+    ];
+
+    toeKickPositions.forEach(pos => {
+        const toeLight = new THREE.PointLight(0xfff8e1, 0.8, 3, 2);
+        toeLight.position.set(...pos);
+        toeLight.castShadow = false; // No sombras para optimización
+        scene.add(toeLight);
+    });
+
+    console.log('💡 Iluminación toe-kick del rodapié creada');
+}
+
+// Implementar apliques de pared estratégicamente
+function implementWallSconces() {
+    const sconcePositions = [
+        // Pared trasera - entre obras
+        [-9, 3.2, -13.8],
+        [-3, 3.2, -13.8],
+        [3, 3.2, -13.8],
+        [9, 3.2, -13.8],
+        
+        // Esquinas
+        [-13.7, 3.2, -10],
+        [-13.7, 3.2, 10],
+        [13.7, 3.2, -10],
+        [13.7, 3.2, 10]
+    ];
+
+    sconcePositions.forEach(pos => {
+        createWallSconce(pos);
+        
+        // Añadir luz indirecta del aplique
+        const sconceLight = new THREE.SpotLight(0xfff5e6, 8, 5, Math.PI / 6, 0.5, 2);
+        sconceLight.position.set(...pos);
+        sconceLight.target.position.set(pos[0], pos[1] + 2, pos[2]);
+        sconceLight.castShadow = false;
+        scene.add(sconceLight);
+        scene.add(sconceLight.target);
+    });
+
+    console.log('🕯️ Apliques de pared implementados');
+}
+
+// Crear decoración para extremos de la pared trasera
+function createBackWallDecoration() {
+    // Material para elementos decorativos
+    const decorMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xe0e0e0,
+        roughness: 0.5,
+        metalness: 0.2,
+        clearcoat: 0.2
+    });
+
+    const accentMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xc9a961, // Dorado suave
+        roughness: 0.3,
+        metalness: 0.6,
+        clearcoat: 0.3
+    });
+
+    // EXTREMO IZQUIERDO (cerca de -10 a -12)
+    
+    // Panel decorativo vertical izquierdo
+    const leftPanel = new THREE.Mesh(
+        new THREE.BoxGeometry(1.5, 2.5, 0.08),
+        decorMaterial
+    );
+    leftPanel.position.set(-11, 2.5, -13.75);
+    leftPanel.castShadow = true;
+    leftPanel.receiveShadow = true;
+    scene.add(leftPanel);
+
+    // Marco dorado para el panel izquierdo
+    const leftFrameTop = new THREE.Mesh(
+        new THREE.BoxGeometry(1.6, 0.08, 0.1),
+        accentMaterial
+    );
+    leftFrameTop.position.set(-11, 3.75, -13.73);
+    leftFrameTop.castShadow = true;
+    scene.add(leftFrameTop);
+
+    const leftFrameBottom = leftFrameTop.clone();
+    leftFrameBottom.position.y = 1.25;
+    scene.add(leftFrameBottom);
+
+    // Aplique decorativo vertical izquierdo
+    const leftSconce = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.06, 0.08, 1.2, 16),
+        accentMaterial
+    );
+    leftSconce.position.set(-12.5, 2.5, -13.78);
+    leftSconce.castShadow = true;
+    scene.add(leftSconce);
+
+    // Luz de acento para el aplique izquierdo
+    const leftAccentLight = new THREE.SpotLight(0xfff5e6, 12, 4, Math.PI / 5, 0.5, 2);
+    leftAccentLight.position.set(-12.5, 3.5, -13.7);
+    leftAccentLight.target.position.set(-11, 2.5, -13.7);
+    leftAccentLight.castShadow = false;
+    scene.add(leftAccentLight);
+    scene.add(leftAccentLight.target);
+
+    // EXTREMO DERECHO (cerca de 10 a 12)
+    
+    // Panel decorativo vertical derecho
+    const rightPanel = new THREE.Mesh(
+        new THREE.BoxGeometry(1.5, 2.5, 0.08),
+        decorMaterial
+    );
+    rightPanel.position.set(11, 2.5, -13.75);
+    rightPanel.castShadow = true;
+    rightPanel.receiveShadow = true;
+    scene.add(rightPanel);
+
+    // Marco dorado para el panel derecho
+    const rightFrameTop = new THREE.Mesh(
+        new THREE.BoxGeometry(1.6, 0.08, 0.1),
+        accentMaterial
+    );
+    rightFrameTop.position.set(11, 3.75, -13.73);
+    rightFrameTop.castShadow = true;
+    scene.add(rightFrameTop);
+
+    const rightFrameBottom = rightFrameTop.clone();
+    rightFrameBottom.position.y = 1.25;
+    scene.add(rightFrameBottom);
+
+    // Aplique decorativo vertical derecho
+    const rightSconce = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.06, 0.08, 1.2, 16),
+        accentMaterial
+    );
+    rightSconce.position.set(12.5, 2.5, -13.78);
+    rightSconce.castShadow = true;
+    scene.add(rightSconce);
+
+    // Luz de acento para el aplique derecho
+    const rightAccentLight = new THREE.SpotLight(0xfff5e6, 12, 4, Math.PI / 5, 0.5, 2);
+    rightAccentLight.position.set(12.5, 3.5, -13.7);
+    rightAccentLight.target.position.set(11, 2.5, -13.7);
+    rightAccentLight.castShadow = false;
+    scene.add(rightAccentLight);
+    scene.add(rightAccentLight.target);
+
+    // ELEMENTOS ADICIONALES EN LOS EXTREMOS
+    
+    // Pequeñas plantas decorativas en los extremos
+    createMuseumPlant({ position: [-12.8, 0, -12.5], type: 'small' });
+    createMuseumPlant({ position: [12.8, 0, -12.5], type: 'small' });
+
+    // Bases decorativas pequeñas bajo los paneles
+    const leftBase = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.4, 0.45, 0.2, 16),
+        accentMaterial
+    );
+    leftBase.position.set(-11, 0.1, -13.6);
+    leftBase.receiveShadow = true;
+    scene.add(leftBase);
+
+    const rightBase = leftBase.clone();
+    rightBase.position.x = 11;
+    scene.add(rightBase);
+
+    // AGREGAR COLISIONES PARA LOS PANELES DECORATIVOS
+    decorationCollisions.push(
+        { x: -11, z: -13.6, radius: 0.8 }, // Panel izquierdo
+        { x: 11, z: -13.6, radius: 0.8 },  // Panel derecho
+        { x: -12.8, z: -12.5, radius: 0.4 }, // Planta izquierda
+        { x: 12.8, z: -12.5, radius: 0.4 }   // Planta derecha
+    );
+
+    console.log('🎨 Decoración de extremos de pared trasera creada');
+}
+
+// Crear Muro de Homenaje al Artista Byron Gálvez
+// Crear texturas procedurales para las obras
+function createProceduralTexture(type, width, height) {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+
+    // Crear gradiente base
+    const gradient = ctx.createLinearGradient(0, 0, width, height);
+
+    switch (type) {
+        case 'abstract-digital':
+            // Patrón digital abstracto
+            gradient.addColorStop(0, '#1e3a8a');
+            gradient.addColorStop(0.3, '#3b82f6');
+            gradient.addColorStop(0.6, '#60a5fa');
+            gradient.addColorStop(1, '#dbeafe');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+
+            // Agregar formas geométricas
+            ctx.globalCompositeOperation = 'overlay';
+            for (let i = 0; i < 20; i++) {
+                ctx.fillStyle = `hsla(${Math.random() * 60 + 200}, 70%, 60%, 0.3)`;
+                const x = Math.random() * width;
+                const y = Math.random() * height;
+                const size = Math.random() * 100 + 20;
+                ctx.fillRect(x, y, size, size);
+            }
+            break;
+
+        case 'urban-reflections':
+            // Reflecciones urbanas
+            gradient.addColorStop(0, '#374151');
+            gradient.addColorStop(0.5, '#6b7280');
+            gradient.addColorStop(1, '#d1d5db');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+
+            // Líneas verticales como edificios
+            ctx.globalCompositeOperation = 'multiply';
+            ctx.strokeStyle = '#1f2937';
+            ctx.lineWidth = 3;
+            for (let i = 0; i < 15; i++) {
+                const x = (i / 15) * width;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            break;
+
+        case 'infinite-horizons':
+            // Horizontes infinitos
+            gradient.addColorStop(0, '#f59e0b');
+            gradient.addColorStop(0.4, '#fbbf24');
+            gradient.addColorStop(0.6, '#fde047');
+            gradient.addColorStop(1, '#fef3c7');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+
+            // Círculos concéntricos
+            ctx.globalCompositeOperation = 'overlay';
+            const centerX = width / 2;
+            const centerY = height / 2;
+            for (let i = 1; i <= 8; i++) {
+                ctx.strokeStyle = `hsla(45, 100%, ${80 - i * 5}%, 0.4)`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, i * 30, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            break;
+
+        case 'emotional-geometry':
+            // Geometría emocional
+            gradient.addColorStop(0, '#7c3aed');
+            gradient.addColorStop(0.5, '#a855f7');
+            gradient.addColorStop(1, '#ddd6fe');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+
+            // Triángulos y formas geométricas
+            ctx.globalCompositeOperation = 'overlay';
+            for (let i = 0; i < 12; i++) {
+                const x = Math.random() * width;
+                const y = Math.random() * height;
+                const size = Math.random() * 60 + 20;
+
+                ctx.fillStyle = `hsla(${280 + Math.random() * 40}, 70%, 60%, 0.5)`;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + size, y);
+                ctx.lineTo(x + size / 2, y - size);
+                ctx.closePath();
+                ctx.fill();
+            }
+            break;
+
+        case 'visual-synesthesia':
+            // Sinestesia visual
+            gradient.addColorStop(0, '#ec4899');
+            gradient.addColorStop(0.3, '#f472b6');
+            gradient.addColorStop(0.7, '#fbbf24');
+            gradient.addColorStop(1, '#fef3c7');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+
+            // Ondas sinusoidales
+            ctx.globalCompositeOperation = 'overlay';
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 5; i++) {
+                ctx.beginPath();
+                for (let x = 0; x < width; x += 2) {
+                    const y = height / 2 + Math.sin((x + i * 50) * 0.02) * (30 + i * 10);
+                    if (x === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.stroke();
+            }
+            break;
+
+        default:
+        case 'fallback':
+            // Patrón de fallback simple
+            gradient.addColorStop(0, '#4b5563');
+            gradient.addColorStop(1, '#9ca3af');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+            break;
+    }
+
+    // Crear y retornar textura de Three.js
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.generateMipmaps = true;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.encoding = THREE.sRGBEncoding;
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.flipY = false;
+
+    return texture;
+}
+
+// Crear obras de arte realistas
+function createRealisticArtworks() {
+    // Obra central - Amanecer
+    createRealisticArtwork({
+        position: [0, 2.8, -13.7],
+        size: [4.5, 3.2],
+        imageUrl: 'src/assets/images/Amanecer - Byron.jpeg',
+        videoUrl: 'src/assets/videos/Amanecer - Byron.mp4',
+        isMainArtwork: true,
+        title: 'Amanecer',
+        artist: 'Byron Gálvez',
+        year: '2025',
+        description: 'Una representación poética del amanecer que captura la transición entre la noche y el día, evocando esperanza y renovación.'
+    });
+
+    // Obras laterales
+    createRealisticArtwork({
+        position: [-6.5, 2.5, -13.7],
+        size: [3.5, 2.8],
+        imageUrl: 'src/assets/images/Bailarina - Byron.jpg',
+        videoUrl: 'src/assets/videos/Bailarina - Byron.mp4',
+        title: 'Bailarina',
+        artist: 'Byron Gálvez',
+        year: '2024',
+        description: 'Una elegante representación del movimiento y la gracia, capturando la esencia de la danza en una composición dinámica.'
+    });
+
+    createRealisticArtwork({
+        position: [6.5, 2.5, -13.7],
+        size: [3.5, 2.8],
+        imageUrl: 'src/assets/images/Naturaleza Muerta - Byron.jpg',
+        videoUrl: 'src/assets/videos/Naturaleza muerta - Byron.mp4',
+        title: 'Naturaleza Muerta',
+        artist: 'Byron Gálvez',
+        year: '2024',
+        description: 'Una interpretación contemporánea del género clásico, explorando la belleza en la simplicidad de los objetos cotidianos.'
+    });
+
+    // Obras en paredes laterales
+    createRealisticArtwork({
+        position: [-13.7, 2.2, -3],
+        size: [2.8, 2.2],
+        rotation: [0, Math.PI / 2, 0],
+        imageUrl: 'src/assets/images/Rocas y Cielo - Byron.jpg',
+        videoUrl: 'src/assets/videos/Rocas y cielo - Byron.mp4',
+        title: 'Rocas y Cielo',
+        artist: 'Byron Gálvez',
+        year: '2023',
+        description: 'Un estudio de contrastes entre la solidez de la tierra y la fluidez del cielo, explorando la relación entre lo terrenal y lo celestial.'
+    });
+
+    createRealisticArtwork({
+        position: [13.7, 2.2, 3],
+        size: [2.8, 2.2],
+        rotation: [0, -Math.PI / 2, 0],
+        imageUrl: 'src/assets/images/Musicos - Byron.jpg',
+        videoUrl: 'src/assets/videos/Musicos - Byron.mp4',
+        title: 'Músicos',
+        artist: 'Byron Gálvez',
+        year: '2023',
+        description: 'Una celebración visual de la música y los artistas que la crean, capturando la pasión y la emoción del arte sonoro.'
+    });
+
+    // Obras adicionales en pared trasera
+    createRealisticArtwork({
+        position: [-3, 2.0, 13.7],
+        size: [2.5, 2.0],
+        rotation: [0, Math.PI, 0],
+        imageUrl: 'src/assets/images/Escultura de pie - Byron.jpg',
+        videoUrl: 'src/assets/videos/Escultura de pie - Byron.mp4',
+        title: 'Escultura de Pie',
+        artist: 'Byron Gálvez',
+        year: '2024',
+        description: 'Una exploración de la forma humana en movimiento, capturando la elegancia y fuerza de la figura erguida.'
+    });
+
+    createRealisticArtwork({
+        position: [3, 2.0, 13.7],
+        size: [2.5, 2.0],
+        rotation: [0, Math.PI, 0],
+        imageUrl: 'src/assets/images/Escultura sentada - Byron.jpg',
+        videoUrl: 'src/assets/videos/Escultura sentada - Byron.mp4',
+        title: 'Escultura Sentada',
+        artist: 'Byron Gálvez',
+        year: '2024',
+        description: 'Una contemplación sobre el reposo y la reflexión, mostrando la serenidad en la postura contemplativa.'
+    });
+
+    // Nuevas obras - Pared izquierda
+    createRealisticArtwork({
+        position: [-13.7, 2.5, 6],
+        size: [3.0, 2.5],
+        rotation: [0, Math.PI / 2, 0],
+        imageUrl: 'src/assets/images/Vela.jpg',
+        title: 'Vela',
+        artist: 'Byron Gálvez',
+        year: '2024',
+        description: 'Una exploración de la luz y la quietud, capturando la delicada belleza de la llama en la oscuridad.'
+    });
+
+    // Nueva obra - Pared derecha superior
+    createRealisticArtwork({
+        position: [13.7, 2.5, -6],
+        size: [3.0, 2.5],
+        rotation: [0, -Math.PI / 2, 0],
+        imageUrl: 'src/assets/images/Violincello.jpg',
+        title: 'Violoncello',
+        artist: 'Byron Gálvez',
+        year: '2024',
+        description: 'Una celebración del instrumento musical, capturando la elegancia y profundidad emocional del violoncello.'
+    });
+
+    // Nueva obra - Pared trasera (entrada)
+    createRealisticArtwork({
+        position: [0, 2.3, 13.7],
+        size: [3.2, 2.6],
+        rotation: [0, Math.PI, 0],
+        imageUrl: 'src/assets/images/MusicosM.jpg',
+        title: 'Músicos M',
+        artist: 'Byron Gálvez',
+        year: '2024',
+        description: 'Una visión íntima del mundo musical, capturando la concentración y pasión de los intérpretes en su arte.'
+    });
+}
+
+// Crear una obra de arte individual realista
+function createRealisticArtwork(config) {
+    const { position, size, imageUrl, proceduralTexture, videoUrl, isMainArtwork, rotation, title, artist, year, description } = config;
+
+    // Grupo para la obra completa
+    const artworkGroup = new THREE.Group();
+
+    // Variables para el tamaño final (se ajustarán con la imagen)
+    let finalSize = size;
+    let artworkMesh = null; // Referencia al mesh del artwork
+
+    // Función para crear el marco con el tamaño correcto
+    function createFrameWithSize(artworkSize) {
+        // Marco más realista con profundidad - z-positions ajustadas para evitar z-fighting
+        const frameDepth = 0.12;
+        const frameWidth = 0.15;
+
+        // Marco exterior (más atrás)
+        const outerFrameGeometry = new THREE.BoxGeometry(
+            artworkSize[0] + frameWidth * 2,
+            artworkSize[1] + frameWidth * 2,
+            frameDepth
+        );
+        const frameMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0x2a2a2a,
+            roughness: 0.6,
+            metalness: 0.2,
+            envMapIntensity: 0.5,
+            side: THREE.FrontSide
+        });
+        const outerFrame = new THREE.Mesh(outerFrameGeometry, frameMaterial);
+        outerFrame.position.set(0, 0, -frameDepth * 0.6); // Movido más atrás
+        outerFrame.castShadow = true;
+        outerFrame.renderOrder = 1; // Renderizar primero
+        artworkGroup.add(outerFrame);
+
+        // Marco interior (adelante del exterior)
+        const innerFrameGeometry = new THREE.BoxGeometry(
+            artworkSize[0] + frameWidth,
+            artworkSize[1] + frameWidth,
+            frameDepth * 0.4
+        );
+        const innerFrameMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0x8B4513,
+            roughness: 0.8,
+            metalness: 0.1,
+            side: THREE.FrontSide
+        });
+        const innerFrame = new THREE.Mesh(innerFrameGeometry, innerFrameMaterial);
+        innerFrame.position.set(0, 0, -frameDepth * 0.15); // Separado del marco exterior
+        innerFrame.castShadow = true;
+        innerFrame.renderOrder = 2; // Renderizar después del exterior
+        artworkGroup.add(innerFrame);
+
+        console.log('🖼️ Marco creado para:', title, 'Tamaño:', artworkSize);
+    }
+
+    // Cristal protector eliminado para evitar interferencias visuales
+    console.log('🚫 Vidrio protector eliminado del cuadro:', title);    // Pintura/Obra principal (se creará después de conocer las dimensiones)
+    let artworkGeometry;
+    let artworkMaterial;
+
+    // Función para crear el artwork con el tamaño correcto
+    function createArtworkWithSize(artworkSize) {
+        artworkGeometry = new THREE.PlaneGeometry(artworkSize[0], artworkSize[1]);
+        artworkMesh = new THREE.Mesh(artworkGeometry, artworkMaterial);
+        artworkMesh.castShadow = true;
+        artworkMesh.receiveShadow = true;
+        artworkMesh.position.set(0, 0, 0.02); // Más separación para evitar z-fighting
+        artworkMesh.renderOrder = 3; // Renderizar al frente
+        artworkMesh.userData = { title, artist, year, description, videoUrl };
+        artworkGroup.add(artworkMesh);
+        console.log('🎨 Artwork creado con tamaño:', artworkSize);
+
+        // Agregar cursor pointer cuando el mouse está sobre la pintura
+        artworkMesh.userData.isClickable = true;
+    }
+
+    if (imageUrl) {
+        // Priorizar imágenes reales
+        const textureLoader = new THREE.TextureLoader();
+        const texture = textureLoader.load(
+            imageUrl,
+            (loadedTexture) => {
+                console.log('✅ Imagen cargada exitosamente:', imageUrl);
+                console.log('📐 Dimensiones de textura:', loadedTexture.image.width, 'x', loadedTexture.image.height);
+
+                // Calcular tamaño proporcional basado en la imagen
+                const imageAspectRatio = loadedTexture.image.width / loadedTexture.image.height;
+                const maxWidth = size[0];
+                const maxHeight = size[1];
+
+                let newWidth, newHeight;
+                if (imageAspectRatio > 1) {
+                    // Imagen horizontal
+                    newWidth = maxWidth;
+                    newHeight = maxWidth / imageAspectRatio;
+                } else {
+                    // Imagen vertical o cuadrada
+                    newHeight = maxHeight;
+                    newWidth = maxHeight * imageAspectRatio;
+                }
+
+                finalSize = [newWidth, newHeight];
+                console.log('🎯 Tamaño ajustado:', finalSize, 'Ratio:', imageAspectRatio.toFixed(2));
+
+                // Crear marco con el tamaño correcto
+                createFrameWithSize(finalSize);
+
+                // Configuración optimizada para prevenir parpadeo
+                loadedTexture.generateMipmaps = true;
+                loadedTexture.minFilter = THREE.LinearMipmapLinearFilter;
+                loadedTexture.magFilter = THREE.LinearFilter;
+                loadedTexture.wrapS = THREE.ClampToEdgeWrapping;
+                loadedTexture.wrapT = THREE.ClampToEdgeWrapping;
+                loadedTexture.flipY = true;
+                loadedTexture.anisotropy = renderer.capabilities.getMaxAnisotropy(); // Mejor calidad
+                loadedTexture.needsUpdate = true;
+
+                // Crear el material y el artwork con las dimensiones correctas
+                artworkMaterial = new THREE.MeshPhysicalMaterial({
+                    map: loadedTexture,
+                    roughness: 0.9,
+                    metalness: 0.0,
+                    envMapIntensity: 0.1,
+                    transparent: false,
+                    side: THREE.FrontSide,
+                    depthTest: true,
+                    depthWrite: true,
+                    polygonOffset: true,
+                    polygonOffsetFactor: -1,
+                    polygonOffsetUnits: -1
+                });
+
+                createArtworkWithSize(finalSize);
+                setupAdditionalElements(finalSize);
+            },
+            (progress) => {
+                console.log('Cargando imagen:', imageUrl, progress);
+            },
+            (error) => {
+                console.warn('Error cargando imagen:', imageUrl, error);
+                // Si no se puede cargar la imagen, usar un patrón procedural
+                if (proceduralTexture) {
+                    const fallbackTexture = createProceduralTexture(proceduralTexture, 512, 512);
+                    artworkMaterial.map = fallbackTexture;
+                } else {
+                    artworkMaterial.color.setHex(isMainArtwork ? 0x4488ff : 0x888888);
+                }
+                artworkMaterial.needsUpdate = true;
+            }
+        );
+
+        // Las texturas con imageUrl ya se configuran en el callback de carga
+        console.log('ℹ️ Imagen cargada, configuración manejada en callback');
+    } else if (proceduralTexture) {
+        // Crear textura procedural según el tipo - usar tamaño original
+        createFrameWithSize(size);
+        const texture = createProceduralTexture(proceduralTexture, 512, 512);
+        artworkMaterial = new THREE.MeshPhysicalMaterial({
+            map: texture,
+            roughness: 0.8,
+            metalness: 0.0,
+            envMapIntensity: 0.1
+        });
+        createArtworkWithSize(size);
+        setupAdditionalElements(size);
+    } else {
+        // Material procedural si no hay imagen - usar tamaño original
+        createFrameWithSize(size);
+        artworkMaterial = new THREE.MeshPhysicalMaterial({
+            color: isMainArtwork ? 0x4488ff : 0x888888,
+            roughness: 0.9,
+            metalness: 0.0
+        });
+        createArtworkWithSize(size);
+        setupAdditionalElements(size);
+    }
+
+    // Artwork ya creado en createArtworkWithSize() - removido código duplicado
+
+    // Función para configurar elementos adicionales con el tamaño correcto
+    function setupAdditionalElements(artworkSize) {
+        // Iluminación LED del marco (para obras principales)
+        if (isMainArtwork) {
+            createFrameLighting(artworkGroup, artworkSize);
+        }
+
+        // Hotspot para interactividad
+        if (videoUrl || description) {
+            createAdvancedHotspot({
+                position: [artworkSize[0] / 2 - 0.4, artworkSize[1] / 2 - 0.4, 0.15],
+                videoUrl: videoUrl,
+                isMainArtwork: isMainArtwork,
+                artworkData: { title, artist, year, description }
+            }, artworkGroup);
+        }
+    }
+
+    // Configurar elementos adicionales - se llama después de crear el artwork
+
+    // Posicionar el grupo completo
+    artworkGroup.position.set(...position);
+    if (rotation) {
+        artworkGroup.rotation.set(...rotation);
+    }
+
+    scene.add(artworkGroup);
+
+    artworks.push({
+        group: artworkGroup,
+        mesh: artworkMesh,
+        config: config
+    });
+
+    console.log('🖼️ Artwork agregado al array. Total artworks:', artworks.length);
+}
+
+// Crear lámpara principal del techo
+function createMainCeilingLamp() {
+    const lampGroup = new THREE.Group();
+
+    // Base de la lámpara (soporte)
+    const baseGeometry = new THREE.CylinderGeometry(0.15, 0.2, 0.3, 8);
+    const baseMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x2a2a2a,
+        roughness: 0.3,
+        metalness: 0.8
+    });
+    const base = new THREE.Mesh(baseGeometry, baseMaterial);
+    base.position.set(0, 4.8, 0);
+    base.castShadow = true;
+    lampGroup.add(base);
+
+    // Pantalla de la lámpara
+    const shadeGeometry = new THREE.ConeGeometry(1.2, 0.8, 16, 1, true);
+    const shadeMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xf0f0f0,
+        roughness: 0.8,
+        metalness: 0.1,
+        transparent: true,
+        opacity: 0.9
+    });
+    const shade = new THREE.Mesh(shadeGeometry, shadeMaterial);
+    shade.position.set(0, 4.3, 0);
+    shade.castShadow = true;
+    shade.receiveShadow = true;
+    lampGroup.add(shade);
+
+    // Luz principal potente
+    const mainLight = new THREE.PointLight(0xffffff, 3.0, 20, 2);
+    mainLight.position.set(0, 4.0, 0);
+    mainLight.castShadow = true;
+    mainLight.shadow.mapSize.width = 2048;
+    mainLight.shadow.mapSize.height = 2048;
+    mainLight.shadow.camera.near = 0.1;
+    mainLight.shadow.camera.far = 15;
+    lampGroup.add(mainLight);
+
+    // Luz adicional más suave para relleno
+    const fillLight = new THREE.PointLight(0xfff8e7, 1.5, 25, 2);
+    fillLight.position.set(0, 3.5, 0);
+    fillLight.castShadow = false; // Sin sombra para que sea de relleno
+    lampGroup.add(fillLight);
+
+    scene.add(lampGroup);
+    console.log('💡 Lámpara principal del techo creada');
+}
+
+// Crear lámpara principal del techo
+function createMainCeilingLamp() {
+    const lampGroup = new THREE.Group();
+
+    // Base de la lámpara (soporte)
+    const baseGeometry = new THREE.CylinderGeometry(0.15, 0.2, 0.3, 8);
+    const baseMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x2a2a2a,
+        roughness: 0.3,
+        metalness: 0.8
+    });
+    const base = new THREE.Mesh(baseGeometry, baseMaterial);
+    base.position.set(0, 4.8, 0);
+    base.castShadow = true;
+    lampGroup.add(base);
+
+    // Pantalla de la lámpara
+    const shadeGeometry = new THREE.ConeGeometry(1.2, 0.8, 16, 1, true);
+    const shadeMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xf0f0f0,
+        roughness: 0.8,
+        metalness: 0.1,
+        transparent: true,
+        opacity: 0.9
+    });
+    const shade = new THREE.Mesh(shadeGeometry, shadeMaterial);
+    shade.position.set(0, 4.3, 0);
+    shade.castShadow = true;
+    shade.receiveShadow = true;
+    lampGroup.add(shade);
+
+    // Luz principal potente
+    const mainLight = new THREE.PointLight(0xffffff, 4.0, 20, 2);
+    mainLight.position.set(0, 4.0, 0);
+    mainLight.castShadow = true;
+    mainLight.shadow.mapSize.width = 2048;
+    mainLight.shadow.mapSize.height = 2048;
+    mainLight.shadow.camera.near = 0.1;
+    mainLight.shadow.camera.far = 15;
+    lampGroup.add(mainLight);
+
+    // Luz adicional más suave para relleno
+    const fillLight = new THREE.PointLight(0xfff8e7, 2.0, 25, 2);
+    fillLight.position.set(0, 3.5, 0);
+    fillLight.castShadow = false; // Sin sombra para que sea de relleno
+    lampGroup.add(fillLight);
+
+    scene.add(lampGroup);
+    console.log('💡 Lámpara principal del techo creada');
+}
+
+// Crear lámpara principal del techo
+function createMainCeilingLamp() {
+    const lampGroup = new THREE.Group();
+
+    // Base de la lámpara (soporte)
+    const baseGeometry = new THREE.CylinderGeometry(0.15, 0.2, 0.3, 8);
+    const baseMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x2a2a2a,
+        roughness: 0.3,
+        metalness: 0.8
+    });
+    const base = new THREE.Mesh(baseGeometry, baseMaterial);
+    base.position.set(0, 4.8, 0);
+    base.castShadow = true;
+    lampGroup.add(base);
+
+    // Pantalla de la lámpara
+    const shadeGeometry = new THREE.ConeGeometry(1.2, 0.8, 16, 1, true);
+    const shadeMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xf0f0f0,
+        roughness: 0.8,
+        metalness: 0.1,
+        transparent: true,
+        opacity: 0.9
+    });
+    const shade = new THREE.Mesh(shadeGeometry, shadeMaterial);
+    shade.position.set(0, 4.3, 0);
+    shade.castShadow = true;
+    shade.receiveShadow = true;
+    lampGroup.add(shade);
+
+    // Luz principal potente
+    const mainLight = new THREE.PointLight(0xffffff, 4.0, 20, 2);
+    mainLight.position.set(0, 4.0, 0);
+    mainLight.castShadow = true;
+    mainLight.shadow.mapSize.width = 2048;
+    mainLight.shadow.mapSize.height = 2048;
+    mainLight.shadow.camera.near = 0.1;
+    mainLight.shadow.camera.far = 15;
+    lampGroup.add(mainLight);
+
+    // Luz adicional más suave para relleno
+    const fillLight = new THREE.PointLight(0xfff8e7, 2.0, 25, 2);
+    fillLight.position.set(0, 3.5, 0);
+    fillLight.castShadow = false; // Sin sombra para que sea de relleno
+    lampGroup.add(fillLight);
+
+    scene.add(lampGroup);
+    console.log('💡 Lámpara principal del techo creada');
+}
+
+// Crear iluminación LED del marco
+function createFrameLighting(artworkGroup, size) {
+    const ledPositions = [
+        [-size[0] / 2, size[1] / 2, 0.1],    // Esquina superior izquierda
+        [size[0] / 2, size[1] / 2, 0.1],     // Esquina superior derecha
+        [-size[0] / 2, -size[1] / 2, 0.1],   // Esquina inferior izquierda
+        [size[0] / 2, -size[1] / 2, 0.1]     // Esquina inferior derecha
+    ];
+
+    ledPositions.forEach(pos => {
+        const ledLight = new THREE.PointLight(0xffffff, 3, 3, 2);
+        ledLight.position.set(...pos);
+        artworkGroup.add(ledLight);
+
+        // LED físico
+        const ledGeometry = new THREE.SphereGeometry(0.01, 8, 8);
+        const ledMaterial = new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            emissive: 0xffffff,
+            emissiveIntensity: 0.1
+        });
+        const led = new THREE.Mesh(ledGeometry, ledMaterial);
+        led.position.set(...pos);
+        artworkGroup.add(led);
+    });
+}
+
+// Crear objetos típicos de museo
+function createMuseumObjects() {
+    // ESCULTURA MONUMENTAL CENTRAL - Alto impacto visual
+    createMonumentalSculpture({
+        position: [0, 0, 0],
+        title: 'Forma Abstracta',
+        description: 'Escultura monumental que define el espacio central'
+    });
+
+    // Vitrina con artefactos arqueológicos
+    createDisplayCase({
+        position: [-8, 0, -4],
+        type: 'archaeological',
+        title: 'Cerámica Precolombina',
+        description: 'Colección de vasijas ceremoniales del período clásico'
+    });
+
+    // Grupos de bancos para contemplación - crear varios
+    createMuseumBench({
+        position: [0, 0, 4],
+        title: 'Banco de Contemplación'
+    });
+    
+    createMuseumBench({
+        position: [-6, 0, -6],
+        rotation: Math.PI / 4,
+        title: 'Banco de Contemplación'
+    });
+    
+    createMuseumBench({
+        position: [6, 0, -6],
+        rotation: -Math.PI / 4,
+        title: 'Banco de Contemplación'
+    });
+
+    // Grupos de plantas decorativas - múltiples ubicaciones
+    createMuseumPlant({
+        position: [8, 0, 4],
+        type: 'large'
+    });
+    
+    createMuseumPlant({
+        position: [8, 0, 6],
+        type: 'medium'
+    });
+    
+    createMuseumPlant({
+        position: [-8, 0, 4],
+        type: 'large'
+    });
+    
+    createMuseumPlant({
+        position: [-8, 0, 6],
+        type: 'medium'
+    });
+    
+    // Plantas en las esquinas
+    createMuseumPlant({
+        position: [-11, 0, -11],
+        type: 'large'
+    });
+    
+    createMuseumPlant({
+        position: [11, 0, -11],
+        type: 'large'
+    });
+
+    // Mesa de información en la entrada
+    createInformationTable({
+        position: [0, 0, 9],
+        title: 'Mesa de Bienvenida',
+        description: 'Catálogos y material educativo'
+    });
+
+    // Columnas expositivas - crear múltiples
+    createExhibitionColumn({
+        position: [6, 0, -8],
+        title: 'Cronología Artística',
+        description: 'Línea temporal del arte contemporáneo'
+    });
+    
+    createExhibitionColumn({
+        position: [-6, 0, -8],
+        title: 'Biografía del Artista',
+        description: 'Vida y obra de Byron Gálvez'
+    });
+
+    // Muros flotantes para romper líneas de visión
+    createFloatingWall({
+        position: [-5, 0, -3],
+        rotation: Math.PI / 4
+    });
+    
+    createFloatingWall({
+        position: [5, 0, 3],
+        rotation: -Math.PI / 4
+    });
+
+    // Podios con barandas
+    createPodiumWithRope({
+        position: [-3, 0, 0],
+        title: 'Objeto de Colección'
+    });
+    
+    createPodiumWithRope({
+        position: [3, 0, 0],
+        title: 'Artefacto Histórico'
+    });
+}
+
+// Crear escultura monumental central - PUNTO FOCAL PRINCIPAL
+function createMonumentalSculpture(config) {
+    const { position, title, description } = config;
+
+    const sculptureGroup = new THREE.Group();
+
+    // Base circular de mármol oscuro
+    const baseGeometry = new THREE.CylinderGeometry(1.8, 2.0, 0.3, 32);
+    const baseMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x1a1a1a,
+        roughness: 0.2,
+        metalness: 0.1,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.1,
+        envMapIntensity: 1.0
+    });
+    const base = new THREE.Mesh(baseGeometry, baseMaterial);
+    base.position.set(0, 0.15, 0);
+    base.castShadow = true;
+    base.receiveShadow = true;
+    sculptureGroup.add(base);
+
+    // Pedestal de bronce
+    const pedestalGeometry = new THREE.CylinderGeometry(0.6, 0.8, 1.2, 16);
+    const pedestalMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x8B6914,
+        roughness: 0.3,
+        metalness: 0.9,
+        envMapIntensity: 1.2
+    });
+    const pedestal = new THREE.Mesh(pedestalGeometry, pedestalMaterial);
+    pedestal.position.set(0, 0.9, 0);
+    pedestal.castShadow = true;
+    pedestal.receiveShadow = true;
+    sculptureGroup.add(pedestal);
+
+    // Escultura abstracta principal - forma de torsión ascendente
+    const sculptureHeight = 2.5;
+    const segments = 20;
+    
+    // Crear geometría de torsión personalizada
+    const points = [];
+    for (let i = 0; i <= segments; i++) {
+        const y = (i / segments) * sculptureHeight;
+        const radius = 0.4 - (i / segments) * 0.15; // Se adelgaza hacia arriba
+        const angle = (i / segments) * Math.PI * 2; // Giro completo
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+        points.push(new THREE.Vector3(x, y, z));
+    }
+
+    const sculptureGeometry = new THREE.LatheGeometry(
+        points.map(p => new THREE.Vector2(Math.sqrt(p.x * p.x + p.z * p.z), p.y)),
+        32
+    );
+
+    const sculptureMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x2d2d2d, // Negro metálico
+        roughness: 0.2,
+        metalness: 0.95,
+        envMapIntensity: 1.5,
+        clearcoat: 0.5,
+        clearcoatRoughness: 0.2
+    });
+
+    const sculpture = new THREE.Mesh(sculptureGeometry, sculptureMaterial);
+    sculpture.position.set(0, 1.5, 0);
+    sculpture.castShadow = true;
+    sculpture.receiveShadow = true;
+    sculptureGroup.add(sculpture);
+
+    // Elementos decorativos flotantes alrededor
+    for (let i = 0; i < 4; i++) {
+        const angle = (i / 4) * Math.PI * 2;
+        const radius = 1.2;
+        
+        const sphereGeometry = new THREE.SphereGeometry(0.08, 16, 16);
+        const sphereMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0xFFD700, // Dorado
+            roughness: 0.1,
+            metalness: 1.0,
+            emissive: 0x332200,
+            emissiveIntensity: 0.2
+        });
+        
+        const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        sphere.position.set(
+            Math.cos(angle) * radius,
+            2.5 + Math.sin(i) * 0.3,
+            Math.sin(angle) * radius
+        );
+        sphere.castShadow = true;
+        sculptureGroup.add(sphere);
+    }
+
+    // Iluminación dedicada para la escultura
+    const sculptureLight1 = new THREE.SpotLight(0xffffff, 40, 8, Math.PI / 6, 0.5, 2);
+    sculptureLight1.position.set(0, 4.5, 0);
+    sculptureLight1.target.position.set(0, 1.5, 0);
+    scene.add(sculptureLight1);
+    scene.add(sculptureLight1.target);
+
+    // Luz de relleno
+    const fillLight = new THREE.PointLight(0xffffff, 20, 6, 2);
+    fillLight.position.set(0, 3, 0);
+    scene.add(fillLight);
+
+    sculptureGroup.position.set(...position);
+    sculptureGroup.userData = { title, description, type: 'monumentalSculpture' };
+    scene.add(sculptureGroup);
+
+    museumObjects.push({
+        group: sculptureGroup,
+        config: config
+    });
+
+    console.log('🗿 Escultura monumental creada en posición central');
+}
+
+// Crear muro flotante para romper líneas de visión
+function createFloatingWall(config) {
+    const { position, rotation } = config;
+
+    const wallGroup = new THREE.Group();
+
+    // Muro bajo pero ancho
+    const wallGeometry = new THREE.BoxGeometry(4.0, 2.0, 0.2);
+    const wallMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xe8e8e8,
+        roughness: 0.7,
+        metalness: 0.05,
+        envMapIntensity: 0.3
+    });
+    const wall = new THREE.Mesh(wallGeometry, wallMaterial);
+    wall.position.set(0, 1.0, 0);
+    wall.castShadow = true;
+    wall.receiveShadow = true;
+    wallGroup.add(wall);
+
+    // Marco decorativo superior
+    const topFrameGeometry = new THREE.BoxGeometry(4.2, 0.1, 0.25);
+    const frameMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x3a3a3a,
+        roughness: 0.3,
+        metalness: 0.8
+    });
+    const topFrame = new THREE.Mesh(topFrameGeometry, frameMaterial);
+    topFrame.position.set(0, 2.05, 0);
+    topFrame.castShadow = true;
+    wallGroup.add(topFrame);
+
+    // Bases decorativas
+    const baseGeometry = new THREE.BoxGeometry(4.2, 0.15, 0.3);
+    const baseFrame = new THREE.Mesh(baseGeometry, frameMaterial);
+    baseFrame.position.set(0, 0.075, 0);
+    baseFrame.castShadow = true;
+    wallGroup.add(baseFrame);
+
+    wallGroup.position.set(...position);
+    wallGroup.rotation.y = rotation || 0;
+    scene.add(wallGroup);
+
+    walls.push(wallGroup);
+
+    console.log('🧱 Muro flotante creado para dividir espacio');
+}
+
+// Crear podio con cuerda delimitadora
+function createPodiumWithRope(config) {
+    const { position, title } = config;
+
+    const podiumGroup = new THREE.Group();
+
+    // Podio principal
+    const podiumGeometry = new THREE.CylinderGeometry(0.4, 0.45, 1.0, 16);
+    const podiumMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xf0f0f0,
+        roughness: 0.2,
+        metalness: 0.0,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.1
+    });
+    const podium = new THREE.Mesh(podiumGeometry, podiumMaterial);
+    podium.position.set(0, 0.5, 0);
+    podium.castShadow = true;
+    podium.receiveShadow = true;
+    podiumGroup.add(podium);
+
+    // Objeto decorativo en el podio (esfera de cristal)
+    const objectGeometry = new THREE.SphereGeometry(0.15, 32, 32);
+    const objectMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xffffff,
+        roughness: 0.0,
+        metalness: 0.0,
+        transmission: 0.95,
+        thickness: 0.5,
+        envMapIntensity: 1.5
+    });
+    const object = new THREE.Mesh(objectGeometry, objectMaterial);
+    object.position.set(0, 1.15, 0);
+    object.castShadow = true;
+    podiumGroup.add(object);
+
+    // Postes de la baranda (4 postes alrededor)
+    const postGeometry = new THREE.CylinderGeometry(0.03, 0.03, 0.8, 8);
+    const postMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x8B6914,
+        roughness: 0.2,
+        metalness: 0.9
+    });
+
+    const ropePositions = [
+        [0.6, 0, 0],
+        [0, 0, 0.6],
+        [-0.6, 0, 0],
+        [0, 0, -0.6]
+    ];
+
+    ropePositions.forEach((pos, index) => {
+        const post = new THREE.Mesh(postGeometry, postMaterial);
+        post.position.set(pos[0], 0.4, pos[2]);
+        post.castShadow = true;
+        podiumGroup.add(post);
+
+        // Tope del poste
+        const capGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+        const cap = new THREE.Mesh(capGeometry, postMaterial);
+        cap.position.set(pos[0], 0.85, pos[2]);
+        podiumGroup.add(cap);
+    });
+
+    // Cuerdas conectando los postes
+    const ropeGeometry = new THREE.CylinderGeometry(0.01, 0.01, 0.6, 8);
+    const ropeMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x8B0000,
+        roughness: 0.9,
+        metalness: 0.0
+    });
+
+    for (let i = 0; i < ropePositions.length; i++) {
+        const nextIndex = (i + 1) % ropePositions.length;
+        const rope = new THREE.Mesh(ropeGeometry, ropeMaterial);
+        
+        const midX = (ropePositions[i][0] + ropePositions[nextIndex][0]) / 2;
+        const midZ = (ropePositions[i][2] + ropePositions[nextIndex][2]) / 2;
+        
+        rope.position.set(midX, 0.75, midZ);
+        rope.rotation.z = Math.PI / 2;
+        rope.rotation.y = Math.atan2(
+            ropePositions[nextIndex][2] - ropePositions[i][2],
+            ropePositions[nextIndex][0] - ropePositions[i][0]
+        );
+        podiumGroup.add(rope);
+    }
+
+    podiumGroup.position.set(...position);
+    podiumGroup.userData = { title, type: 'podium' };
+    scene.add(podiumGroup);
+
+    museumObjects.push({
+        group: podiumGroup,
+        config: config
+    });
+
+    console.log('🏛️ Podio con baranda creado');
+}
+
+// Crear vitrina de exhibición
+function createDisplayCase(config) {
+    const { position, type, title, description } = config;
+
+    const displayGroup = new THREE.Group();
+
+    // Base de la vitrina
+    const baseGeometry = new THREE.BoxGeometry(1.8, 0.1, 1.2);
+    const baseMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x333333,
+        roughness: 0.2,
+        metalness: 0.8,
+        envMapIntensity: 1.0
+    });
+    const base = new THREE.Mesh(baseGeometry, baseMaterial);
+    base.position.set(0, 0.05, 0);
+    base.castShadow = true;
+    base.receiveShadow = true;
+    displayGroup.add(base);
+
+    // Estructura de la vitrina
+    const frameGeometry = new THREE.BoxGeometry(1.8, 1.5, 1.2);
+    const frameMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x444444,
+        roughness: 0.1,
+        metalness: 0.9,
+        envMapIntensity: 1.2
+    });
+
+    // Crear marco (hueco en el centro)
+    const frame = new THREE.Mesh(frameGeometry, frameMaterial);
+    frame.position.set(0, 0.85, 0);
+    frame.scale.set(1, 1, 0.1); // Solo el marco
+    displayGroup.add(frame);
+
+    // Vidrio de la vitrina
+    const glassGeometry = new THREE.BoxGeometry(1.7, 1.4, 1.1);
+    const glassMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.1,
+        roughness: 0.0,
+        metalness: 0.0,
+        transmission: 0.95,
+        envMapIntensity: 1.0
+    });
+    const glass = new THREE.Mesh(glassGeometry, glassMaterial);
+    glass.position.set(0, 0.85, 0);
+    displayGroup.add(glass);
+
+    // Objetos dentro de la vitrina
+    createDisplayObjects(displayGroup, type);
+
+    // Placa informativa
+    createObjectPlaque(displayGroup, { title, description }, 1.0, 0.1);
+
+    displayGroup.position.set(...position);
+    displayGroup.userData = { title, description, type: 'displayCase' };
+    scene.add(displayGroup);
+
+    museumObjects.push({
+        group: displayGroup,
+        config: config
+    });
+}
+
+// Crear objetos dentro de las vitrinas
+function createDisplayObjects(parent, type) {
+    switch (type) {
+        case 'archaeological':
+            // Vasijas pequeñas
+            for (let i = 0; i < 3; i++) {
+                const vesselGeometry = new THREE.CylinderGeometry(0.1, 0.08, 0.15, 12);
+                const vesselMaterial = new THREE.MeshPhysicalMaterial({
+                    color: 0x8b4513,
+                    roughness: 0.8,
+                    metalness: 0.0
+                });
+                const vessel = new THREE.Mesh(vesselGeometry, vesselMaterial);
+                vessel.position.set(
+                    (i - 1) * 0.3,
+                    0.3,
+                    Math.sin(i) * 0.2
+                );
+                vessel.castShadow = true;
+                parent.add(vessel);
+            }
+            break;
+    }
+}
+
+// Crear banco de museo
+function createMuseumBench(config) {
+    const { position, title, rotation } = config;
+
+    const benchGroup = new THREE.Group();
+
+    // Asiento del banco
+    const seatGeometry = new THREE.BoxGeometry(2.0, 0.08, 0.4);
+    const benchMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x654321,
+        roughness: 0.7,
+        metalness: 0.1,
+        envMapIntensity: 0.5
+    });
+    const seat = new THREE.Mesh(seatGeometry, benchMaterial);
+    seat.position.set(0, 0.4, 0);
+    seat.castShadow = true;
+    seat.receiveShadow = true;
+    benchGroup.add(seat);
+
+    // Patas del banco
+    const legGeometry = new THREE.BoxGeometry(0.08, 0.4, 0.08);
+    const legPositions = [
+        [-0.8, 0.2, -0.15],
+        [0.8, 0.2, -0.15],
+        [-0.8, 0.2, 0.15],
+        [0.8, 0.2, 0.15]
+    ];
+
+    legPositions.forEach(pos => {
+        const leg = new THREE.Mesh(legGeometry, benchMaterial);
+        leg.position.set(...pos);
+        leg.castShadow = true;
+        leg.receiveShadow = true;
+        benchGroup.add(leg);
+    });
+
+    benchGroup.position.set(...position);
+    if (rotation !== undefined) {
+        benchGroup.rotation.y = rotation;
+    }
+    benchGroup.userData = { title, type: 'bench' };
+    scene.add(benchGroup);
+
+    museumObjects.push({
+        group: benchGroup,
+        config: config
+    });
+}
+
+// Crear planta de museo
+function createMuseumPlant(config) {
+    const { position, type } = config;
+
+    const plantGroup = new THREE.Group();
+
+    // Determinar tamaño según tipo
+    const sizeMultiplier = type === 'large' ? 1.0 : 0.7;
+    const potRadius = 0.3 * sizeMultiplier;
+    const stemHeight = 1.2 * sizeMultiplier;
+
+    // Maceta
+    const potGeometry = new THREE.CylinderGeometry(potRadius, potRadius * 0.85, 0.4 * sizeMultiplier, 16);
+    const potMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x8b4513,
+        roughness: 0.6,
+        metalness: 0.1
+    });
+    const pot = new THREE.Mesh(potGeometry, potMaterial);
+    pot.position.set(0, 0.2 * sizeMultiplier, 0);
+    pot.castShadow = true;
+    pot.receiveShadow = true;
+    plantGroup.add(pot);
+
+    // Tallo principal
+    const stemGeometry = new THREE.CylinderGeometry(0.02 * sizeMultiplier, 0.03 * sizeMultiplier, stemHeight, 8);
+    const stemMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x228b22,
+        roughness: 0.8,
+        metalness: 0.0
+    });
+    const stem = new THREE.Mesh(stemGeometry, stemMaterial);
+    stem.position.set(0, (0.4 + stemHeight / 2) * sizeMultiplier, 0);
+    stem.castShadow = true;
+    plantGroup.add(stem);
+
+    // Hojas - más para plantas grandes
+    const leafCount = type === 'large' ? 8 : 5;
+    const leafGeometry = new THREE.PlaneGeometry(0.3 * sizeMultiplier, 0.6 * sizeMultiplier);
+    const leafMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x32cd32,
+        roughness: 0.9,
+        metalness: 0.0,
+        side: THREE.DoubleSide
+    });
+
+    for (let i = 0; i < leafCount; i++) {
+        const leaf = new THREE.Mesh(leafGeometry, leafMaterial);
+        const angle = (i / leafCount) * Math.PI * 2;
+        leaf.position.set(
+            Math.cos(angle) * 0.2 * sizeMultiplier,
+            (0.4 + stemHeight + Math.sin(i) * 0.1) * sizeMultiplier,
+            Math.sin(angle) * 0.2 * sizeMultiplier
+        );
+        leaf.rotation.y = angle;
+        leaf.rotation.z = Math.PI / 6;
+        leaf.castShadow = true;
+        plantGroup.add(leaf);
+    }
+
+    plantGroup.position.set(...position);
+    plantGroup.userData = { type: 'plant' };
+    scene.add(plantGroup);
+
+    museumObjects.push({
+        group: plantGroup,
+        config: config
+    });
+}
+
+// Crear mesa de información
+function createInformationTable(config) {
+    const { position, title, description } = config;
+
+    const tableGroup = new THREE.Group();
+
+    // Superficie de la mesa
+    const topGeometry = new THREE.BoxGeometry(1.2, 0.05, 0.8);
+    const tableMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xdeb887,
+        roughness: 0.3,
+        metalness: 0.1,
+        clearcoat: 0.8,
+        clearcoatRoughness: 0.1
+    });
+    const top = new THREE.Mesh(topGeometry, tableMaterial);
+    top.position.set(0, 0.75, 0);
+    top.castShadow = true;
+    top.receiveShadow = true;
+    tableGroup.add(top);
+
+    // Pata central
+    const legGeometry = new THREE.CylinderGeometry(0.05, 0.08, 0.7, 8);
+    const leg = new THREE.Mesh(legGeometry, tableMaterial);
+    leg.position.set(0, 0.35, 0);
+    leg.castShadow = true;
+    leg.receiveShadow = true;
+    tableGroup.add(leg);
+
+    // Folletos (simulados)
+    const brochureGeometry = new THREE.BoxGeometry(0.2, 0.01, 0.3);
+    const brochureMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xffffff,
+        roughness: 0.9,
+        metalness: 0.0
+    });
+
+    for (let i = 0; i < 3; i++) {
+        const brochure = new THREE.Mesh(brochureGeometry, brochureMaterial);
+        brochure.position.set(
+            (i - 1) * 0.25,
+            0.78,
+            0
+        );
+        brochure.rotation.y = (Math.random() - 0.5) * 0.5;
+        brochure.castShadow = true;
+        tableGroup.add(brochure);
+    }
+
+    tableGroup.position.set(...position);
+    tableGroup.userData = { title, description, type: 'table' };
+    scene.add(tableGroup);
+
+    museumObjects.push({
+        group: tableGroup,
+        config: config
+    });
+}
+
+// Crear columna expositiva
+function createExhibitionColumn(config) {
+    const { position, title, description } = config;
+
+    const columnGroup = new THREE.Group();
+
+    // Base de la columna
+    const baseGeometry = new THREE.CylinderGeometry(0.4, 0.45, 0.2, 16);
+    const baseMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xf0f0f0,
+        roughness: 0.2,
+        metalness: 0.0,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.1
+    });
+    const base = new THREE.Mesh(baseGeometry, baseMaterial);
+    base.position.set(0, 0.1, 0);
+    base.castShadow = true;
+    base.receiveShadow = true;
+    columnGroup.add(base);
+
+    // Columna principal
+    const columnGeometry = new THREE.CylinderGeometry(0.35, 0.35, 1.6, 16);
+    const column = new THREE.Mesh(columnGeometry, baseMaterial);
+    column.position.set(0, 1.0, 0);
+    column.castShadow = true;
+    column.receiveShadow = true;
+    columnGroup.add(column);
+
+    // Panel informativo
+    const panelGeometry = new THREE.BoxGeometry(0.6, 0.8, 0.05);
+    const panelMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x2c3e50,
+        roughness: 0.1,
+        metalness: 0.8
+    });
+    const panel = new THREE.Mesh(panelGeometry, panelMaterial);
+    panel.position.set(0, 1.2, 0.38);
+    panel.castShadow = true;
+    columnGroup.add(panel);
+
+    columnGroup.position.set(...position);
+    columnGroup.userData = { title, description, type: 'column' };
+    scene.add(columnGroup);
+
+    museumObjects.push({
+        group: columnGroup,
+        config: config
+    });
+}
+
+// Crear placa informativa para objetos
+function createObjectPlaque(parent, info, radius, height) {
+    const plaqueGroup = new THREE.Group();
+
+    // Base de la placa
+    const plaqueGeometry = new THREE.BoxGeometry(0.6, 0.2, 0.03);
+    const plaqueMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x2c3e50,
+        roughness: 0.1,
+        metalness: 0.8
+    });
+    const plaque = new THREE.Mesh(plaqueGeometry, plaqueMaterial);
+    plaque.castShadow = true;
+    plaqueGroup.add(plaque);
+
+    // Soporte de la placa
+    const supportGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.4);
+    const support = new THREE.Mesh(supportGeometry, plaqueMaterial);
+    support.position.set(0, -0.3, -0.02);
+    support.castShadow = true;
+    plaqueGroup.add(support);
+
+    plaqueGroup.position.set(radius + 0.2, height + 0.8, 0);
+    plaqueGroup.rotation.y = -Math.PI / 6;
+
+    parent.add(plaqueGroup);
+}
+
+// Crear hotspots interactivos avanzados
+function createAdvancedHotspot(config, parent = null) {
+    const { position, videoUrl, isMainArtwork, isInfoHotspot, artworkData } = config;
+
+    // Geometría del hotspot más sofisticada
+    const hotspotGeometry = new THREE.SphereGeometry(0.08, 16, 16);
+
+    let hotspotMaterial;
+    if (isInfoHotspot) {
+        hotspotMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0x44aaff,
+            transparent: true,
+            opacity: 0.0,
+            emissive: 0x002244,
+            emissiveIntensity: 0.0,
+            roughness: 0.1,
+            metalness: 0.0
+        });
+    } else {
+        hotspotMaterial = new THREE.MeshPhysicalMaterial({
+            color: isMainArtwork ? 0xff4444 : 0x44ff44,
+            transparent: true,
+            opacity: 0.0,
+            emissive: isMainArtwork ? 0x440000 : 0x004400,
+            emissiveIntensity: 0.0,
+            roughness: 0.1,
+            metalness: 0.0
+        });
+    }
+
+    const hotspot = new THREE.Mesh(hotspotGeometry, hotspotMaterial);
+    hotspot.position.set(...position);
+    hotspot.userData = { videoUrl, isMainArtwork, isInfoHotspot, artworkData };
+    hotspot.visible = false; // Hacer completamente invisible
+
+    // Anillo exterior animado - DESACTIVADO
+    const ringGeometry = new THREE.TorusGeometry(0.12, 0.02, 8, 16);
+    const ringMaterial = new THREE.MeshBasicMaterial({
+        color: hotspotMaterial.color,
+        transparent: true,
+        opacity: 0.0
+    });
+    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+    ring.position.copy(hotspot.position);
+    ring.visible = false; // Hacer invisible
+
+    // Agregar al padre o a la escena
+    if (parent) {
+        parent.add(hotspot);
+        parent.add(ring);
+    } else {
+        scene.add(hotspot);
+        scene.add(ring);
+    }
+
+    // Luz puntual del hotspot - DESACTIVADA
+    const hotspotLight = new THREE.PointLight(hotspotMaterial.color, 0, 2, 2);
+    hotspotLight.position.copy(hotspot.position);
+    hotspotLight.visible = false; // Apagar luz
+    if (parent) {
+        parent.add(hotspotLight);
+    } else {
+        scene.add(hotspotLight);
+    }
+
+    hotspots.push(hotspot);
+
+    // Animación avanzada - DESACTIVADA
+    hotspot.animate = function () {
+        // Animaciones desactivadas para mantener hotspots invisibles
+        /*
+        const time = Date.now() * 0.003;
+
+        // Pulsación del hotspot
+        const scale = 1 + Math.sin(time) * 0.15;
+        hotspot.scale.setScalar(scale);
+
+        // Rotación del anillo
+        ring.rotation.z += 0.02;
+        ring.rotation.x = Math.sin(time * 0.5) * 0.3;
+
+        // Variación de opacidad del anillo
+        ring.material.opacity = 0.3 + Math.sin(time * 2) * 0.2;
+
+        // Intensidad de luz variable
+        hotspotLight.intensity = 3 + Math.sin(time * 3) * 2;
+        */
+    };
+
+    return hotspot;
+}
+
+// Actualizar rotación de cámara con suavizado para movimientos naturales
+function updateCameraRotation(deltaTime) {
+    // Suavizar rotación usando interpolación (lerp) - más responsive
+    const smoothingFactor = Math.min(REALISTIC_CONFIG.movement.smoothing, 1.0);
+    
+    // Interpolar rotación actual hacia rotación objetivo con factor ajustado por deltaTime
+    const lerpFactor = 1 - Math.pow(1 - smoothingFactor, deltaTime * 60);
+    
+    currentRotationX += (targetRotationX - currentRotationX) * lerpFactor;
+    currentRotationY += (targetRotationY - currentRotationY) * lerpFactor;
+    
+    // Aplicar rotación a la cámara
+    camera.rotation.order = 'YXZ'; // Orden importante: primero Y (horizontal), luego X (vertical)
+    camera.rotation.x = currentRotationX;
+    camera.rotation.y = currentRotationY;
+    camera.rotation.z = 0; // Siempre 0 para evitar inclinación lateral antinatural
+}
+
+// Sistema de movimiento con colisiones suave
+function updateMovement(deltaTime) {
+    // Limitar deltaTime para evitar saltos grandes
+    deltaTime = Math.min(deltaTime, 0.1);
+    
+    const speed = isRunning ? REALISTIC_CONFIG.movement.runSpeed : REALISTIC_CONFIG.movement.walkSpeed;
+
+    // Aplicar fricción más suave
+    velocity.x -= velocity.x * REALISTIC_CONFIG.movement.friction * deltaTime;
+    velocity.z -= velocity.z * REALISTIC_CONFIG.movement.friction * deltaTime;
+
+    // Calcular dirección de movimiento
+    direction.z = Number(moveForward) - Number(moveBackward);
+    direction.x = Number(moveRight) - Number(moveLeft);
+    direction.normalize();
+
+    // Suavizar la aceleración
+    const acceleration = REALISTIC_CONFIG.movement.acceleration;
+
+    // Aplicar movimiento basado en la rotación de la cámara con aceleración suave
+    if (moveForward || moveBackward) {
+        const forward = new THREE.Vector3(0, 0, -1);
+        forward.applyQuaternion(camera.quaternion);
+        forward.y = 0; // Mantener movimiento horizontal
+        forward.normalize();
+
+        const targetVelocityZ = direction.z * speed;
+        const velocityDiff = targetVelocityZ - (velocity.dot(forward));
+        velocity.add(forward.clone().multiplyScalar(velocityDiff * acceleration * deltaTime));
+    }
+
+    if (moveLeft || moveRight) {
+        const right = new THREE.Vector3(1, 0, 0);
+        right.applyQuaternion(camera.quaternion);
+        right.y = 0; // Mantener movimiento horizontal
+        right.normalize();
+
+        const targetVelocityX = direction.x * speed;
+        const velocityDiff = targetVelocityX - (velocity.dot(right));
+        velocity.add(right.clone().multiplyScalar(velocityDiff * acceleration * deltaTime));
+    }
+
+    // Limitar velocidad máxima
+    const maxSpeed = speed * 1.5; // Aumentado de 1.2 para permitir más velocidad
+    if (velocity.length() > maxSpeed) {
+        velocity.normalize().multiplyScalar(maxSpeed);
+    }
+
+    // Aplicar colisiones antes de mover
+    const newPosition = camera.position.clone().add(velocity.clone().multiplyScalar(deltaTime));
+
+    // Verificar colisiones con límites del museo
+    if (newPosition.x > collisionBounds.minX && newPosition.x < collisionBounds.maxX) {
+        camera.position.x = newPosition.x;
+    } else {
+        // Detener velocidad horizontal al chocar con pared
+        velocity.x = 0;
+    }
+
+    if (newPosition.z > collisionBounds.minZ && newPosition.z < collisionBounds.maxZ) {
+        camera.position.z = newPosition.z;
+    } else {
+        // Detener velocidad horizontal al chocar con pared
+        velocity.z = 0;
+    }
+
+    // Mantener altura constante (simular altura de ojos humanos)
+    camera.position.y = 1.7;
+
+    // Verificar colisiones con objetos del museo
+    checkMuseumObjectCollisions();
+
+    // Actualizar display de posición
+    updatePositionDisplay();
+
+    // Actualizar mapa
+    updateNavigationMap();
+}
+
+// Función de colisiones con objetos del museo
+function checkMuseumObjectCollisions() {
+    const playerRadius = 0.5; // Radio de colisión del jugador
+    const playerPos = new THREE.Vector2(camera.position.x, camera.position.z);
+
+    // Verificar colisiones con todos los objetos decorativos
+    decorationCollisions.forEach(collision => {
+        const objectPos = new THREE.Vector2(collision.x, collision.z);
+        const distance = playerPos.distanceTo(objectPos);
+        const minDistance = playerRadius + collision.radius;
+
+        if (distance < minDistance) {
+            // Hay colisión - empujar al jugador
+            const pushDirection = playerPos.clone().sub(objectPos).normalize();
+            const pushAmount = minDistance - distance;
+            
+            camera.position.x += pushDirection.x * pushAmount;
+            camera.position.z += pushDirection.y * pushAmount;
+            
+            // Detener velocidad en esa dirección
+            velocity.x *= 0.5;
+            velocity.z *= 0.5;
+        }
+    });
+
+    // Verificar colisiones con objetos del museo (esculturas, plantas, etc.)
+    museumObjects.forEach(obj => {
+        if (obj.group && obj.config && obj.config.position) {
+            const objPos = new THREE.Vector2(obj.config.position[0], obj.config.position[2]);
+            const distance = playerPos.distanceTo(objPos);
+            
+            // Radio según tipo de objeto
+            let objRadius = 0.5;
+            if (obj.config.type === 'sculpture') objRadius = 1.5;
+            else if (obj.config.type === 'plant') objRadius = 0.4;
+            else if (obj.config.type === 'bench') objRadius = 1.0;
+            else if (obj.config.type === 'table') objRadius = 0.8;
+            else if (obj.config.type === 'column') objRadius = 0.6;
+            else if (obj.config.type === 'displayCase') objRadius = 1.0;
+            else if (obj.config.type === 'wall') objRadius = 2.0;
+            else if (obj.config.type === 'podium') objRadius = 0.8;
+
+            const minDistance = playerRadius + objRadius;
+
+            if (distance < minDistance) {
+                // Hay colisión - empujar al jugador
+                const pushDirection = playerPos.clone().sub(objPos).normalize();
+                const pushAmount = minDistance - distance;
+                
+                camera.position.x += pushDirection.x * pushAmount;
+                camera.position.z += pushDirection.y * pushAmount;
+                
+                // Detener velocidad
+                velocity.x *= 0.3;
+                velocity.z *= 0.3;
+            }
+        }
+    });
+}
+
+// Registrar todas las colisiones después de crear los objetos
+function registerAllCollisions() {
+    console.log('📍 Registrando colisiones de objetos del museo...');
+    
+    let collisionCount = decorationCollisions.length;
+    
+    // Los museumObjects ya se verifican dinámicamente en checkMuseumObjectCollisions
+    console.log(`✅ Colisiones registradas: ${collisionCount} decoraciones + ${museumObjects.length} objetos del museo`);
+}
+
+// Verificar colisiones con obras de arte y esculturas
+// Actualizar mapa de navegación
+function updateNavigationMap() {
+    const mapIndicator = document.querySelector('.map-indicator');
+    if (mapIndicator) {
+        // Calcular posición relativa en el mapa
+        const normalizedX = (camera.position.x + 14) / 28; // Normalizar a 0-1
+        const normalizedZ = (camera.position.z + 14) / 28; // Normalizar a 0-1
+
+        // Convertir a coordenadas del mapa (120px x 120px)
+        const mapX = normalizedX * 100 + 10; // 10px de padding
+        const mapZ = normalizedZ * 100 + 10;
+
+        mapIndicator.style.transform = `translate(${mapX - 6}px, ${mapZ - 6}px)`;
+
+        // Rotar indicador según la dirección de la cámara
+        const rotation = camera.rotation.y * (180 / Math.PI);
+        mapIndicator.style.transform += ` rotate(${-rotation}deg)`;
+    }
+}
+
+// Configurar interactividad avanzada
+function setupAdvancedInteractivity() {
+    // Event listeners para hotspots (sin mouse move continuo)
+    window.addEventListener('click', onAdvancedMouseClick, false);
+    window.addEventListener('mousemove', onMouseMove, false);
+
+    // Cerrar modal
+    document.getElementById('close-modal').addEventListener('click', closeVideoModal);
+
+    // Cerrar modal con Escape y liberar pointer lock
+    window.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeVideoModal();
+            hideArtworkInfo();
+
+            // Liberar pointer lock
+            if (document.pointerLockElement) {
+                document.exitPointerLock();
+            }
+        }
+    });
+
+    // Controles de audio
+    const audioToggle = createAudioToggle();
+    document.body.appendChild(audioToggle);
+
+    // Añadir instrucciones de controles
+    showControlInstructions();
+}
+
+// Mostrar instrucciones de controles
+function showControlInstructions() {
+    const instructions = document.createElement('div');
+    instructions.id = 'control-instructions';
+    instructions.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.13);
+        backdrop-filter: blur(25px);
+        color: white;
+        padding: 30px 35px;
+        border-radius: 14px;
+        text-align: center;
+        z-index: 2000;
+        max-width: 380px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0px 8px 25px rgba(0, 0, 0, 0.4);
+    `;
+
+    instructions.innerHTML = `
+        <h3 style="
+            margin-bottom: 12px; 
+            color: #ffffff; 
+            font-weight: 700;
+            font-size: 22px;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+        ">Bienvenido al Museo Virtual</h3>
+        <p style="
+            margin-bottom: 24px; 
+            font-size: 13px;
+            line-height: 1.5;
+            color: rgba(255, 255, 255, 0.85);
+            font-weight: 400;
+        ">Elige tu modo de exploración</p>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <button id="start-walking" style="
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.85) 100%);
+                color: #000;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 8px;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                cursor: pointer;
+                font-weight: 700;
+                font-size: 13px;
+                letter-spacing: 0.5px;
+                text-transform: uppercase;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(255, 255, 255, 0.3)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(255, 255, 255, 0.2)';">Recorrido Libre</button>
+            
+            <button id="start-tour" style="
+                background: linear-gradient(135deg, rgba(74, 222, 128, 0.9) 0%, rgba(34, 197, 94, 0.9) 100%);
+                color: #000;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 8px;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                cursor: pointer;
+                font-weight: 700;
+                font-size: 13px;
+                letter-spacing: 0.5px;
+                text-transform: uppercase;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 12px rgba(74, 222, 128, 0.3);
+            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(74, 222, 128, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(74, 222, 128, 0.3)';">Recorrido Dinámico</button>
+        </div>
+    `;
+
+    document.body.appendChild(instructions);
+
+    // Modo libre (exploración manual)
+    document.getElementById('start-walking').addEventListener('click', () => {
+        document.body.removeChild(instructions);
+        renderer.domElement.requestPointerLock();
+    });
+
+    // Modo recorrido dinámico
+    document.getElementById('start-tour').addEventListener('click', () => {
+        document.body.removeChild(instructions);
+        startDynamicTour();
+    });
+}
+
+// Función para el recorrido dinámico (a implementar)
+function startDynamicTour() {
+    console.log('🎬 Iniciando recorrido dinámico...');
+    // Aquí puedes implementar la lógica del recorrido automático
+    // Por ahora, simplemente iniciamos el modo normal
+    renderer.domElement.requestPointerLock();
+    
+    // TODO: Implementar animación de cámara automática que recorra el museo
+    // visitando cada obra de arte en secuencia
+}
+
+// Manejar clicks avanzados
+function onAdvancedMouseClick(event) {
+    console.log('🖱️ Click detectado, pointer lock:', !!document.pointerLockElement);
+
+    let mouseX, mouseY;
+
+    if (document.pointerLockElement === renderer.domElement) {
+        // Modo navegación con pointer lock - usar centro de pantalla
+        mouseX = 0;
+        mouseY = 0;
+        console.log('🎯 Modo pointer lock - usando centro de pantalla');
+    } else {
+        // Modo libre - usar posición real del mouse
+        mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+        mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+        console.log('🖱️ Modo libre - posición mouse:', mouseX.toFixed(2), mouseY.toFixed(2));
+    }
+
+    mouse.x = mouseX;
+    mouse.y = mouseY;
+
+    raycaster.setFromCamera(mouse, camera);
+    console.log('🔍 Raycaster configurado con mouse:', mouse.x, mouse.y);
+
+    // PRIMERO verificar pinturas (mayor prioridad)
+    const artworkMeshes = artworks.map(artwork => artwork.mesh).filter(mesh => mesh);
+    console.log('🎨 Verificando', artworkMeshes.length, 'pinturas disponibles');
+    const artworkIntersects = raycaster.intersectObjects(artworkMeshes);
+    console.log('🎯 Intersecciones con artworks:', artworkIntersects.length);
+
+    if (artworkIntersects.length > 0) {
+        const artworkMesh = artworkIntersects[0].object;
+        const userData = artworkMesh.userData;
+
+        console.log('🎨 Click en pintura:', userData.title);
+        console.log('📹 Video URL:', userData.videoUrl);
+
+        if (userData.videoUrl) {
+            console.log('🎥 Abriendo video en modal:', userData.videoUrl);
+            showClickNotification('🎥 Reproduciendo video de: ' + userData.title);
+            openVideoModal(userData.videoUrl);
+        } else {
+            console.log('⚠️ No hay video disponible para:', userData.title);
+            showClickNotification('📖 Mostrando información de: ' + userData.title);
+            showArtworkInfo(userData, true);
+        }
+
+        // Efecto visual de click en la pintura
+        const originalScale = artworkMesh.scale.clone();
+        artworkMesh.scale.multiplyScalar(1.02);
+        setTimeout(() => {
+            artworkMesh.scale.copy(originalScale);
+        }, 200);
+        
+        return; // Salir aquí, no verificar hotspots
+    }
+
+    // SEGUNDO: verificar hotspots solo si no se clickeó un artwork
+    const hotspotIntersects = raycaster.intersectObjects(hotspots);
+    console.log('🔥 Hotspots encontrados:', hotspotIntersects.length, 'de', hotspots.length, 'totales');
+
+    if (hotspotIntersects.length > 0) {
+        const hotspot = hotspotIntersects[0].object;
+        const userData = hotspot.userData;
+
+        if (userData.isInfoHotspot) {
+            showArtworkInfo(userData.artworkData, true);
+        } else if (userData.videoUrl) {
+            openVideoModal(userData.videoUrl);
+        }
+
+        // Efecto de click en hotspot
+        hotspot.scale.setScalar(1.3);
+        setTimeout(() => {
+            hotspot.scale.setScalar(1);
+        }, 150);
+        return;
+    }
+
+    // Si no hubo intersección con nada
+    console.log('❌ No se detectaron intersecciones con ningún objeto');
+    console.log('🎯 Posición raycaster - Origin:', raycaster.ray.origin);
+    console.log('🎯 Posición raycaster - Direction:', raycaster.ray.direction);
+}
+
+// Función para manejar el hover sobre pinturas
+function onMouseMove(event) {
+    // Solo si el pointer NO está bloqueado (modo navegación libre)
+    if (document.pointerLockElement === renderer.domElement) {
+        return;
+    }
+
+    // Calcular posición del mouse
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+
+    // Verificar intersección con pinturas
+    const artworkMeshes = artworks.map(artwork => artwork.mesh).filter(mesh => mesh);
+    const intersects = raycaster.intersectObjects(artworkMeshes);
+
+    if (intersects.length > 0) {
+        const artwork = intersects[0].object;
+        if (artwork.userData.videoUrl) {
+            document.body.style.cursor = 'pointer';
+            // Agregar un sutil efecto de brillo
+            if (artwork.material.emissiveIntensity !== undefined) {
+                artwork.material.emissiveIntensity = 0.1;
+            }
+        }
+    } else {
+        document.body.style.cursor = 'default';
+        // Remover efecto de brillo de todas las pinturas
+        artworkMeshes.forEach(mesh => {
+            if (mesh && mesh.material.emissiveIntensity !== undefined) {
+                mesh.material.emissiveIntensity = 0;
+            }
+        });
+    }
+}
+
+// Mostrar notificación temporal al hacer click en pintura
+function showClickNotification(message) {
+    // Crear elemento de notificación
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-family: 'Arial', sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        z-index: 1001;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        transition: opacity 0.3s ease;
+    `;
+
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    // Animación de entrada
+    requestAnimationFrame(() => {
+        notification.style.opacity = '1';
+    });
+
+    // Eliminar después de 3 segundos
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
+}
+
+// Manejar doble click para auto-rotación
+function onDoubleClick() {
+    controls.autoRotate = !controls.autoRotate;
+
+    // Mostrar indicador
+    const indicator = document.createElement('div');
+    indicator.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-size: 14px;
+        z-index: 1000;
+        pointer-events: none;
+    `;
+    indicator.textContent = `Auto-rotación: ${controls.autoRotate ? 'ON' : 'OFF'}`;
+    document.body.appendChild(indicator);
+
+    setTimeout(() => {
+        document.body.removeChild(indicator);
+    }, 2000);
+}
+
+// Mostrar información de obra
+function showArtworkInfo(artworkData, persistent = false) {
+    const infoPanel = document.getElementById('artwork-info');
+
+    if (artworkData && (artworkData.title || artworkData.description)) {
+        document.getElementById('artwork-title').textContent = artworkData.title || 'Sin título';
+        document.getElementById('artwork-artist').textContent = artworkData.artist || 'Artista desconocido';
+        document.getElementById('artwork-year').textContent = artworkData.year || '';
+        document.getElementById('artwork-description').textContent = artworkData.description || 'Sin descripción disponible';
+
+        infoPanel.classList.add('show');
+
+        if (persistent) {
+            infoPanel.setAttribute('data-persistent', 'true');
+        }
+    }
+}
+
+// Ocultar información de obra
+function hideArtworkInfo() {
+    const infoPanel = document.getElementById('artwork-info');
+    if (!infoPanel.getAttribute('data-persistent')) {
+        infoPanel.classList.remove('show');
+    }
+}
+
+// Crear control de audio
+function createAudioToggle() {
+    const audioToggle = document.createElement('button');
+    audioToggle.style.cssText = `
+        position: fixed;
+        bottom: 30px;
+        left: 40px;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.29);
+        color: white;
+        font-size: 20px;
+        cursor: pointer;
+        z-index: 100;
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+    `;
+    audioToggle.innerHTML = '🔇';
+
+    let audioEnabled = false;
+
+    audioToggle.addEventListener('click', () => {
+        audioEnabled = !audioEnabled;
+        audioToggle.innerHTML = audioEnabled ? '🔊' : '🔇';
+
+        if (ambientAudio) {
+            if (audioEnabled) {
+                ambientAudio.play().catch(console.error);
+            } else {
+                ambientAudio.pause();
+            }
+        }
+    });
+
+    return audioToggle;
+}
+
+// Configurar audio ambiente
+function setupAudio() {
+    ambientAudio = document.getElementById('ambient-audio');
+
+    if (ambientAudio) {
+        ambientAudio.volume = 0.3;
+        ambientAudio.loop = true;
+
+        // Auto-reproducir si es posible
+        const playAudio = () => {
+            ambientAudio.play().catch(() => {
+                // Si falla, mostrar botón de audio
+                console.log('Audio requiere interacción del usuario');
+            });
+        };
+
+        // Intentar reproducir cuando el usuario interactúe
+        document.addEventListener('click', playAudio, { once: true });
+    } else {
+        console.log('Audio ambiente no disponible - continuando sin sonido');
+    }
+}
+
+// Abrir modal de video mejorado
+function openVideoModal(videoUrl) {
+    const modal = document.getElementById('video-modal');
+    const video = document.getElementById('video-player');
+
+    // Pausar controles de Three.js
+    controls.enabled = false;
+
+    // Configurar video
+    if (videoUrl && !videoUrl.includes('placeholder')) {
+        video.src = videoUrl;
+    } else {
+        // Crear video placeholder generativo
+        createPlaceholderVideo(video);
+    }
+
+    modal.classList.add('show');
+    currentVideoModal = modal;
+
+    // Auto-reproducir si es posible
+    video.play().catch(console.error);
+
+    // Pausar audio ambiente
+    if (ambientAudio && !ambientAudio.paused) {
+        ambientAudio.pause();
+    }
+}
+
+// Cerrar modal de video
+function closeVideoModal() {
+    const modal = document.getElementById('video-modal');
+    const video = document.getElementById('video-player');
+    const infoPanel = document.getElementById('artwork-info');
+
+    modal.classList.remove('show');
+    video.pause();
+    video.currentTime = 0;
+
+    // Limpiar video placeholder si existe
+    if (video.srcObject) {
+        video.srcObject = null;
+    }
+
+    // Reactivar controles de Three.js
+    controls.enabled = true;
+    currentVideoModal = null;
+
+    // Ocultar panel de información
+    infoPanel.classList.remove('show');
+    infoPanel.removeAttribute('data-persistent');
+
+    // Reanudar audio ambiente si estaba reproduciéndose
+    if (ambientAudio && ambientAudio.currentTime > 0) {
+        ambientAudio.play().catch(console.error);
+    }
+}
+
+// Crear video placeholder generativo
+function createPlaceholderVideo(videoElement) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 800;
+    canvas.height = 600;
+
+    // Animación generativa
+    let frame = 0;
+    function drawFrame() {
+        // Fondo degradado animado
+        const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        gradient.addColorStop(0, `hsl(${frame * 2}, 70%, 50%)`);
+        gradient.addColorStop(1, `hsl(${frame * 2 + 60}, 70%, 30%)`);
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Partículas animadas
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        for (let i = 0; i < 50; i++) {
+            const x = (Math.sin(frame * 0.01 + i) * 200) + canvas.width / 2;
+            const y = (Math.cos(frame * 0.015 + i * 0.5) * 150) + canvas.height / 2;
+            const size = Math.sin(frame * 0.02 + i) * 3 + 5;
+
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Texto central
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.font = '48px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText('MUSEO VIRTUAL', canvas.width / 2, canvas.height / 2 - 20);
+
+        ctx.font = '24px Inter';
+        ctx.fillText('Byron Gálvez', canvas.width / 2, canvas.height / 2 + 20);
+
+        frame++;
+
+        if (frame < 300) { // 10 segundos a 30fps
+            requestAnimationFrame(drawFrame);
+        }
+    }
+
+    drawFrame();
+
+    // Convertir canvas a stream de video
+    const stream = canvas.captureStream(30);
+    videoElement.srcObject = stream;
+}
+
+// Loop de animación mejorado con movimiento
+let frameCount = 0;
+function animate() {
+    requestAnimationFrame(animate);
+
+    frameCount++;
+    if (frameCount === 1) {
+        console.log('🎬 Primer frame de animación ejecutado');
+    }
+
+    const time = performance.now();
+    const deltaTime = (time - prevTime) / 1000;
+    prevTime = time;
+
+    const elapsedTime = clock.getElapsedTime();
+
+    // Actualizar rotación de cámara con suavizado (interpolación)
+    updateCameraRotation(deltaTime);
+
+    // Actualizar movimiento y colisiones
+    updateMovement(deltaTime);
+
+    // Animar hotspots
+    hotspots.forEach(hotspot => {
+        if (hotspot.animate) {
+            hotspot.animate();
+        }
+    });
+
+    // Animaciones ambientales
+    animateEnvironment(elapsedTime);
+
+    // Renderizar
+    if (frameCount === 1) {
+        console.log('🎨 Primera llamada a renderer.render', {
+            scene: scene ? `${scene.children.length} objetos` : 'null',
+            camera: camera ? 'OK' : 'null',
+            renderer: renderer ? 'OK' : 'null'
+        });
+    }
+
+    // Renderizar con estabilización
+    renderer.clear();
+    renderer.render(scene, camera);
+}
+
+// Animaciones ambientales
+function animateEnvironment(time) {
+    // Variación sutil de la luz del tragaluz
+    const skylights = scene.children.filter(child => child.type === 'DirectionalLight');
+    skylights.forEach(light => {
+        if (light.position.y > 10) { // Es el tragaluz principal
+            light.intensity = 1.3 + Math.sin(time * 0.5) * 0.2;
+        }
+    });
+
+    // Efecto de respiración en las obras de arte
+    artworks.forEach((artwork, index) => {
+        if (artwork.group) {
+            const breathe = 1 + Math.sin(time * 0.3 + index * 0.5) * 0.005;
+            artwork.group.scale.setScalar(breathe);
+        }
+    });
+}
+
+// Manejar redimensionamiento de ventana
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// Event listeners
+window.addEventListener('resize', onWindowResize, false);
+// Verificar compatibilidad WebGL
+function checkWebGLSupport() {
+    try {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        
+        if (!gl) {
+            console.error('WebGL no está disponible');
+            return false;
+        }
+
+        // Verificar extensiones necesarias
+        const extensions = [
+            'OES_texture_float',
+            'OES_standard_derivatives'
+        ];
+
+        for (const ext of extensions) {
+            if (!gl.getExtension(ext)) {
+                console.warn(`Extensión WebGL no disponible: ${ext}`);
+            }
+        }
+
+        console.log('✅ WebGL verificado correctamente');
+        return true;
+    } catch (error) {
+        console.error('Error verificando WebGL:', error);
+        return false;
+    }
+}
+
+// Verificar dependencias antes de inicializar
+function checkDependencies() {
+    console.log('Verificando dependencias...');
+
+    if (typeof THREE === 'undefined') {
+        console.error('Three.js no está cargado, intentando continuar...');
+        // Dar más tiempo para que Three.js cargue
+        return false;
+    }
+
+    console.log('✅ Three.js cargado, versión:', THREE.REVISION);
+    return true;
+}
+
+// Inicializar cuando se cargue la página
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 DOM listo, verificando dependencias...');
+
+    let retries = 0;
+    const maxRetries = 10; // Intentar hasta 10 veces
+
+    const tryInit = () => {
+        if (checkDependencies()) {
+            console.log('✅ Dependencias verificadas, iniciando museo...');
+            setTimeout(() => {
+                init();
+            }, 100);
+        } else {
+            retries++;
+            if (retries < maxRetries) {
+                console.log(`⏳ Reintento ${retries}/${maxRetries} en 500ms...`);
+                setTimeout(tryInit, 500);
+            } else {
+                console.error('❌ No se pudieron cargar las dependencias después de', maxRetries, 'intentos');
+                console.log('🔄 Intentando inicializar de todos modos...');
+                setTimeout(() => {
+                    init();
+                }, 100);
+            }
+        }
+    };
+
+    tryInit();
+
+    // Precargar recursos críticos
+    const preloadImages = [
+        'src/assets/images/Amanecer - Byron.jpeg',
+        'src/assets/images/Bailarina - Byron.jpg',
+        'src/assets/images/Naturaleza Muerta - Byron.jpg',
+        'src/assets/images/Rocas y Cielo - Byron.jpg',
+        'src/assets/images/Musicos - Byron.jpg',
+        'src/assets/images/Escultura de pie - Byron.jpg',
+        'src/assets/images/Escultura sentada - Byron.jpg'
+    ];
+
+    let loadedImages = 0;
+    const totalImages = preloadImages.length;
+
+    preloadImages.forEach((src, index) => {
+        const img = new Image();
+        img.onload = () => {
+            loadedImages++;
+            console.log(`Imagen ${index + 1}/${totalImages} cargada: ${src}`);
+            if (loadedImages === totalImages) {
+                console.log('Todas las imágenes cargadas exitosamente');
+            }
+        };
+        img.onerror = () => {
+            loadedImages++;
+            console.warn(`Error cargando imagen ${index + 1}/${totalImages}:`, src);
+            if (loadedImages === totalImages) {
+                console.log('Precarga completada (con algunos errores)');
+            }
+        };
+        img.src = src;
+    });
+
+    // Timeout de seguridad para precarga
+    setTimeout(() => {
+        if (loadedImages < totalImages) {
+            console.warn(`Timeout de precarga: ${loadedImages}/${totalImages} imágenes cargadas`);
+        }
+    }, 5000);
+});
+
+// Exportar funciones principales para depuración
+if (typeof window !== 'undefined') {
+    window.MuseumDebug = {
+        scene,
+        camera,
+        renderer,
+        artworks,
+        hotspots
+    };
+}

@@ -41,16 +41,17 @@ body, html {
 .loader-content {
     text-align: center;
     color: #ffffff;
+    transform: scale(0.735);
 }
 
 .loader-spinner {
-    width: 50px;
-    height: 50px;
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    border-top: 2px solid #ffffff;
+    width: 36.75px;
+    height: 36.75px;
+    border: 1.47px solid rgba(255, 255, 255, 0.1);
+    border-top: 1.47px solid #ffffff;
     border-radius: 50%;
     animation: spin 1s linear infinite;
-    margin: 0 auto 20px;
+    margin: 0 auto 14.7px;
 }
 
 @keyframes spin {
@@ -59,8 +60,8 @@ body, html {
 }
 
 .loader-content p {
-    font-size: 14px;
-    letter-spacing: 2px;
+    font-size: 10.29px;
+    letter-spacing: 1.47px;
     text-transform: uppercase;
 }
 
@@ -90,7 +91,7 @@ body, html {
     background: rgba(255, 255, 255, 0.8);
     border: 1px solid rgba(0, 0, 0, 0.3);
     border-radius: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-20%, -20%);
     z-index: 100;
     pointer-events: none;
     opacity: 0;
@@ -130,46 +131,54 @@ body, html {
     }
 }
 
-/* Logo del museo */
+/* Logo del museo (reducido 50% + 10% más grande + 5% más, centrado) */
 #logo {
     position: absolute;
     top: 30px;
     left: 30px;
     z-index: 10;
     font-weight: 500;
-    letter-spacing: 2px;
+    letter-spacing: 1.155px;
     backdrop-filter: blur(15px);
     background-color: rgba(255, 255, 255, 0.12);
-    padding: 12px 18px;
-    border-radius: 8px;
+    padding: 6.93px 10.395px;
+    border-radius: 4.62px;
     border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: 0px 2.31px 8.6625px rgba(0, 0, 0, 0.2);
     white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
 }
 
 .logo-text {
-    font-size: 14px;
+    font-size: 8.085px;
     font-weight: 600;
-    display: inline;
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
 }
 
 .logo-text::after {
     content: '•';
-    margin: 0 8px;
+    margin: 0 4.62px;
     color: rgba(255, 255, 255, 0.4);
-    font-size: 10px;
-    vertical-align: middle;
+    font-size: 5.775px;
+    display: inline-block;
 }
 
 .logo-subtitle {
-    font-size: 10px;
+    font-size: 5.775px;
     opacity: 0.75;
-    letter-spacing: 1.5px;
+    letter-spacing: 0.86625px;
     font-weight: 400;
-    display: inline;
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
 }
 
-/* Controles de navegación */
+/* Controles de navegación (reducidos 50% + 15% más grande) */
 #navigation-controls {
     position: absolute;
     bottom: 30px;
@@ -177,54 +186,54 @@ body, html {
     backdrop-filter: blur(20px);
     background-color: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 10px;
-    padding: 16px 18px;
+    border-radius: 6.0375px;
+    padding: 9.66px 10.8675px;
     z-index: 10;
-    min-width: 200px;
-    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
+    min-width: 120.75px;
+    box-shadow: 0px 2.415px 9.05625px rgba(0, 0, 0, 0.2);
 }
 
 .control-group h4 {
     color: #ffffff;
-    font-size: 12px;
+    font-size: 6.9px;
     font-weight: 600;
-    margin-bottom: 12px;
+    margin-bottom: 6.9px;
     text-align: center;
-    letter-spacing: 1.2px;
+    letter-spacing: 0.69px;
     text-transform: uppercase;
 }
 
 .key-hints {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: 4.6px;
+    margin-bottom: 4.6px;
     flex-wrap: wrap;
 }
 
 .key {
     background: rgba(255, 255, 255, 0.12);
     border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 5px;
-    padding: 5px 8px;
-    font-size: 10px;
+    border-radius: 2.875px;
+    padding: 2.875px 4.6px;
+    font-size: 5.75px;
     font-weight: 600;
     color: #ffffff;
-    min-width: 24px;
+    min-width: 13.8px;
     text-align: center;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 1.15px 3.45px rgba(0, 0, 0, 0.3);
     transition: all 0.2s ease;
 }
 
 .key:active,
 .key.active {
     background: rgba(255, 255, 255, 0.25);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 8px rgba(255, 255, 255, 0.3);
-    transform: translateY(1px);
+    box-shadow: 0 0.575px 1.725px rgba(0, 0, 0, 0.4), 0 0 4.6px rgba(255, 255, 255, 0.3);
+    transform: translateY(0.575px);
 }
 
 .key-hints span:not(.key) {
-    font-size: 10px;
+    font-size: 5.75px;
     color: rgba(255, 255, 255, 0.85);
     flex: 1;
 }

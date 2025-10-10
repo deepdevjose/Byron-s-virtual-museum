@@ -66,7 +66,7 @@ museito/
 
 ## Credits
 
-**Developer:** Jose Manuel Cortes Ceron  
+**Developer:** Jose Manuel Cortes Ceron  - deepdevjose
 **Artwork:** Byron Gálvez  
 **License:** Non-commercial use only
 

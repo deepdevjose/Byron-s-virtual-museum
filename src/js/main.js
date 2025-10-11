@@ -4064,7 +4064,7 @@ function startDynamicTour() {
     console.log('🎬 Redirigiendo a recorrido dinámico...');
     
     // Abrir Google en la misma ventana
-    window.location.href = 'https://www.google.com';
+    window.location.href = 'https://byron-s-dynamic-museum.pages.dev/index.html';
     
     // Limpiar recursos del museo antes de redirigir
     if (renderer) {

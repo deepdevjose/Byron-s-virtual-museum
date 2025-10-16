@@ -2053,29 +2053,29 @@ function createRealisticSpotlights() {
     const UNIFIED_DECAY = 1.0;      // Reducido para que la luz llegue uniformemente
 
     const spotLightConfigs = [
-        // Pared frontal - CON LUZ CENTRAL PARA AMANECER
-        { pos: [-6.5, 4.4, -12], target: [-6.5, 2.2, -13.7], castShadow: false },
-        { pos: [0, 4.4, -12], target: [0, 2.3, -13.7], castShadow: false }, // Luz central para Amanecer
-        { pos: [6.5, 4.4, -12], target: [6.5, 2.2, -13.7], castShadow: false },
-        { pos: [-9.5, 4.4, -12], target: [-9.5, 2.2, -13.7], castShadow: false },
-        { pos: [9.5, 4.4, -12], target: [9.5, 2.2, -13.7], castShadow: false },
+        // Pared frontal - 5 obras (z=-10, -5, 0, 5, 10)
+        { pos: [-10, 4.4, -12], target: [-10, 2.2, -13.7], castShadow: false },
+        { pos: [-5, 4.4, -12], target: [-5, 2.2, -13.7], castShadow: false },
+        { pos: [0, 4.4, -12], target: [0, 2.3, -13.7], castShadow: false },
+        { pos: [5, 4.4, -12], target: [5, 2.2, -13.7], castShadow: false },
+        { pos: [10, 4.4, -12], target: [10, 2.2, -13.7], castShadow: false },
         
-        // Pared izquierda - 4 luces para 4 obras (z=-9, z=-3, z=3, z=9)
-        { pos: [-12, 4.4, -9], target: [-13.7, 2.2, -9], castShadow: false },
-        { pos: [-12, 4.4, -3], target: [-13.7, 2.2, -3], castShadow: false },
-        { pos: [-12, 4.4, 3], target: [-13.7, 2.2, 3], castShadow: false },
-        { pos: [-12, 4.4, 9], target: [-13.7, 2.2, 9], castShadow: false },
+        // Pared izquierda - 4 obras (z=-7.5, -2.5, 2.5, 7.5)
+        { pos: [-12, 4.4, -7.5], target: [-13.7, 2.2, -7.5], castShadow: false },
+        { pos: [-12, 4.4, -2.5], target: [-13.7, 2.2, -2.5], castShadow: false },
+        { pos: [-12, 4.4, 2.5], target: [-13.7, 2.2, 2.5], castShadow: false },
+        { pos: [-12, 4.4, 7.5], target: [-13.7, 2.2, 7.5], castShadow: false },
         
-        // Pared derecha - 4 luces para 4 obras (z=-9, z=-3, z=3, z=9)
-        { pos: [12, 4.4, -9], target: [13.7, 2.2, -9], castShadow: false },
-        { pos: [12, 4.4, -3], target: [13.7, 2.2, -3], castShadow: false },
-        { pos: [12, 4.4, 3], target: [13.7, 2.2, 3], castShadow: false },
-        { pos: [12, 4.4, 9], target: [13.7, 2.2, 9], castShadow: false },
+        // Pared derecha - 4 obras (z=-7.5, -2.5, 2.5, 7.5)
+        { pos: [12, 4.4, -7.5], target: [13.7, 2.2, -7.5], castShadow: false },
+        { pos: [12, 4.4, -2.5], target: [13.7, 2.2, -2.5], castShadow: false },
+        { pos: [12, 4.4, 2.5], target: [13.7, 2.2, 2.5], castShadow: false },
+        { pos: [12, 4.4, 7.5], target: [13.7, 2.2, 7.5], castShadow: false },
         
-        // Pared trasera/entrada - CON LUZ CENTRAL DESTACADA PARA BYRON (movida desde Amanecer)
+        // Pared trasera - 5 obras (z=-9, -4.5, 0, 4.5, 9)
         { pos: [-9, 4.4, 12], target: [-9, 2.2, 13.7], castShadow: false },
         { pos: [-4.5, 4.4, 12], target: [-4.5, 2.2, 13.7], castShadow: false },
-        { pos: [0, 4.4, 12], target: [0, 2.3, 13.7], castShadow: true }, // Luz central DESTACADA para Byron con sombras
+        { pos: [0, 4.4, 12], target: [0, 2.3, 13.7], castShadow: true }, // Byron con sombras
         { pos: [4.5, 4.4, 12], target: [4.5, 2.2, 13.7], castShadow: false },
         { pos: [9, 4.4, 12], target: [9, 2.2, 13.7], castShadow: false }
     ];
@@ -2232,27 +2232,23 @@ function createWallSconce(position) {
 // Implementar apliques de pared estratégicamente
 function implementWallSconces() {
     const sconcePositions = [
-        // Pared frontal - entre obras principales, mejor espaciados
-        [-10.5, 3.2, -13.8],
-        [-3.25, 3.2, -13.8],
-        [3.25, 3.2, -13.8],
-        [10.5, 3.2, -13.8],
+        // Pared frontal - 4 lámparas entre 5 obras (entre -10/-5, -5/0, 0/5, 5/10)
+        [-7.5, 3.2, -13.8],
+        [-2.5, 3.2, -13.8],
+        [2.5, 3.2, -13.8],
+        [7.5, 3.2, -13.8],
         
-        // Pared izquierda - entre 4 obras (z=-9, z=-3, z=3, z=9)
-        [-13.8, 3.2, -11],   // Antes de primera obra
-        [-13.8, 3.2, -6],    // Entre obras 1 y 2
-        [-13.8, 3.2, 0],     // Entre obras 2 y 3
-        [-13.8, 3.2, 6],     // Entre obras 3 y 4
-        [-13.8, 3.2, 11],    // Después de última obra
+        // Pared izquierda - 3 lámparas entre 4 obras (entre -7.5/-2.5, -2.5/2.5, 2.5/7.5)
+        [-13.8, 3.2, -5],
+        [-13.8, 3.2, 0],
+        [-13.8, 3.2, 5],
         
-        // Pared derecha - entre 4 obras (z=-9, z=-3, z=3, z=9)
-        [13.8, 3.2, -11],    // Antes de primera obra
-        [13.8, 3.2, -6],     // Entre obras 1 y 2
-        [13.8, 3.2, 0],      // Entre obras 2 y 3
-        [13.8, 3.2, 6],      // Entre obras 3 y 4
-        [13.8, 3.2, 11],     // Después de última obra
+        // Pared derecha - 3 lámparas entre 4 obras (entre -7.5/-2.5, -2.5/2.5, 2.5/7.5)
+        [13.8, 3.2, -5],
+        [13.8, 3.2, 0],
+        [13.8, 3.2, 5],
         
-        // Pared trasera/entrada - entre obras con mejor espaciado
+        // Pared trasera - 4 lámparas entre 5 obras (entre -9/-4.5, -4.5/0, 0/4.5, 4.5/9)
         [-6.75, 3.2, 13.8],
         [-2.25, 3.2, 13.8],
         [2.25, 3.2, 13.8],
@@ -2272,7 +2268,7 @@ function implementWallSconces() {
         scene.add(sconceLight.target);
     });
 
-    console.log('🕯️ Apliques de pared con luces hacia abajo implementados');
+    console.log('🕯️ 14 Apliques de pared con luces hacia abajo implementados (entre cada obra)');
 }
 
 // Crear Muro de Homenaje al Artista Byron Gálvez
@@ -2427,10 +2423,33 @@ function createProceduralTexture(type, width, height) {
 
 // Crear obras de arte realistas
 function createRealisticArtworks() {
-    // Obra central - Amanecer (pared frontal principal)
+    // ========== PARED FRONTAL - 5 OBRAS ==========
+    // Obra 1 - Extremo izquierdo
+    createRealisticArtwork({
+        position: [-10, 2.2, -13.7],
+        size: [2.5, 2.0],
+        imageUrl: './src/assets/images/Bailarina - Byron.jpg',
+        title: 'Bailarina',
+        artist: 'Byron Gálvez',
+        year: '2024',
+        description: 'Una elegante representación del movimiento y la gracia, capturando la esencia de la danza en una composición dinámica.'
+    });
+
+    // Obra 2 - Centro izquierda
+    createRealisticArtwork({
+        position: [-5, 2.2, -13.7],
+        size: [2.5, 2.0],
+        imageUrl: './src/assets/images/Maquillaje - Byron.jpg',
+        title: 'Maquillaje',
+        artist: 'Byron Gálvez',
+        year: '2024',
+        description: 'Una representación íntima del arte del maquillaje, capturando la transformación y la belleza del proceso creativo.'
+    });
+
+    // Obra 3 - CENTRAL (Amanecer - obra principal)
     createRealisticArtwork({
         position: [0, 2.3, -13.7],
-        size: [4.5, 3.2],
+        size: [3.0, 2.5],
         imageUrl: './src/assets/images/Amanecer - Byron.jpeg',
         isMainArtwork: true,
         title: 'Amanecer',
@@ -2439,20 +2458,10 @@ function createRealisticArtworks() {
         description: 'Una representación poética del amanecer que captura la transición entre la noche y el día, evocando esperanza y renovación.'
     });
 
-    // Obras laterales - Pared frontal (altura uniforme)
+    // Obra 4 - Centro derecha
     createRealisticArtwork({
-        position: [-6.5, 2.2, -13.7],
-        size: [3.5, 2.8],
-        imageUrl: './src/assets/images/Bailarina - Byron.jpg',
-        title: 'Bailarina',
-        artist: 'Byron Gálvez',
-        year: '2024',
-        description: 'Una elegante representación del movimiento y la gracia, capturando la esencia de la danza en una composición dinámica.'
-    });
-
-    createRealisticArtwork({
-        position: [6.5, 2.2, -13.7],
-        size: [3.5, 2.8],
+        position: [5, 2.2, -13.7],
+        size: [2.5, 2.0],
         imageUrl: './src/assets/images/Naturaleza Muerta - Byron.jpg',
         title: 'Naturaleza Muerta',
         artist: 'Byron Gálvez',
@@ -2460,10 +2469,21 @@ function createRealisticArtworks() {
         description: 'Una interpretación contemporánea del género clásico, explorando la belleza en la simplicidad de los objetos cotidianos.'
     });
 
-    // Pared izquierda - obra 1 (4 obras bien espaciadas)
+    // Obra 5 - Extremo derecho
     createRealisticArtwork({
-        position: [-13.7, 2.2, -9],
+        position: [10, 2.2, -13.7],
         size: [2.5, 2.0],
+        imageUrl: './src/assets/images/Vanidad - Byron.jpg',
+        title: 'Vanidad',
+        artist: 'Byron Gálvez',
+        year: '2024',
+        description: 'Una reflexión sobre la belleza efímera y la contemplación del yo, explorando temas de autoconocimiento.'
+    });
+
+    // ========== PARED IZQUIERDA - 4 OBRAS ==========
+    createRealisticArtwork({
+        position: [-13.7, 2.2, -7.5],
+        size: [2.2, 1.8],
         rotation: [0, Math.PI / 2, 0],
         imageUrl: './src/assets/images/Flautistas - Byron.jpg',
         title: 'Flautistas',
@@ -2472,10 +2492,9 @@ function createRealisticArtworks() {
         description: 'Una armoniosa representación de músicos interpretando la flauta, capturando la melodía visual en cada gesto.'
     });
 
-    // Pared izquierda - obra 2 (4 obras bien espaciadas)
     createRealisticArtwork({
-        position: [-13.7, 2.2, -3],
-        size: [2.5, 2.0],
+        position: [-13.7, 2.2, -2.5],
+        size: [2.2, 1.8],
         rotation: [0, Math.PI / 2, 0],
         imageUrl: './src/assets/images/Rocas y Cielo - Byron.jpg',
         title: 'Rocas y Cielo',
@@ -2484,10 +2503,9 @@ function createRealisticArtworks() {
         description: 'Un estudio de contrastes entre la solidez de la tierra y la fluidez del cielo, explorando la relación entre lo terrenal y lo celestial.'
     });
 
-    // Pared izquierda - obra 3 (4 obras bien espaciadas)
     createRealisticArtwork({
-        position: [-13.7, 2.2, 3],
-        size: [2.5, 2.0],
+        position: [-13.7, 2.2, 2.5],
+        size: [2.2, 1.8],
         rotation: [0, Math.PI / 2, 0],
         imageUrl: './src/assets/images/Vela - Byron.jpg',
         title: 'Vela',
@@ -2496,22 +2514,21 @@ function createRealisticArtworks() {
         description: 'Una exploración de la luz y la quietud, capturando la delicada belleza de la llama en la oscuridad.'
     });
 
-    // Pared izquierda - obra 4 (4 obras bien espaciadas)
     createRealisticArtwork({
-        position: [-13.7, 2.2, 9],
-        size: [2.5, 2.0],
+        position: [-13.7, 2.2, 7.5],
+        size: [2.2, 1.8],
         rotation: [0, Math.PI / 2, 0],
-        imageUrl: './src/assets/images/Maquillaje - Byron.jpg',
-        title: 'Maquillaje',
+        imageUrl: './src/assets/images/Frutas - Byron.jpg',
+        title: 'Frutas',
         artist: 'Byron Gálvez',
         year: '2024',
-        description: 'Una representación íntima del arte del maquillaje, capturando la transformación y la belleza del proceso creativo.'
+        description: 'Una naturaleza muerta vibrante que celebra la abundancia y los colores de las frutas frescas.'
     });
 
-    // Pared derecha - obra 1 (4 obras bien espaciadas)
+    // ========== PARED DERECHA - 4 OBRAS ==========
     createRealisticArtwork({
-        position: [13.7, 2.2, -9],
-        size: [2.5, 2.0],
+        position: [13.7, 2.2, -7.5],
+        size: [2.2, 1.8],
         rotation: [0, -Math.PI / 2, 0],
         imageUrl: './src/assets/images/Violincello - Byron.jpg',
         title: 'Violoncello',
@@ -2520,10 +2537,9 @@ function createRealisticArtworks() {
         description: 'Una celebración del instrumento musical, capturando la elegancia y profundidad emocional del violoncello.'
     });
 
-    // Pared derecha - obra 2 (4 obras bien espaciadas)
     createRealisticArtwork({
-        position: [13.7, 2.2, -3],
-        size: [2.5, 2.0],
+        position: [13.7, 2.2, -2.5],
+        size: [2.2, 1.8],
         rotation: [0, -Math.PI / 2, 0],
         imageUrl: './src/assets/images/Musicos - Byron.jpg',
         title: 'Músicos',
@@ -2532,10 +2548,9 @@ function createRealisticArtworks() {
         description: 'Una celebración visual de la música y los artistas que la crean, capturando la pasión y la emoción del arte sonoro.'
     });
 
-    // Pared derecha - obra 3 (4 obras bien espaciadas)
     createRealisticArtwork({
-        position: [13.7, 2.2, 3],
-        size: [2.5, 2.0],
+        position: [13.7, 2.2, 2.5],
+        size: [2.2, 1.8],
         rotation: [0, -Math.PI / 2, 0],
         imageUrl: './src/assets/images/Veladoras - Byron.jpg',
         title: 'Veladoras',
@@ -2544,22 +2559,21 @@ function createRealisticArtworks() {
         description: 'Una contemplación sobre la luz sagrada de las velas, evocando espiritualidad y calidez en su resplandor.'
     });
 
-    // Pared derecha - obra 4 (4 obras bien espaciadas)
     createRealisticArtwork({
-        position: [13.7, 2.2, 9],
-        size: [2.5, 2.0],
+        position: [13.7, 2.2, 7.5],
+        size: [2.2, 1.8],
         rotation: [0, -Math.PI / 2, 0],
-        imageUrl: './src/assets/images/Frutas - Byron.jpg',
-        title: 'Frutas',
+        imageUrl: './src/assets/images/MusicosM - Byron.jpg',
+        title: 'Músicos en Marcha',
         artist: 'Byron Gálvez',
         year: '2024',
-        description: 'Una naturaleza muerta vibrante que celebra la abundancia y los colores de las frutas frescas.'
+        description: 'Una representación dinámica de músicos en movimiento, capturando el ritmo y la energía de la marcha musical.'
     });
 
-    // Pared trasera - obra izquierda exterior (mejor espaciado)
+    // ========== PARED TRASERA - 5 OBRAS ==========
     createRealisticArtwork({
         position: [-9, 2.2, 13.7],
-        size: [2.5, 2.0],
+        size: [2.2, 1.8],
         rotation: [0, Math.PI, 0],
         imageUrl: './src/assets/images/Copas - Byron.jpg',
         title: 'Copas',
@@ -2568,10 +2582,9 @@ function createRealisticArtworks() {
         description: 'Una representación elegante de cristalería, explorando la transparencia, reflejos y la belleza de los objetos cotidianos.'
     });
 
-    // Pared trasera - obra izquierda interior (mejor espaciado)
     createRealisticArtwork({
         position: [-4.5, 2.2, 13.7],
-        size: [2.3, 1.9],
+        size: [2.2, 1.8],
         rotation: [0, Math.PI, 0],
         imageUrl: './src/assets/images/Escultura de pie - Byron.jpg',
         title: 'Escultura de Pie',
@@ -2580,10 +2593,10 @@ function createRealisticArtworks() {
         description: 'Una exploración de la forma humana en movimiento, capturando la elegancia y fuerza de la figura erguida.'
     });
 
-    // Pared trasera - AUTORRETRATO DEL ARTISTA (con estructura especial - centro)
+    // AUTORRETRATO DEL ARTISTA - CENTRO
     createArtistPortrait({
         position: [0, 2.3, 13.7],
-        size: [3.5, 3.0],
+        size: [3.0, 2.5],
         rotation: [0, Math.PI, 0],
         imageUrl: './src/assets/images/Byron2.png',
         title: 'Byron Gálvez',
@@ -2592,10 +2605,9 @@ function createRealisticArtworks() {
         description: 'El maestro detrás de estas obras, capturando su esencia creativa y visión personal del mundo.'
     });
 
-    // Pared trasera - obra derecha interior (mejor espaciado)
     createRealisticArtwork({
         position: [4.5, 2.2, 13.7],
-        size: [2.3, 1.9],
+        size: [2.2, 1.8],
         rotation: [0, Math.PI, 0],
         imageUrl: './src/assets/images/Escultura sentada - Byron.jpg',
         title: 'Escultura Sentada',
@@ -2604,63 +2616,18 @@ function createRealisticArtworks() {
         description: 'Una contemplación sobre el reposo y la reflexión, mostrando la serenidad en la postura contemplativa.'
     });
 
-    // Pared trasera - obra derecha exterior (mejor espaciado)
     createRealisticArtwork({
         position: [9, 2.2, 13.7],
-        size: [2.5, 2.0],
+        size: [2.2, 1.8],
         rotation: [0, Math.PI, 0],
-        imageUrl: './src/assets/images/Frutas - Byron.jpg',
-        title: 'Frutas',
-        artist: 'Byron Gálvez',
-        year: '2024',
-        description: 'Una celebración de la naturaleza muerta, explorando colores vibrantes y formas orgánicas de frutas frescas.'
-    });
-
-    // Obras adicionales pared frontal (altura uniforme)
-    createRealisticArtwork({
-        position: [-9.5, 2.2, -13.7],
-        size: [2.5, 2.0],
-        imageUrl: './src/assets/images/Maquillaje - Byron.jpg',
-        title: 'Maquillaje',
-        artist: 'Byron Gálvez',
-        year: '2024',
-        description: 'Una exploración del arte del maquillaje como forma de expresión y transformación personal.'
-    });
-
-    createRealisticArtwork({
-        position: [9.5, 2.2, -13.7],
-        size: [2.5, 2.0],
-        imageUrl: './src/assets/images/Vanidad - Byron.jpg',
-        title: 'Vanidad',
-        artist: 'Byron Gálvez',
-        year: '2024',
-        description: 'Una reflexión sobre la belleza, el tiempo y la naturaleza efímera de la apariencia física.'
-    });
-
-    // Obras pequeñas complementarias en paredes laterales (altura uniforme)
-    createRealisticArtwork({
-        position: [-13.7, 2.2, -9],
-        size: [2.2, 1.8],
-        rotation: [0, Math.PI / 2, 0],
         imageUrl: './src/assets/images/Vela2 - Byron.jpg',
-        title: 'Vela II',
+        title: 'Vela 2',
         artist: 'Byron Gálvez',
         year: '2024',
-        description: 'Segunda exploración de la luz de vela, capturando momentos de serenidad y contemplación.'
+        description: 'Una segunda exploración de la luz de la vela, con diferentes matices de sombra y calidez.'
     });
 
-    createRealisticArtwork({
-        position: [13.7, 2.2, 9],
-        size: [2.2, 1.8],
-        rotation: [0, -Math.PI / 2, 0],
-        imageUrl: './src/assets/images/MusicosM - Byron.jpg',
-        title: 'Músicos en Concierto',
-        artist: 'Byron Gálvez',
-        year: '2024',
-        description: 'Una visión íntima del mundo musical, capturando la concentración y pasión de los intérpretes en su arte.'
-    });
-
-    console.log('🎨 Galería completa creada con 16 obras de arte');
+    console.log('🎨 Galería completa creada con 18 obras de arte (5 frontal, 4 izquierda, 4 derecha, 5 trasera)');
 }
 
 // Crear retrato especial del artista - Versión simplificada y elegante

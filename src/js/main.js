@@ -49,7 +49,7 @@ const REALISTIC_CONFIG = {
     },
     lighting: {
         physicallyCorrect: true,
-        exposure: 1.2,
+        exposure: 1,
         shadowBias: -0.0001
     },
     materials: {
@@ -178,7 +178,9 @@ async function init() {
             0.1,
             200
         );
-        camera.position.set(0, 1.7, 8);
+        // Posición inicial mirando hacia la pared trasera (retrato de Byron)
+        camera.position.set(0, 1.7, -8);
+        camera.rotation.y = Math.PI; // Rotar 180° para mirar hacia adelante (pared trasera)
 
         updateLoaderProgress(40, 100, 'Inicializando renderer');
 
@@ -205,7 +207,7 @@ async function init() {
         renderer.physicallyCorrectLights = true;
         renderer.outputEncoding = THREE.sRGBEncoding;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 0.8; // Reducido para evitar sobreexposición
+        renderer.toneMappingExposure = 0.6; // Reducido más para mantener consistencia (0.8 → 0.6)
 
         // Configuraciones adicionales para mejor rendimiento
         renderer.sortObjects = false; // Desactivar sorting automático para evitar z-fighting
@@ -347,6 +349,9 @@ function setupWalkingControls() {
 
     // Configurar events de pointer lock
     document.addEventListener('pointerlockchange', onPointerLockChange);
+
+    // Configurar zoom con rueda del mouse
+    window.addEventListener('wheel', onMouseWheel, { passive: false });
 }
 
 // Manejar eventos de teclado
@@ -432,11 +437,11 @@ function highlightKey(code, isActive) {
     }
 }
 
-// Variables para suavizado de cámara
+// Variables para suavizado de cámara (inicializadas para mirar hacia pared trasera)
 let targetRotationX = 0;
-let targetRotationY = 0;
+let targetRotationY = Math.PI; // Mirando hacia la pared trasera (180°)
 let currentRotationX = 0;
-let currentRotationY = 0;
+let currentRotationY = Math.PI; // Mirando hacia la pared trasera (180°)
 
 // Manejar movimiento del mouse para mirar
 function onMouseLook(event) {
@@ -455,6 +460,35 @@ function onMouseLook(event) {
         
         // NO limitar la rotación horizontal (puedes girar 360°)
     }
+}
+
+// Manejar zoom con rueda del mouse
+function onMouseWheel(event) {
+    event.preventDefault();
+    
+    // Determinar dirección del scroll
+    const delta = event.deltaY;
+    
+    // Límites de FOV (campo de visión)
+    const minFOV = 30;  // Zoom máximo (más cercano)
+    const maxFOV = 90;  // Zoom mínimo (más lejano)
+    
+    // Velocidad de zoom
+    const zoomSpeed = 0.05;
+    
+    // Ajustar FOV basado en la dirección del scroll
+    if (delta > 0) {
+        // Scroll hacia abajo - alejarse (aumentar FOV)
+        camera.fov = Math.min(camera.fov + zoomSpeed * delta * 0.1, maxFOV);
+    } else {
+        // Scroll hacia arriba - acercarse (disminuir FOV)
+        camera.fov = Math.max(camera.fov + zoomSpeed * delta * 0.1, minFOV);
+    }
+    
+    // Actualizar la matriz de proyección de la cámara
+    camera.updateProjectionMatrix();
+    
+    console.log('🔍 Zoom ajustado - FOV:', camera.fov.toFixed(1));
 }
 
 // Manejar cambios de pointer lock
@@ -552,6 +586,7 @@ function preloadImagesWithProgress() {
             './src/assets/images/Copas - Byron.jpg',
             './src/assets/images/Escultura de pie - Byron.jpg',
             './src/assets/images/Escultura sentada - Byron.jpg',
+            './src/assets/images/Flautistas - Byron.jpg',
             './src/assets/images/Frutas - Byron.jpg',
             './src/assets/images/Maquillaje - Byron.jpg',
             './src/assets/images/Musicos - Byron.jpg',
@@ -561,6 +596,7 @@ function preloadImagesWithProgress() {
             './src/assets/images/Vanidad - Byron.jpg',
             './src/assets/images/Vela - Byron.jpg',
             './src/assets/images/Vela2 - Byron.jpg',
+            './src/assets/images/Veladoras - Byron.jpg',
             './src/assets/images/Violincello - Byron.jpg'
         ];
 
@@ -1435,8 +1471,8 @@ function createCeilingLightGrid() {
             const posX = startX + (x * spacing);
             const posZ = startZ + (z * spacing);
 
-            // Luz puntual principal - intensidad reducida
-            const ceilingLight = new THREE.PointLight(0xfff8e7, 9, 15, 2.0);
+            // Luz puntual principal con tono cálido
+            const ceilingLight = new THREE.PointLight(0xffd9a0, 9, 15, 2.0); // Tono cálido dorado
             ceilingLight.position.set(posX, height, posZ);
             ceilingLight.castShadow = false; // Desactivar sombras para optimizar
             
@@ -1448,22 +1484,22 @@ function createCeilingLightGrid() {
                 color: 0x2a2a2a,
                 roughness: 0.3,
                 metalness: 0.8,
-                emissive: 0xffffff,
-                emissiveIntensity: 0.05
+                emissive: 0xffd9a0, // Emisivo cálido
+                emissiveIntensity: 0.08
             });
             const fixture = new THREE.Mesh(fixtureGeometry, fixtureMaterial);
             fixture.position.set(posX, height + 0.2, posZ);
             fixture.castShadow = false;
             scene.add(fixture);
 
-            // Pequeño difusor
+            // Pequeño difusor con tono cálido
             const diffuserGeometry = new THREE.CircleGeometry(0.18, 16);
             const diffuserMaterial = new THREE.MeshPhysicalMaterial({
                 color: 0xffffff,
                 roughness: 0.9,
                 metalness: 0.0,
-                emissive: 0xfff5e6,
-                emissiveIntensity: 0.2,
+                emissive: 0xffd9a0, // Emisivo cálido
+                emissiveIntensity: 0.25,
                 transparent: true,
                 opacity: 0.9,
                 side: THREE.DoubleSide
@@ -1483,18 +1519,18 @@ function createRealisticGallery() {
     // Limpiar array de paredes para colisiones
     walls = [];
 
-    // Material del suelo con textura de mármol mejorada pero compatible
+    // Material del suelo con textura de mármol - muy reducido en reflectividad
     const floorTexture = createLuxuryMarbleTexture();
     const floorMaterial = new THREE.MeshPhysicalMaterial({
         map: floorTexture.diffuse,
         normalMap: floorTexture.normal,
-        color: 0xffffff,
-        roughness: 0.05,
+        color: 0xf5f5f5, // Ligeramente más gris para reducir brillo
+        roughness: 0.3,  // Aumentado para menos reflejo especular
         metalness: 0.0,
-        reflectivity: 0.9,
-        clearcoat: 1.0,
-        clearcoatRoughness: 0.05,
-        envMapIntensity: 0.8
+        reflectivity: 0.1, // Drásticamente reducido de 0.9 a 0.1
+        clearcoat: 0.2,    // Drásticamente reducido de 1.0 a 0.2
+        clearcoatRoughness: 0.4, // Aumentado para dispersar reflejos
+        envMapIntensity: 0.2 // Reducido de 0.8 a 0.2
     });
 
     // Suelo principal con geometría más detallada
@@ -1622,8 +1658,15 @@ function createCompleteCeiling() {
     // Crear tragaluz con marco de vidrio SOBRE el techo (no un agujero)
     createSkylight();
 
-    // Vigas estructurales decorativas
-    createCeilingBeams();
+    // Crear lámpara central decorativa
+    createCenterChandelier();
+
+    // Vigas estructurales decorativas (controladas por configuración)
+    if (typeof MUSEUM_CONFIG !== 'undefined' && MUSEUM_CONFIG.lighting && MUSEUM_CONFIG.lighting.useCeilingBeams) {
+        createCeilingBeams();
+    } else {
+        console.log('⛔ Vigas del techo desactivadas por configuración');
+    }
 }
 
 // Crear tragaluz realista SOBRE el techo
@@ -1683,6 +1726,120 @@ function createSkylight() {
     glass.position.set(0, 5.0 + elevation + frameThickness / 2, 0);
     glass.rotation.x = -Math.PI / 2;
     scene.add(glass);
+}
+
+// Crear lámpara/candelabro central decorativo
+function createCenterChandelier() {
+    const chandelierGroup = new THREE.Group();
+    
+    // Materiales
+    const metalMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x1a1a1a,
+        roughness: 0.2,
+        metalness: 0.95,
+        envMapIntensity: 1.2
+    });
+    
+    const goldMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xd4af37,
+        roughness: 0.15,
+        metalness: 0.9,
+        envMapIntensity: 1.0
+    });
+    
+    const glassMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.3,
+        roughness: 0.0,
+        metalness: 0.0,
+        transmission: 0.9,
+        envMapIntensity: 1.2,
+        emissive: 0xfff8dc,
+        emissiveIntensity: 0.4
+    });
+    
+    // Cadena/tubo de soporte central
+    const chainGeometry = new THREE.CylinderGeometry(0.03, 0.03, 0.8, 8);
+    const chain = new THREE.Mesh(chainGeometry, metalMaterial);
+    chain.position.y = 4.5;
+    chandelierGroup.add(chain);
+    
+    // Base superior (roseta de techo)
+    const rosetteGeometry = new THREE.CylinderGeometry(0.15, 0.12, 0.08, 16);
+    const rosette = new THREE.Mesh(rosetteGeometry, goldMaterial);
+    rosette.position.y = 4.9;
+    chandelierGroup.add(rosette);
+    
+    // Cuerpo principal de la lámpara (corona circular)
+    const crownGeometry = new THREE.TorusGeometry(0.6, 0.08, 8, 24);
+    const crown = new THREE.Mesh(crownGeometry, goldMaterial);
+    crown.position.y = 4.1;
+    crown.rotation.x = Math.PI / 2;
+    chandelierGroup.add(crown);
+    
+    // Brazos decorativos (6 brazos)
+    const numArms = 6;
+    for (let i = 0; i < numArms; i++) {
+        const angle = (i / numArms) * Math.PI * 2;
+        
+        // Brazo curvo
+        const armGeometry = new THREE.CylinderGeometry(0.025, 0.02, 0.4, 8);
+        const arm = new THREE.Mesh(armGeometry, goldMaterial);
+        
+        const armRadius = 0.5;
+        arm.position.x = Math.cos(angle) * armRadius;
+        arm.position.z = Math.sin(angle) * armRadius;
+        arm.position.y = 4.1;
+        arm.rotation.z = Math.PI / 6; // Inclinación
+        arm.rotation.y = angle;
+        chandelierGroup.add(arm);
+        
+        // Lámpara/bombilla en cada brazo
+        const bulbGeometry = new THREE.SphereGeometry(0.08, 12, 12);
+        const bulb = new THREE.Mesh(bulbGeometry, glassMaterial);
+        bulb.position.x = Math.cos(angle) * (armRadius + 0.15);
+        bulb.position.z = Math.sin(angle) * (armRadius + 0.15);
+        bulb.position.y = 3.95;
+        chandelierGroup.add(bulb);
+        
+        // Pequeña luz puntual en cada bombilla
+        const bulbLight = new THREE.PointLight(0xfff8dc, 3, 3, 2);
+        bulbLight.position.copy(bulb.position);
+        chandelierGroup.add(bulbLight);
+    }
+    
+    // Lámpara central inferior
+    const centerBulbGeometry = new THREE.SphereGeometry(0.12, 16, 16);
+    const centerBulb = new THREE.Mesh(centerBulbGeometry, glassMaterial);
+    centerBulb.position.y = 3.85;
+    chandelierGroup.add(centerBulb);
+    
+    // Luz central principal
+    const centerLight = new THREE.PointLight(0xfff8dc, 8, 6, 2);
+    centerLight.position.y = 3.85;
+    chandelierGroup.add(centerLight);
+    
+    // Detalles decorativos - cristales colgantes
+    const numCrystals = 12;
+    for (let i = 0; i < numCrystals; i++) {
+        const angle = (i / numCrystals) * Math.PI * 2;
+        const radius = 0.45 + (i % 2) * 0.15;
+        
+        const crystalGeometry = new THREE.ConeGeometry(0.03, 0.15, 6);
+        const crystal = new THREE.Mesh(crystalGeometry, glassMaterial);
+        crystal.position.x = Math.cos(angle) * radius;
+        crystal.position.z = Math.sin(angle) * radius;
+        crystal.position.y = 3.8 - (i % 3) * 0.1;
+        crystal.rotation.x = Math.PI;
+        chandelierGroup.add(crystal);
+    }
+    
+    // Posicionar el candelabro en el centro del techo
+    chandelierGroup.position.set(0, 0, 0);
+    scene.add(chandelierGroup);
+    
+    console.log('💡 Candelabro central creado en el techo');
 }
 
 // Crear vigas del techo
@@ -1831,15 +1988,19 @@ function createBaseboards() {
 
 // Iluminación avanzada y realista
 function setupAdvancedLighting() {
-    // Luz ambiental reducida para evitar sobreexposición
-    const ambientLight = new THREE.AmbientLight(0x404040, 0.18);
+    // Luz ambiental aumentada significativamente para mejor visibilidad de las obras
+    const ambientLight = new THREE.AmbientLight(0x808080, 0.5); // Aumentado más: 0x606060,0.35 → 0x808080,0.5
     scene.add(ambientLight);
 
-    // Sistema de iluminación de techo en grid para cobertura completa
-    createCeilingLightGrid();
+    // Sistema de iluminación de techo en grid (controlado por configuración)
+    if (typeof MUSEUM_CONFIG !== 'undefined' && MUSEUM_CONFIG.lighting && MUSEUM_CONFIG.lighting.useCeilingGrid) {
+        createCeilingLightGrid();
+    } else {
+        console.log('⛔ Grid de luces de techo desactivado (evita apariencia de vigas)');
+    }
 
-    // Luz principal del tragaluz (reducida)
-    const mainSkylight = new THREE.DirectionalLight(0xfff8dc, 0.9);
+    // Luz principal del tragaluz con tono cálido
+    const mainSkylight = new THREE.DirectionalLight(0xffd9a0, 0.9); // Cambiado a tono cálido dorado
     mainSkylight.position.set(2, 20, 3);
     mainSkylight.target.position.set(0, 0, 0);
     mainSkylight.castShadow = true;
@@ -1859,16 +2020,16 @@ function setupAdvancedLighting() {
     scene.add(mainSkylight);
     scene.add(mainSkylight.target);
 
-    // Luces de relleno reducidas
-    const fillLight1 = new THREE.DirectionalLight(0xbde3ff, 0.27);
+    // Luces de relleno con tonos cálidos - aumentadas para mejor cobertura
+    const fillLight1 = new THREE.DirectionalLight(0xffd9a0, 0.35); // Aumentado de 0.22 a 0.35
     fillLight1.position.set(-15, 12, 8);
     scene.add(fillLight1);
 
-    const fillLight2 = new THREE.DirectionalLight(0xffe4b5, 0.22);
+    const fillLight2 = new THREE.DirectionalLight(0xffe4b5, 0.35); // Aumentado de 0.22 a 0.35
     fillLight2.position.set(15, 8, -8);
     scene.add(fillLight2);
 
-    const fillLight3 = new THREE.DirectionalLight(0xffffff, 0.18);
+    const fillLight3 = new THREE.DirectionalLight(0xffefd5, 0.3); // Aumentado de 0.18 a 0.3
     fillLight3.position.set(0, 15, 10);
     scene.add(fillLight3);
 
@@ -1883,60 +2044,63 @@ function setupAdvancedLighting() {
 
 // Crear focos LED realistas
 function createRealisticSpotlights() {
+    // Perfil de luz mejorado para mejor iluminación de las obras
+    const UNIFIED_COLOR = 0xffffff; // Blanco neutro
+    const UNIFIED_INTENSITY = 35;   // Aumentado de 25 a 35 para mejor visibilidad
+    const UNIFIED_DISTANCE = 22;    // Mayor distancia
+    const UNIFIED_ANGLE = Math.PI / 6; // Más amplio: de PI/7 a PI/6 para mayor cobertura
+    const UNIFIED_PENUMBRA = 0.7;   // Aumentado para suavizar más
+    const UNIFIED_DECAY = 1.0;      // Reducido para que la luz llegue uniformemente
+
     const spotLightConfigs = [
-        // Pared frontal - obras principales (con sombras) - alturas uniformes
-        { pos: [0, 4.4, -12], target: [0, 2.8, -13.7], intensity: 31, color: 0xffffff, castShadow: true },
-        { pos: [-6.5, 4.4, -12], target: [-6.5, 2.6, -13.7], intensity: 27, color: 0xfff8dc, castShadow: true },
-        { pos: [6.5, 4.4, -12], target: [6.5, 2.6, -13.7], intensity: 27, color: 0xfff8dc, castShadow: true },
-        { pos: [-9.5, 4.4, -12], target: [-9.5, 2.6, -13.7], intensity: 22, color: 0xfff8dc, castShadow: false },
-        { pos: [9.5, 4.4, -12], target: [9.5, 2.6, -13.7], intensity: 22, color: 0xfff8dc, castShadow: false },
+        // Pared frontal - 5 obras (z=-10, -5, 0, 5, 10)
+        { pos: [-10, 4.4, -12], target: [-10, 2.2, -13.7], castShadow: false },
+        { pos: [-5, 4.4, -12], target: [-5, 2.2, -13.7], castShadow: false },
+        { pos: [0, 4.4, -12], target: [0, 2.3, -13.7], castShadow: false },
+        { pos: [5, 4.4, -12], target: [5, 2.2, -13.7], castShadow: false },
+        { pos: [10, 4.4, -12], target: [10, 2.2, -13.7], castShadow: false },
         
-        // Pared izquierda (sin sombras) - altura uniforme
-        { pos: [-12, 4.4, -3], target: [-13.7, 2.6, -3], intensity: 22, color: 0xffffff, castShadow: false },
-        { pos: [-12, 4.4, 6], target: [-13.7, 2.6, 6], intensity: 22, color: 0xfff8dc, castShadow: false },
-        { pos: [-12, 4.4, -9], target: [-13.7, 2.6, -9], intensity: 19, color: 0xfff8dc, castShadow: false },
+        // Pared izquierda - 4 obras (z=-7.5, -2.5, 2.5, 7.5)
+        { pos: [-12, 4.4, -7.5], target: [-13.7, 2.2, -7.5], castShadow: false },
+        { pos: [-12, 4.4, -2.5], target: [-13.7, 2.2, -2.5], castShadow: false },
+        { pos: [-12, 4.4, 2.5], target: [-13.7, 2.2, 2.5], castShadow: false },
+        { pos: [-12, 4.4, 7.5], target: [-13.7, 2.2, 7.5], castShadow: false },
         
-        // Pared derecha (sin sombras) - altura uniforme
-        { pos: [12, 4.4, 3], target: [13.7, 2.6, 3], intensity: 22, color: 0xffffff, castShadow: false },
-        { pos: [12, 4.4, -6], target: [13.7, 2.6, -6], intensity: 22, color: 0xfff8dc, castShadow: false },
-        { pos: [12, 4.4, 9], target: [13.7, 2.6, 9], intensity: 19, color: 0xfff8dc, castShadow: false },
+        // Pared derecha - 4 obras (z=-7.5, -2.5, 2.5, 7.5)
+        { pos: [12, 4.4, -7.5], target: [13.7, 2.2, -7.5], castShadow: false },
+        { pos: [12, 4.4, -2.5], target: [13.7, 2.2, -2.5], castShadow: false },
+        { pos: [12, 4.4, 2.5], target: [13.7, 2.2, 2.5], castShadow: false },
+        { pos: [12, 4.4, 7.5], target: [13.7, 2.2, 7.5], castShadow: false },
         
-        // Pared trasera/entrada (sin sombras) - mejor espaciados (sin el retrato central que tiene su propia luz)
-        { pos: [-9, 4.4, 12], target: [-9, 2.6, 13.7], intensity: 19, color: 0xfff8dc, castShadow: false },
-        { pos: [-4.5, 4.4, 12], target: [-4.5, 2.6, 13.7], intensity: 19, color: 0xfff8dc, castShadow: false },
-        { pos: [4.5, 4.4, 12], target: [4.5, 2.6, 13.7], intensity: 19, color: 0xfff8dc, castShadow: false },
-        { pos: [9, 4.4, 12], target: [9, 2.6, 13.7], intensity: 19, color: 0xfff8dc, castShadow: false }
+        // Pared trasera - 5 obras (z=-9, -4.5, 0, 4.5, 9)
+        { pos: [-9, 4.4, 12], target: [-9, 2.2, 13.7], castShadow: false },
+        { pos: [-4.5, 4.4, 12], target: [-4.5, 2.2, 13.7], castShadow: false },
+        { pos: [0, 4.4, 12], target: [0, 2.3, 13.7], castShadow: true }, // Byron con sombras
+        { pos: [4.5, 4.4, 12], target: [4.5, 2.2, 13.7], castShadow: false },
+        { pos: [9, 4.4, 12], target: [9, 2.2, 13.7], castShadow: false }
     ];
 
-    spotLightConfigs.forEach((config, index) => {
-        // Spotlight principal con parámetros más realistas
-        const spotLight = new THREE.SpotLight(config.color, config.intensity, 25, Math.PI / 9, 0.6, 1.5);
+    spotLightConfigs.forEach(config => {
+        const spotLight = new THREE.SpotLight(UNIFIED_COLOR, UNIFIED_INTENSITY, UNIFIED_DISTANCE, UNIFIED_ANGLE, UNIFIED_PENUMBRA, UNIFIED_DECAY);
         spotLight.position.set(...config.pos);
         spotLight.target.position.set(...config.target);
-        spotLight.castShadow = config.castShadow;
+        spotLight.castShadow = config.castShadow; // Solo la central para ahorrar rendimiento
 
         if (config.castShadow) {
-            spotLight.shadow.mapSize.width = 1024; // Reducido de 2048
-            spotLight.shadow.mapSize.height = 1024;
-            spotLight.shadow.camera.near = 0.5;
-            spotLight.shadow.camera.far = 25;
-            spotLight.shadow.bias = -0.0002;
-            spotLight.shadow.radius = 8;
+            spotLight.shadow.mapSize.width = 512;
+            spotLight.shadow.mapSize.height = 512;
+            spotLight.shadow.bias = -0.00015;
+            spotLight.shadow.radius = 4;
         }
 
         scene.add(spotLight);
         scene.add(spotLight.target);
 
-        // Fixture físico del foco
+        // Fixture físico del foco (opcional: mantenerlo para coherencia visual)
         createSpotlightFixture(config.pos);
-
-        // Luz de relleno muy suave
-        const fillLight = new THREE.PointLight(config.color, config.intensity * 0.3, 18, 2);
-        fillLight.position.set(config.pos[0], config.pos[1] - 0.8, config.pos[2]);
-        scene.add(fillLight);
     });
 
-    console.log('🔦 Focos LED creados: ' + spotLightConfigs.length + ' spotlights');
+    console.log('🔦 Spotlights unificados creados: ' + spotLightConfigs.length);
 }
 
 // Crear fixture físico del foco
@@ -1989,55 +2153,42 @@ function createSpotlightFixture(position) {
 
 // Iluminación ambiente adicional
 function createAmbientLighting() {
-    // Luces de pared indirectas - reducidas en intensidad y alineadas con cuadros
+    // ELIMINADAS: Luces de pared que causaban halos en el techo
+    // Las obras ahora se iluminan principalmente con spotlights directos desde el techo
+    
+    /* Código anterior eliminado:
     const wallLightPositions = [
-        // Pared izquierda - alineadas con cuadros
         [-13.5, 3.5, -9], [-13.5, 3.5, -3], [-13.5, 3.5, 6],
-        // Pared derecha - alineadas con cuadros
         [13.5, 3.5, -6], [13.5, 3.5, 3], [13.5, 3.5, 9],
-        // Pared frontal - alineadas con cuadros principales
         [-9.5, 3.5, -13.5], [-6.5, 3.5, -13.5], [0, 3.5, -13.5], [6.5, 3.5, -13.5], [9.5, 3.5, -13.5],
-        // Pared trasera/entrada - mejor espaciadas
         [-9, 3.5, 13.5], [-4.5, 3.5, 13.5], [4.5, 3.5, 13.5], [9, 3.5, 13.5]
     ];
-
     wallLightPositions.forEach(pos => {
-        const wallLight = new THREE.PointLight(0xfff5e6, 13, 12, 2);
+        const wallLight = new THREE.PointLight(0xfff5e6, 1, 2, 1);
         wallLight.position.set(...pos);
         scene.add(wallLight);
     });
+    */
 
-    // Luces en las esquinas - reducidas
-    const cornerLights = [
-        { pos: [-12, 3.5, -12], intensity: 18 },
-        { pos: [12, 3.5, -12], intensity: 18 },
-        { pos: [-12, 3.5, 12], intensity: 18 },
-        { pos: [12, 3.5, 12], intensity: 18 }
-    ];
-
-    cornerLights.forEach(light => {
-        const cornerLight = new THREE.PointLight(0xffffff, light.intensity, 16, 2);
-        cornerLight.position.set(...light.pos);
-        scene.add(cornerLight);
-    });
-
-    // Iluminación de suelo indirecta - reducida
+    // Iluminación de suelo indirecta - muy reducida para evitar brillo excesivo
     const floorLights = [
         // Centro y cuadrantes principales
-        { pos: [0, 0.1, 0], color: 0xffffff, intensity: 10 },
-        { pos: [-7, 0.1, -7], color: 0xfff8dc, intensity: 7 },
-        { pos: [7, 0.1, -7], color: 0xfff8dc, intensity: 7 },
-        { pos: [-7, 0.1, 7], color: 0xfff8dc, intensity: 7 },
-        { pos: [7, 0.1, 7], color: 0xfff8dc, intensity: 7 }
+        { pos: [0, 0.1, 0], color: 0xffd9a0, intensity: 10 },
+        { pos: [-7, 0.1, -7], color: 0xffd9a0, intensity: 7 },
+        { pos: [7, 0.1, -7], color: 0xffd9a0, intensity: 7 },
+        { pos: [-7, 0.1, 7], color: 0xffd9a0, intensity: 7 },
+        { pos: [7, 0.1, 7], color: 0xffd9a0, intensity: 7 }
     ];
 
     floorLights.forEach(light => {
-        const floorLight = new THREE.PointLight(light.color, light.intensity, 12, 2.5);
+        // Reducido para eliminar el aspecto muy iluminado del piso
+        const scaledIntensity = light.intensity >= 8 ? 1.2 : 1.0;
+        const floorLight = new THREE.PointLight(light.color, scaledIntensity, 6.5, 2.4);
         floorLight.position.set(...light.pos);
         scene.add(floorLight);
     });
 
-    console.log('💡 Iluminación ambiente creada: ' + (wallLightPositions.length + cornerLights.length + floorLights.length) + ' luces');
+    console.log('💡 Iluminación ambiente creada (optimizada sin luces de pared): ' + floorLights.length + ' luces de piso');
 }
 
 // Crear aplique de pared más detallado
@@ -2061,13 +2212,13 @@ function createWallSconce(position) {
     const shadeGeometry = new THREE.SphereGeometry(0.12, 16, 16);
     const shadeMaterial = new THREE.MeshPhysicalMaterial({
         color: 0xffffff,
-        roughness: 0.05,
+        roughness: 0.18, // Aumenta rugosidad para dispersar highlights
         metalness: 0.0,
         transparent: true,
-        opacity: 0.9,
+        opacity: 0.85,
         emissive: 0xfff5e6,
-        emissiveIntensity: 0.3,
-        transmission: 0.8
+        emissiveIntensity: 0.08, // Antes 0.3 -> reduce glow
+        transmission: 0.65
     });
 
     const shade = new THREE.Mesh(shadeGeometry, shadeMaterial);
@@ -2081,21 +2232,23 @@ function createWallSconce(position) {
 // Implementar apliques de pared estratégicamente
 function implementWallSconces() {
     const sconcePositions = [
-        // Pared frontal - entre obras principales, mejor espaciados
-        [-10.5, 3.2, -13.8],
-        [-3.25, 3.2, -13.8],
-        [3.25, 3.2, -13.8],
-        [10.5, 3.2, -13.8],
+        // Pared frontal - 4 lámparas entre 5 obras (entre -10/-5, -5/0, 0/5, 5/10)
+        [-7.5, 3.2, -13.8],
+        [-2.5, 3.2, -13.8],
+        [2.5, 3.2, -13.8],
+        [7.5, 3.2, -13.8],
         
-        // Pared izquierda - entre obras
-        [-13.8, 3.2, -6],
-        [-13.8, 3.2, 1.5],
+        // Pared izquierda - 3 lámparas entre 4 obras (entre -7.5/-2.5, -2.5/2.5, 2.5/7.5)
+        [-13.8, 3.2, -5],
+        [-13.8, 3.2, 0],
+        [-13.8, 3.2, 5],
         
-        // Pared derecha - entre obras
-        [13.8, 3.2, -1.5],
-        [13.8, 3.2, 6],
+        // Pared derecha - 3 lámparas entre 4 obras (entre -7.5/-2.5, -2.5/2.5, 2.5/7.5)
+        [13.8, 3.2, -5],
+        [13.8, 3.2, 0],
+        [13.8, 3.2, 5],
         
-        // Pared trasera/entrada - entre obras con mejor espaciado
+        // Pared trasera - 4 lámparas entre 5 obras (entre -9/-4.5, -4.5/0, 0/4.5, 4.5/9)
         [-6.75, 3.2, 13.8],
         [-2.25, 3.2, 13.8],
         [2.25, 3.2, 13.8],
@@ -2105,16 +2258,17 @@ function implementWallSconces() {
     sconcePositions.forEach(pos => {
         createWallSconce(pos);
         
-        // Añadir luz indirecta del aplique
-        const sconceLight = new THREE.SpotLight(0xfff5e6, 8, 5, Math.PI / 6, 0.5, 2);
+        // Luz del aplique apuntando HACIA ABAJO para iluminar obras sin crear halos en techo
+        const sconceLight = new THREE.SpotLight(0xffd9a0, 12, 7, Math.PI / 3, 0.7, 1.1);
         sconceLight.position.set(...pos);
-        sconceLight.target.position.set(pos[0], pos[1] + 2, pos[2]);
+        // Target apunta hacia abajo (y negativa)
+        sconceLight.target.position.set(pos[0], pos[1] - 2, pos[2]);
         sconceLight.castShadow = false;
         scene.add(sconceLight);
         scene.add(sconceLight.target);
     });
 
-    console.log('🕯️ Apliques de pared implementados');
+    console.log('🕯️ 14 Apliques de pared con luces hacia abajo implementados (entre cada obra)');
 }
 
 // Crear Muro de Homenaje al Artista Byron Gálvez
@@ -2269,10 +2423,33 @@ function createProceduralTexture(type, width, height) {
 
 // Crear obras de arte realistas
 function createRealisticArtworks() {
-    // Obra central - Amanecer (pared frontal principal)
+    // ========== PARED FRONTAL - 5 OBRAS ==========
+    // Obra 1 - Extremo izquierdo
     createRealisticArtwork({
-        position: [0, 2.8, -13.7],
-        size: [4.5, 3.2],
+        position: [-10, 2.2, -13.7],
+        size: [2.5, 2.0],
+        imageUrl: './src/assets/images/Bailarina - Byron.jpg',
+        title: 'Bailarina',
+        artist: 'Byron Gálvez',
+        year: '2024',
+        description: 'Una elegante representación del movimiento y la gracia, capturando la esencia de la danza en una composición dinámica.'
+    });
+
+    // Obra 2 - Centro izquierda
+    createRealisticArtwork({
+        position: [-5, 2.2, -13.7],
+        size: [2.5, 2.0],
+        imageUrl: './src/assets/images/Maquillaje - Byron.jpg',
+        title: 'Maquillaje',
+        artist: 'Byron Gálvez',
+        year: '2024',
+        description: 'Una representación íntima del arte del maquillaje, capturando la transformación y la belleza del proceso creativo.'
+    });
+
+    // Obra 3 - CENTRAL (Amanecer - obra principal)
+    createRealisticArtwork({
+        position: [0, 2.3, -13.7],
+        size: [3.0, 2.5],
         imageUrl: './src/assets/images/Amanecer - Byron.jpeg',
         isMainArtwork: true,
         title: 'Amanecer',
@@ -2281,20 +2458,10 @@ function createRealisticArtworks() {
         description: 'Una representación poética del amanecer que captura la transición entre la noche y el día, evocando esperanza y renovación.'
     });
 
-    // Obras laterales - Pared frontal (altura uniforme)
+    // Obra 4 - Centro derecha
     createRealisticArtwork({
-        position: [-6.5, 2.6, -13.7],
-        size: [3.5, 2.8],
-        imageUrl: './src/assets/images/Bailarina - Byron.jpg',
-        title: 'Bailarina',
-        artist: 'Byron Gálvez',
-        year: '2024',
-        description: 'Una elegante representación del movimiento y la gracia, capturando la esencia de la danza en una composición dinámica.'
-    });
-
-    createRealisticArtwork({
-        position: [6.5, 2.6, -13.7],
-        size: [3.5, 2.8],
+        position: [5, 2.2, -13.7],
+        size: [2.5, 2.0],
         imageUrl: './src/assets/images/Naturaleza Muerta - Byron.jpg',
         title: 'Naturaleza Muerta',
         artist: 'Byron Gálvez',
@@ -2302,10 +2469,32 @@ function createRealisticArtworks() {
         description: 'Una interpretación contemporánea del género clásico, explorando la belleza en la simplicidad de los objetos cotidianos.'
     });
 
-    // Pared izquierda - obra 1 (altura uniforme)
+    // Obra 5 - Extremo derecho
     createRealisticArtwork({
-        position: [-13.7, 2.6, -3],
-        size: [3.0, 2.5],
+        position: [10, 2.2, -13.7],
+        size: [2.5, 2.0],
+        imageUrl: './src/assets/images/Vanidad - Byron.jpg',
+        title: 'Vanidad',
+        artist: 'Byron Gálvez',
+        year: '2024',
+        description: 'Una reflexión sobre la belleza efímera y la contemplación del yo, explorando temas de autoconocimiento.'
+    });
+
+    // ========== PARED IZQUIERDA - 4 OBRAS ==========
+    createRealisticArtwork({
+        position: [-13.7, 2.2, -7.5],
+        size: [2.2, 1.8],
+        rotation: [0, Math.PI / 2, 0],
+        imageUrl: './src/assets/images/Flautistas - Byron.jpg',
+        title: 'Flautistas',
+        artist: 'Byron Gálvez',
+        year: '2024',
+        description: 'Una armoniosa representación de músicos interpretando la flauta, capturando la melodía visual en cada gesto.'
+    });
+
+    createRealisticArtwork({
+        position: [-13.7, 2.2, -2.5],
+        size: [2.2, 1.8],
         rotation: [0, Math.PI / 2, 0],
         imageUrl: './src/assets/images/Rocas y Cielo - Byron.jpg',
         title: 'Rocas y Cielo',
@@ -2314,10 +2503,9 @@ function createRealisticArtworks() {
         description: 'Un estudio de contrastes entre la solidez de la tierra y la fluidez del cielo, explorando la relación entre lo terrenal y lo celestial.'
     });
 
-    // Pared izquierda - obra 2 (altura uniforme)
     createRealisticArtwork({
-        position: [-13.7, 2.6, 6],
-        size: [3.0, 2.5],
+        position: [-13.7, 2.2, 2.5],
+        size: [2.2, 1.8],
         rotation: [0, Math.PI / 2, 0],
         imageUrl: './src/assets/images/Vela - Byron.jpg',
         title: 'Vela',
@@ -2326,22 +2514,21 @@ function createRealisticArtworks() {
         description: 'Una exploración de la luz y la quietud, capturando la delicada belleza de la llama en la oscuridad.'
     });
 
-    // Pared derecha - obra 1 (altura uniforme)
     createRealisticArtwork({
-        position: [13.7, 2.6, 3],
-        size: [3.0, 2.5],
-        rotation: [0, -Math.PI / 2, 0],
-        imageUrl: './src/assets/images/Musicos - Byron.jpg',
-        title: 'Músicos',
+        position: [-13.7, 2.2, 7.5],
+        size: [2.2, 1.8],
+        rotation: [0, Math.PI / 2, 0],
+        imageUrl: './src/assets/images/Frutas - Byron.jpg',
+        title: 'Frutas',
         artist: 'Byron Gálvez',
-        year: '2023',
-        description: 'Una celebración visual de la música y los artistas que la crean, capturando la pasión y la emoción del arte sonoro.'
+        year: '2024',
+        description: 'Una naturaleza muerta vibrante que celebra la abundancia y los colores de las frutas frescas.'
     });
 
-    // Pared derecha - obra 2 (altura uniforme)
+    // ========== PARED DERECHA - 4 OBRAS ==========
     createRealisticArtwork({
-        position: [13.7, 2.6, -6],
-        size: [3.0, 2.5],
+        position: [13.7, 2.2, -7.5],
+        size: [2.2, 1.8],
         rotation: [0, -Math.PI / 2, 0],
         imageUrl: './src/assets/images/Violincello - Byron.jpg',
         title: 'Violoncello',
@@ -2350,10 +2537,43 @@ function createRealisticArtworks() {
         description: 'Una celebración del instrumento musical, capturando la elegancia y profundidad emocional del violoncello.'
     });
 
-    // Pared trasera - obra izquierda exterior (mejor espaciado)
     createRealisticArtwork({
-        position: [-9, 2.6, 13.7],
-        size: [2.5, 2.0],
+        position: [13.7, 2.2, -2.5],
+        size: [2.2, 1.8],
+        rotation: [0, -Math.PI / 2, 0],
+        imageUrl: './src/assets/images/Musicos - Byron.jpg',
+        title: 'Músicos',
+        artist: 'Byron Gálvez',
+        year: '2023',
+        description: 'Una celebración visual de la música y los artistas que la crean, capturando la pasión y la emoción del arte sonoro.'
+    });
+
+    createRealisticArtwork({
+        position: [13.7, 2.2, 2.5],
+        size: [2.2, 1.8],
+        rotation: [0, -Math.PI / 2, 0],
+        imageUrl: './src/assets/images/Veladoras - Byron.jpg',
+        title: 'Veladoras',
+        artist: 'Byron Gálvez',
+        year: '2024',
+        description: 'Una contemplación sobre la luz sagrada de las velas, evocando espiritualidad y calidez en su resplandor.'
+    });
+
+    createRealisticArtwork({
+        position: [13.7, 2.2, 7.5],
+        size: [2.2, 1.8],
+        rotation: [0, -Math.PI / 2, 0],
+        imageUrl: './src/assets/images/MusicosM - Byron.jpg',
+        title: 'Músicos en Marcha',
+        artist: 'Byron Gálvez',
+        year: '2024',
+        description: 'Una representación dinámica de músicos en movimiento, capturando el ritmo y la energía de la marcha musical.'
+    });
+
+    // ========== PARED TRASERA - 5 OBRAS ==========
+    createRealisticArtwork({
+        position: [-9, 2.2, 13.7],
+        size: [2.2, 1.8],
         rotation: [0, Math.PI, 0],
         imageUrl: './src/assets/images/Copas - Byron.jpg',
         title: 'Copas',
@@ -2362,10 +2582,9 @@ function createRealisticArtworks() {
         description: 'Una representación elegante de cristalería, explorando la transparencia, reflejos y la belleza de los objetos cotidianos.'
     });
 
-    // Pared trasera - obra izquierda interior (mejor espaciado)
     createRealisticArtwork({
-        position: [-4.5, 2.6, 13.7],
-        size: [2.3, 1.9],
+        position: [-4.5, 2.2, 13.7],
+        size: [2.2, 1.8],
         rotation: [0, Math.PI, 0],
         imageUrl: './src/assets/images/Escultura de pie - Byron.jpg',
         title: 'Escultura de Pie',
@@ -2374,10 +2593,10 @@ function createRealisticArtworks() {
         description: 'Una exploración de la forma humana en movimiento, capturando la elegancia y fuerza de la figura erguida.'
     });
 
-    // Pared trasera - AUTORRETRATO DEL ARTISTA (con estructura especial - centro)
+    // AUTORRETRATO DEL ARTISTA - CENTRO
     createArtistPortrait({
-        position: [0, 2.8, 13.7],
-        size: [3.5, 3.0],
+        position: [0, 2.3, 13.7],
+        size: [3.0, 2.5],
         rotation: [0, Math.PI, 0],
         imageUrl: './src/assets/images/Byron2.png',
         title: 'Byron Gálvez',
@@ -2386,10 +2605,9 @@ function createRealisticArtworks() {
         description: 'El maestro detrás de estas obras, capturando su esencia creativa y visión personal del mundo.'
     });
 
-    // Pared trasera - obra derecha interior (mejor espaciado)
     createRealisticArtwork({
-        position: [4.5, 2.6, 13.7],
-        size: [2.3, 1.9],
+        position: [4.5, 2.2, 13.7],
+        size: [2.2, 1.8],
         rotation: [0, Math.PI, 0],
         imageUrl: './src/assets/images/Escultura sentada - Byron.jpg',
         title: 'Escultura Sentada',
@@ -2398,63 +2616,18 @@ function createRealisticArtworks() {
         description: 'Una contemplación sobre el reposo y la reflexión, mostrando la serenidad en la postura contemplativa.'
     });
 
-    // Pared trasera - obra derecha exterior (mejor espaciado)
     createRealisticArtwork({
-        position: [9, 2.6, 13.7],
-        size: [2.5, 2.0],
+        position: [9, 2.2, 13.7],
+        size: [2.2, 1.8],
         rotation: [0, Math.PI, 0],
-        imageUrl: './src/assets/images/Frutas - Byron.jpg',
-        title: 'Frutas',
-        artist: 'Byron Gálvez',
-        year: '2024',
-        description: 'Una celebración de la naturaleza muerta, explorando colores vibrantes y formas orgánicas de frutas frescas.'
-    });
-
-    // Obras adicionales pared frontal (altura uniforme)
-    createRealisticArtwork({
-        position: [-9.5, 2.6, -13.7],
-        size: [2.5, 2.0],
-        imageUrl: './src/assets/images/Maquillaje - Byron.jpg',
-        title: 'Maquillaje',
-        artist: 'Byron Gálvez',
-        year: '2024',
-        description: 'Una exploración del arte del maquillaje como forma de expresión y transformación personal.'
-    });
-
-    createRealisticArtwork({
-        position: [9.5, 2.6, -13.7],
-        size: [2.5, 2.0],
-        imageUrl: './src/assets/images/Vanidad - Byron.jpg',
-        title: 'Vanidad',
-        artist: 'Byron Gálvez',
-        year: '2024',
-        description: 'Una reflexión sobre la belleza, el tiempo y la naturaleza efímera de la apariencia física.'
-    });
-
-    // Obras pequeñas complementarias en paredes laterales (altura uniforme)
-    createRealisticArtwork({
-        position: [-13.7, 2.6, -9],
-        size: [2.2, 1.8],
-        rotation: [0, Math.PI / 2, 0],
         imageUrl: './src/assets/images/Vela2 - Byron.jpg',
-        title: 'Vela II',
+        title: 'Vela 2',
         artist: 'Byron Gálvez',
         year: '2024',
-        description: 'Segunda exploración de la luz de vela, capturando momentos de serenidad y contemplación.'
+        description: 'Una segunda exploración de la luz de la vela, con diferentes matices de sombra y calidez.'
     });
 
-    createRealisticArtwork({
-        position: [13.7, 2.6, 9],
-        size: [2.2, 1.8],
-        rotation: [0, -Math.PI / 2, 0],
-        imageUrl: './src/assets/images/MusicosM - Byron.jpg',
-        title: 'Músicos en Concierto',
-        artist: 'Byron Gálvez',
-        year: '2024',
-        description: 'Una visión íntima del mundo musical, capturando la concentración y pasión de los intérpretes en su arte.'
-    });
-
-    console.log('🎨 Galería completa creada con 16 obras de arte');
+    console.log('🎨 Galería completa creada con 18 obras de arte (5 frontal, 4 izquierda, 4 derecha, 5 trasera)');
 }
 
 // Crear retrato especial del artista - Versión simplificada y elegante
@@ -2515,9 +2688,9 @@ function createArtistPortrait(config) {
             portraitMesh.userData = { title, artist: subtitle, year, description };
             portraitGroup.add(portraitMesh);
 
-            // MARCO ELEGANTE - Marco exterior oscuro
-            const frameDepth = 0.12;
-            const frameWidth = 0.18;
+            // MARCO ELEGANTE Y DESTACADO - Marco exterior oscuro
+            const frameDepth = 0.15;
+            const frameWidth = 0.22;
             
             const outerFrameGeometry = new THREE.BoxGeometry(
                 portraitWidth + frameWidth * 2,
@@ -2525,60 +2698,126 @@ function createArtistPortrait(config) {
                 frameDepth
             );
             const outerFrameMaterial = new THREE.MeshPhysicalMaterial({
-                color: 0x1a1a1a,
-                roughness: 0.4,
-                metalness: 0.3,
-                envMapIntensity: 0.6
+                color: 0x0a0a0a, // Negro profundo
+                roughness: 0.3,
+                metalness: 0.4,
+                envMapIntensity: 0.7,
+                clearcoat: 0.3
             });
             const outerFrame = new THREE.Mesh(outerFrameGeometry, outerFrameMaterial);
             outerFrame.position.set(0, 0, -frameDepth * 0.5);
             outerFrame.castShadow = true;
             portraitGroup.add(outerFrame);
 
-            // Marco interior dorado sutil
+            // Marco interior dorado brillante principal
             const innerFrameGeometry = new THREE.BoxGeometry(
-                portraitWidth + frameWidth,
-                portraitHeight + frameWidth,
-                frameDepth * 0.5
+                portraitWidth + frameWidth * 1.3,
+                portraitHeight + frameWidth * 1.3,
+                frameDepth * 0.6
             );
             const innerFrameMaterial = new THREE.MeshPhysicalMaterial({
-                color: 0xb8860b, // Oro oscuro elegante
-                roughness: 0.5,
-                metalness: 0.7,
-                envMapIntensity: 0.8
+                color: 0xd4af37, // Oro brillante
+                roughness: 0.2,
+                metalness: 0.9,
+                envMapIntensity: 1.2,
+                clearcoat: 0.6
             });
             const innerFrame = new THREE.Mesh(innerFrameGeometry, innerFrameMaterial);
-            innerFrame.position.set(0, 0, -frameDepth * 0.2);
+            innerFrame.position.set(0, 0, -frameDepth * 0.15);
             innerFrame.castShadow = true;
             portraitGroup.add(innerFrame);
 
-            // PLACA INFORMATIVA SIMPLE
-            const plaqueWidth = portraitWidth + frameWidth;
-            const plaqueGeometry = new THREE.BoxGeometry(plaqueWidth, 0.35, 0.06);
+            // Detalle dorado adicional fino
+            const detailFrameGeometry = new THREE.BoxGeometry(
+                portraitWidth + frameWidth * 0.8,
+                portraitHeight + frameWidth * 0.8,
+                frameDepth * 0.3
+            );
+            const detailFrameMaterial = new THREE.MeshPhysicalMaterial({
+                color: 0xffd700, // Oro más claro
+                roughness: 0.1,
+                metalness: 0.95,
+                envMapIntensity: 1.5,
+                clearcoat: 0.8
+            });
+            const detailFrame = new THREE.Mesh(detailFrameGeometry, detailFrameMaterial);
+            detailFrame.position.set(0, 0, 0.02);
+            detailFrame.castShadow = true;
+            portraitGroup.add(detailFrame);
+
+            // PLACA INFORMATIVA DESTACADA
+            const plaqueWidth = portraitWidth + frameWidth * 1.5;
+            const plaqueHeight = 0.42;
+            const plaqueGeometry = new THREE.BoxGeometry(plaqueWidth, plaqueHeight, 0.08);
             const plaqueMaterial = new THREE.MeshPhysicalMaterial({
-                color: 0x2c2c2c,
-                roughness: 0.6,
-                metalness: 0.4,
-                envMapIntensity: 0.5
+                color: 0x1a1a1a, // Negro elegante
+                roughness: 0.4,
+                metalness: 0.5,
+                envMapIntensity: 0.7,
+                clearcoat: 0.5
             });
             const plaque = new THREE.Mesh(plaqueGeometry, plaqueMaterial);
-            plaque.position.set(0, -(portraitHeight/2 + frameWidth + 0.25), 0.03);
+            plaque.position.set(0, -(portraitHeight/2 + frameWidth + 0.28), 0.04);
             plaque.castShadow = true;
             portraitGroup.add(plaque);
 
-            // Detalle dorado en la placa
-            const plaqueAccentGeometry = new THREE.BoxGeometry(plaqueWidth - 0.1, 0.28, 0.08);
+            // Borde dorado brillante de la placa
+            const plaqueBorderGeometry = new THREE.BoxGeometry(plaqueWidth + 0.06, plaqueHeight + 0.06, 0.06);
+            const plaqueBorderMaterial = new THREE.MeshPhysicalMaterial({
+                color: 0xd4af37, // Oro brillante
+                roughness: 0.2,
+                metalness: 0.9,
+                envMapIntensity: 1.3,
+                clearcoat: 0.7
+            });
+            const plaqueBorder = new THREE.Mesh(plaqueBorderGeometry, plaqueBorderMaterial);
+            plaqueBorder.position.set(0, -(portraitHeight/2 + frameWidth + 0.28), 0.01);
+            portraitGroup.add(plaqueBorder);
+
+            // Detalle dorado interno de la placa
+            const plaqueAccentGeometry = new THREE.BoxGeometry(plaqueWidth - 0.15, plaqueHeight - 0.1, 0.09);
             const plaqueAccentMaterial = new THREE.MeshPhysicalMaterial({
-                color: 0xb8860b,
-                roughness: 0.4,
-                metalness: 0.8,
-                envMapIntensity: 1.0
+                color: 0x2c2c2c, // Fondo oscuro para contraste
+                roughness: 0.6,
+                metalness: 0.3,
+                envMapIntensity: 0.5
             });
             const plaqueAccent = new THREE.Mesh(plaqueAccentGeometry, plaqueAccentMaterial);
-            plaqueAccent.position.set(0, -(portraitHeight/2 + frameWidth + 0.25), 0.06);
+            plaqueAccent.position.set(0, -(portraitHeight/2 + frameWidth + 0.28), 0.08);
             portraitGroup.add(plaqueAccent);
 
-            console.log('🖼️ Retrato del artista creado con proporciones correctas');
+            // PEDESTAL DECORATIVO DEBAJO DEL RETRATO
+            const pedestalWidth = portraitWidth + frameWidth * 3;
+            const pedestalHeight = 0.15;
+            const pedestalDepth = 0.25;
+            
+            const pedestalGeometry = new THREE.BoxGeometry(pedestalWidth, pedestalHeight, pedestalDepth);
+            const pedestalMaterial = new THREE.MeshPhysicalMaterial({
+                color: 0x8b7355, // Madera oscura elegante
+                roughness: 0.3,
+                metalness: 0.1,
+                clearcoat: 0.4,
+                clearcoatRoughness: 0.5,
+                envMapIntensity: 0.6
+            });
+            const pedestal = new THREE.Mesh(pedestalGeometry, pedestalMaterial);
+            pedestal.position.set(0, -(portraitHeight/2 + frameWidth + 0.5), 0);
+            pedestal.castShadow = true;
+            portraitGroup.add(pedestal);
+
+            // Detalle dorado en el pedestal
+            const pedestalTrimGeometry = new THREE.BoxGeometry(pedestalWidth + 0.05, 0.03, pedestalDepth + 0.05);
+            const pedestalTrimMaterial = new THREE.MeshPhysicalMaterial({
+                color: 0xd4af37, // Oro brillante
+                roughness: 0.2,
+                metalness: 0.9,
+                envMapIntensity: 1.2
+            });
+            const pedestalTrim = new THREE.Mesh(pedestalTrimGeometry, pedestalTrimMaterial);
+            pedestalTrim.position.set(0, -(portraitHeight/2 + frameWidth + 0.425), 0);
+            portraitGroup.add(pedestalTrim);
+
+            console.log('🖼️ Retrato del artista creado con pedestal decorativo');
         },
         undefined,
         (error) => {
@@ -2586,8 +2825,9 @@ function createArtistPortrait(config) {
         }
     );
 
-    // ILUMINACIÓN ESPECIAL PARA EL RETRATO (más suave)
-    const spotLight1 = new THREE.SpotLight(0xffffff, 30, 15, Math.PI / 8, 0.3, 1.8);
+    // ILUMINACIÓN ESPECIAL PROFESIONAL PARA EL RETRATO
+    // Luz central superior con sombras dramáticas
+    const spotLight1 = new THREE.SpotLight(0xffd9a0, 45, 18, Math.PI / 7, 0.4, 1.2);
     spotLight1.position.set(0, 5, 12.5);
     spotLight1.target.position.set(...position);
     spotLight1.castShadow = true;
@@ -2596,9 +2836,23 @@ function createArtistPortrait(config) {
     scene.add(spotLight1);
     scene.add(spotLight1.target);
 
-    // Luz ambiental suave para el retrato
-    const ambientLight = new THREE.PointLight(0xfff8dc, 8, 6, 2);
-    ambientLight.position.set(position[0], position[1], position[2] + 1);
+    // Luces laterales izquierda - estilo museo profesional
+    const leftSpotLight = new THREE.SpotLight(0xffefd5, 25, 12, Math.PI / 8, 0.5, 1.5);
+    leftSpotLight.position.set(position[0] - 2.5, position[1] + 1, position[2] + 1.5);
+    leftSpotLight.target.position.set(...position);
+    scene.add(leftSpotLight);
+    scene.add(leftSpotLight.target);
+
+    // Luces laterales derecha - estilo museo profesional
+    const rightSpotLight = new THREE.SpotLight(0xffefd5, 25, 12, Math.PI / 8, 0.5, 1.5);
+    rightSpotLight.position.set(position[0] + 2.5, position[1] + 1, position[2] + 1.5);
+    rightSpotLight.target.position.set(...position);
+    scene.add(rightSpotLight);
+    scene.add(rightSpotLight.target);
+
+    // Luz ambiental cálida envolvente
+    const ambientLight = new THREE.PointLight(0xfff8dc, 12, 8, 2);
+    ambientLight.position.set(position[0], position[1], position[2] + 1.2);
     scene.add(ambientLight);
 
     // Posicionar el grupo completo
@@ -2899,11 +3153,11 @@ function createFrameLighting(artworkGroup, size) {
 
 // Crear objetos típicos de museo
 function createMuseumObjects() {
-    // ESCULTURA MONUMENTAL CENTRAL - Alto impacto visual
-    createMonumentalSculpture({
+    // MESA DE CENTRO BAJA Y DISCRETA - No tapa la vista de las obras
+    createLowCenterTable({
         position: [0, 0, 0],
-        title: 'Forma Abstracta',
-        description: 'Escultura monumental que define el espacio central'
+        title: 'Mesa de Exposición',
+        description: 'Mesa central discreta'
     });
 
     // Vitrina con artefactos arqueológicos
@@ -3125,6 +3379,120 @@ function createMonumentalSculpture(config) {
     });
 
     console.log('🗿 Escultura monumental creada en posición central');
+}
+
+// Crear mesa de centro baja y discreta - NO TAPA LA VISTA
+function createLowCenterTable(config) {
+    const { position, title, description } = config;
+
+    const tableGroup = new THREE.Group();
+
+    // Base de la mesa - muy baja y elegante
+    const baseGeometry = new THREE.CylinderGeometry(0.8, 0.9, 0.5, 8);
+    const baseMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x2d2d2d,
+        roughness: 0.3,
+        metalness: 0.7,
+        envMapIntensity: 0.8
+    });
+    const base = new THREE.Mesh(baseGeometry, baseMaterial);
+    base.position.set(0, 0.25, 0);
+    base.castShadow = true;
+    base.receiveShadow = true;
+    tableGroup.add(base);
+
+    // Superficie de la mesa - cristal discreto
+    const surfaceGeometry = new THREE.CylinderGeometry(1.2, 1.2, 0.05, 32);
+    const surfaceMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.3,
+        roughness: 0.05,
+        metalness: 0.0,
+        transmission: 0.9,
+        thickness: 0.5,
+        envMapIntensity: 1.0,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.0
+    });
+    const surface = new THREE.Mesh(surfaceGeometry, surfaceMaterial);
+    surface.position.set(0, 0.53, 0);
+    surface.receiveShadow = true;
+    tableGroup.add(surface);
+
+    // Escultura decorativa moderna - Libro de arte abierto
+    const bookBaseGeometry = new THREE.BoxGeometry(0.35, 0.03, 0.5);
+    const bookBaseMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x4a3520, // Cuero marrón oscuro
+        roughness: 0.7,
+        metalness: 0.0,
+        envMapIntensity: 0.4
+    });
+    const bookBase = new THREE.Mesh(bookBaseGeometry, bookBaseMaterial);
+    bookBase.position.set(0, 0.57, 0);
+    bookBase.rotation.y = Math.PI / 6;
+    bookBase.castShadow = true;
+    tableGroup.add(bookBase);
+
+    // Páginas del libro abiertas
+    const pagesGeometry = new THREE.BoxGeometry(0.33, 0.01, 0.48);
+    const pagesMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xf5f5dc, // Color crema de páginas
+        roughness: 0.8,
+        metalness: 0.0,
+        envMapIntensity: 0.2
+    });
+    const pages = new THREE.Mesh(pagesGeometry, pagesMaterial);
+    pages.position.set(0, 0.585, 0);
+    pages.rotation.y = Math.PI / 6;
+    tableGroup.add(pages);
+
+    // Pluma decorativa sobre el libro
+    const penGeometry = new THREE.CylinderGeometry(0.008, 0.008, 0.2, 8);
+    const penMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x1a1a1a, // Negro brillante
+        roughness: 0.2,
+        metalness: 0.8,
+        envMapIntensity: 1.0
+    });
+    const pen = new THREE.Mesh(penGeometry, penMaterial);
+    pen.position.set(-0.08, 0.60, -0.05);
+    pen.rotation.z = Math.PI / 2;
+    pen.rotation.y = Math.PI / 6;
+    pen.castShadow = true;
+    tableGroup.add(pen);
+
+    // Punta dorada de la pluma
+    const penTipGeometry = new THREE.ConeGeometry(0.012, 0.03, 8);
+    const penTipMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xd4af37, // Oro
+        roughness: 0.2,
+        metalness: 0.9,
+        envMapIntensity: 1.2
+    });
+    const penTip = new THREE.Mesh(penTipGeometry, penTipMaterial);
+    penTip.position.set(-0.18, 0.60, -0.05);
+    penTip.rotation.z = -Math.PI / 2;
+    penTip.rotation.y = Math.PI / 6;
+    tableGroup.add(penTip);
+
+    tableGroup.position.set(...position);
+    tableGroup.userData = { title, description, type: 'lowCenterTable' };
+    scene.add(tableGroup);
+
+    // Añadir colisión circular pequeña
+    decorationCollisions.push({
+        x: position[0],
+        z: position[2],
+        radius: 1.3 // Radio de colisión pequeño
+    });
+
+    museumObjects.push({
+        group: tableGroup,
+        config: config
+    });
+
+    console.log('🪑 Mesa de centro baja creada - vista despejada');
 }
 
 // Crear muro flotante para romper líneas de visión
@@ -4343,21 +4711,29 @@ function animate() {
 
     // Renderizar con estabilización
     renderer.clear();
+    
+    // Forzar exposición constante para evitar que el piso se ilumine progresivamente
+    renderer.toneMappingExposure = 0.6;
+    
     renderer.render(scene, camera);
 }
 
 // Animaciones ambientales optimizadas
 function animateEnvironment(time) {
-    // Variación sutil de la luz del tragaluz (solo si FPS es bueno)
+    // DESACTIVADO: Variación de luz del tragaluz para mantener iluminación constante
+    // La variación de intensidad de luces causaba que el piso se iluminara progresivamente
+    
+    /* Código anterior desactivado:
     if (fps > 40) {
         const skylights = scene.children.filter(child => child.type === 'DirectionalLight');
         skylights.forEach(light => {
-            if (light.position.y > 10) { // Es el tragaluz principal
+            if (light.position.y > 10) {
                 light.intensity = 1.3 + Math.sin(time * 0.5) * 0.2;
             }
         });
     }
-
+    */
+    
     // Efecto de respiración en obras DESACTIVADO para rendimiento
     // (consume muchos recursos actualizar scales constantemente)
 }
@@ -4717,8 +5093,14 @@ document.addEventListener('DOMContentLoaded', () => {
         'src/assets/images/Amanecer - Byron.jpeg',
         'src/assets/images/Bailarina - Byron.jpg',
         'src/assets/images/Naturaleza Muerta - Byron.jpg',
+        'src/assets/images/Flautistas - Byron.jpg',
         'src/assets/images/Rocas y Cielo - Byron.jpg',
+        'src/assets/images/Vela - Byron.jpg',
+        'src/assets/images/Maquillaje - Byron.jpg',
         'src/assets/images/Musicos - Byron.jpg',
+        'src/assets/images/Violincello - Byron.jpg',
+        'src/assets/images/Veladoras - Byron.jpg',
+        'src/assets/images/Frutas - Byron.jpg',
         'src/assets/images/Escultura de pie - Byron.jpg',
         'src/assets/images/Escultura sentada - Byron.jpg'
     ];

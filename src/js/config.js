@@ -22,7 +22,7 @@ const MUSEUM_CONFIG = {
     
     // Configuración de audio
     audio: {
-        ambientVolume: 0.3,
+        ambientVolume: 0.1,
         footstepVolume: 0.2,
         enabled: true
     },

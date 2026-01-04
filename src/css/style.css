@@ -5,7 +5,8 @@
     box-sizing: border-box;
 }
 
-body, html {
+body,
+html {
     height: 100%;
     font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: #0a0a0a;
@@ -55,8 +56,13 @@ body, html {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 .loader-content p {
@@ -121,10 +127,12 @@ body, html {
         opacity: 0.6;
         transform: translate(-50%, -50%) scale(1);
     }
+
     50% {
         opacity: 0.2;
         transform: translate(-50%, -50%) scale(1.2);
     }
+
     100% {
         opacity: 0.6;
         transform: translate(-50%, -50%) scale(1);
@@ -310,7 +318,7 @@ body, html {
     bottom: 8px;
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 50%;
-    background: linear-gradient(45deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+    background: linear-gradient(45deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
 }
 
 .map-indicator {
@@ -341,6 +349,7 @@ body, html {
         opacity: 1;
         transform: scale(1);
     }
+
     100% {
         opacity: 0;
         transform: scale(2);
@@ -440,7 +449,7 @@ body, html {
     top: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, rgba(0,0,0,0.95) 0%, rgba(20,20,20,0.98) 100%);
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.95) 0%, rgba(20, 20, 20, 0.98) 100%);
     backdrop-filter: blur(20px);
     transition: all 0.4s ease;
 }
@@ -456,15 +465,15 @@ body, html {
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 20px;
     overflow: hidden;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
 }
 
 .close-btn {
     position: absolute;
     top: 20px;
     right: 25px;
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     color: white;
     font-size: 24px;
     cursor: pointer;
@@ -502,6 +511,7 @@ body, html {
         opacity: 0;
         transform: scale(0.9);
     }
+
     to {
         opacity: 1;
         transform: scale(1);
@@ -516,7 +526,7 @@ body, html {
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
 }
 
 /* Cursor personalizado para hotspots */
@@ -540,6 +550,7 @@ body, html {
 
 /* Ocultar controles móviles en desktop */
 @media (min-width: 769px) {
+
     #mobile-joystick,
     #mobile-look-area {
         display: none !important;
@@ -548,6 +559,7 @@ body, html {
 
 /* Responsive mejorado */
 @media (max-width: 768px) {
+
     /* Prevenir zoom en móvil */
     * {
         touch-action: pan-y;
@@ -555,80 +567,77 @@ body, html {
         -webkit-user-select: none;
         -webkit-touch-callout: none;
     }
-    
+
     #logo {
         top: 15px;
         left: 15px;
         padding: 10px 14px;
     }
-    
+
     .logo-text {
         font-size: 12px;
     }
-    
+
     .logo-subtitle {
         font-size: 9px;
     }
-    
+
     #navigation-map {
         bottom: 15px;
         left: 15px;
         width: 70px;
         height: 70px;
     }
-    
+
     #navigation-controls {
-        bottom: 15px;
-        right: 15px;
-        padding: 12px 14px;
-        min-width: 160px;
+        display: none !important;
     }
-    
+
     .control-group h4 {
         font-size: 11px;
     }
-    
+
     .key {
         padding: 4px 6px;
         font-size: 9px;
     }
-    
+
     .key-hints span:not(.key) {
         font-size: 9px;
     }
-    
+
     #interaction-hints {
         right: 20px;
         gap: 12px;
     }
-    
+
     .hint {
         padding: 10px 14px;
         font-size: 10px;
         gap: 10px;
     }
-    
+
     .hint .icon {
         font-size: 14px;
     }
-    
+
     .modal-content {
         width: 95%;
         margin: 20px;
         border-radius: 15px;
     }
-    
+
     .info-panel {
         left: 20px;
         width: calc(100vw - 40px);
         max-width: 350px;
         padding: 20px;
     }
-    
+
     .info-content h3 {
         font-size: 18px;
     }
-    
+
     .info-content p {
         font-size: 13px;
     }
@@ -640,7 +649,7 @@ body, html {
         margin: 10px;
         border-radius: 12px;
     }
-    
+
     .close-btn {
         top: 15px;
         right: 20px;
@@ -648,11 +657,11 @@ body, html {
         height: 40px;
         font-size: 20px;
     }
-    
+
     #interaction-hints {
         right: 15px;
     }
-    
+
     .hint {
         padding: 8px 12px;
         font-size: 9px;
@@ -661,13 +670,24 @@ body, html {
 
 /* Efectos de partículas de fondo */
 @keyframes float {
-    0%, 100% { transform: translateY(0px) rotate(0deg); }
-    33% { transform: translateY(-10px) rotate(5deg); }
-    66% { transform: translateY(5px) rotate(-5deg); }
+
+    0%,
+    100% {
+        transform: translateY(0px) rotate(0deg);
+    }
+
+    33% {
+        transform: translateY(-10px) rotate(5deg);
+    }
+
+    66% {
+        transform: translateY(5px) rotate(-5deg);
+    }
 }
 
 /* Mejoras de accesibilidad */
 @media (prefers-reduced-motion: reduce) {
+
     .loader-spinner,
     .map-indicator::before,
     * {
@@ -678,13 +698,14 @@ body, html {
 
 /* Modo alto contraste */
 @media (prefers-contrast: high) {
+
     #logo,
     .hint,
     .modal-content {
         border: 2px solid #ffffff;
         background: #000000;
     }
-    
+
     .loader-content p,
     .logo-text,
     .hint {
@@ -695,10 +716,10 @@ body, html {
 
 /* Efectos de profundidad */
 .depth-effect {
-    box-shadow: 
-        0 4px 8px rgba(0,0,0,0.3),
-        0 8px 16px rgba(0,0,0,0.15),
-        inset 0 1px 0 rgba(255,255,255,0.1);
+    box-shadow:
+        0 4px 8px rgba(0, 0, 0, 0.3),
+        0 8px 16px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 /* Animaciones suaves para elementos interactivos */
@@ -708,5 +729,5 @@ body, html {
 
 .interactive:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
 }

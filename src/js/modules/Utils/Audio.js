@@ -12,13 +12,13 @@ export class Audio {
 
             const playAudio = () => {
                 this.ambientAudio.play().catch(() => {
-                    console.log('Audio requires user interaction');
+
                 });
             };
 
             document.addEventListener('click', playAudio, { once: true });
         } else {
-            console.log('Ambient audio element not found');
+
         }
     }
 }

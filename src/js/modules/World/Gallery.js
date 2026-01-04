@@ -224,7 +224,7 @@ export class Gallery {
             description: 'Una segunda exploración de la luz de la vela, con diferentes matices de sombra y calidez.'
         });
 
-        console.log('🎨 Galería completa creada con 18 obras de arte');
+
     }
 
     createRealisticArtwork(config) {

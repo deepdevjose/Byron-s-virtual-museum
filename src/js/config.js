@@ -79,7 +79,7 @@ function checkWebGLSupport() {
             console.error('❌ WebGL no está disponible');
             return false;
         }
-        console.log('✅ WebGL disponible');
+
         return true;
     } catch (e) {
         console.error('❌ Error al verificar WebGL:', e);
@@ -87,4 +87,4 @@ function checkWebGLSupport() {
     }
 }
 
-console.log('📝 Config.js cargado correctamente');
+

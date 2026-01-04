@@ -43,7 +43,7 @@ export class App {
     }
 
     async init() {
-        console.log('🚀 App Initializing...');
+
         this.showLoader();
 
         try {
@@ -111,7 +111,7 @@ export class App {
         window.addEventListener('resize', () => this.onWindowResize());
 
         this.hideLoader();
-        console.log('✅ Initialization Complete. Starting Loop.');
+
 
         // Show Welcome Menu (Restored from backup)
         this.showControlInstructions();
@@ -275,7 +275,7 @@ export class App {
     }
 
     createMobileControls() {
-        console.log('📱 Creating Mobile Controls');
+
 
         // Crear joystick virtual para movimiento (lado derecho inferior)
         const joystickContainer = document.createElement('div');
@@ -473,7 +473,7 @@ export class App {
     }
 
     startDynamicTour() {
-        console.log('🎬 Redirigiendo a recorrido dinámico...');
+
         // Clean up basic resources if possible, or just redirect
         if (this.renderer) {
             this.renderer.domElement.remove();
@@ -501,7 +501,7 @@ export class App {
             const hit = intersects[0].object;
             const data = hit.userData;
             if (data && data.title) {
-                console.log('Clicked:', data.title);
+
                 this.showNotification(data.title);
                 // logic to show detailed info could go here or imported helper
             }

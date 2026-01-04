@@ -9,7 +9,7 @@ export class Lighting {
     }
 
     setup() {
-        console.log('💡 Initializing lighting system...');
+
 
         // Ambient Light (Reduced by 5% from 0.415 -> 0.394)
         const ambientLight = new THREE.AmbientLight(0x808080, 0.394);

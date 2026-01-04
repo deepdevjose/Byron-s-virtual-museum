@@ -17,7 +17,8 @@ export class Environment {
         const pmremGenerator = new THREE.PMREMGenerator(this.renderer);
         pmremGenerator.compileEquirectangularShader();
 
-        // Create realistic sky gradient
+        /** Create realistic sky gradient */
+
         const skyGeometry = new THREE.SphereGeometry(100, 32, 32);
         const skyMaterial = new THREE.ShaderMaterial({
             uniforms: {
@@ -55,7 +56,8 @@ export class Environment {
     createRealisticGallery() {
         this.walls = [];
 
-        // Floor Logic
+        /** Floor Logic */
+
         const floorTexture = this.createLuxuryMarbleTexture();
         const floorMaterial = new THREE.MeshPhysicalMaterial({
             map: floorTexture.diffuse,
@@ -82,12 +84,14 @@ export class Environment {
         floor.receiveShadow = true;
         this.scene.add(floor);
 
-        // Walls Logic
+        /** Walls Logic */
+
         const wallTextures = this.createWallTextures();
         const wallHeight = 4.8;
         const wallThickness = 0.25;
 
-        // Back Wall
+        /** Back Wall */
+
         const backWallGeometry = new THREE.BoxGeometry(28, wallHeight, wallThickness, 8, 8, 1);
         const backWallMaterial = new THREE.MeshPhysicalMaterial({
             map: wallTextures.marble,
@@ -107,7 +111,8 @@ export class Environment {
         this.scene.add(backWall);
         this.walls.push(backWall);
 
-        // Front Wall
+        /** Front Wall */
+
         const frontWallGeometry = new THREE.BoxGeometry(28, wallHeight, wallThickness, 8, 8, 1);
         const frontWallMaterial = new THREE.MeshPhysicalMaterial({
             map: wallTextures.stone,
@@ -125,7 +130,8 @@ export class Environment {
         this.scene.add(frontWall);
         this.walls.push(frontWall);
 
-        // Side Walls
+        /** Side Walls */
+
         const sideWallGeometry = new THREE.BoxGeometry(wallThickness, wallHeight, 28, 1, 8, 8);
         const sideWallMaterial = new THREE.MeshPhysicalMaterial({
             map: wallTextures.concrete,
@@ -137,7 +143,8 @@ export class Environment {
             envMapIntensity: 0.3
         });
 
-        // Left
+        /** Left */
+
         const leftWall = new THREE.Mesh(sideWallGeometry, sideWallMaterial);
         leftWall.position.set(-14, wallHeight / 2, 0);
         leftWall.receiveShadow = true;
@@ -145,7 +152,8 @@ export class Environment {
         this.scene.add(leftWall);
         this.walls.push(leftWall);
 
-        // Right
+        /** Right */
+
         const rightWall = new THREE.Mesh(sideWallGeometry, sideWallMaterial);
         rightWall.position.set(14, wallHeight / 2, 0);
         rightWall.receiveShadow = true;
@@ -158,7 +166,8 @@ export class Environment {
     }
 
     createCompleteCeiling(wallTextures) {
-        // Use plaster texture for ceiling if available
+        /** Use plaster texture for ceiling if available */
+
         const ceilingMaterial = new THREE.MeshPhysicalMaterial({
             map: wallTextures ? wallTextures.plaster : null,
             normalMap: wallTextures ? wallTextures.plasterNormal : null,
@@ -174,7 +183,8 @@ export class Environment {
             ceilingMaterial.map.wrapT = THREE.RepeatWrapping;
         }
 
-        // Techo principal COMPLETO - sin aberturas
+        /** Main Ceiling COMPLETE - no openings */
+
         const mainCeilingGeometry = new THREE.BoxGeometry(28, 0.2, 28);
         const mainCeiling = new THREE.Mesh(mainCeilingGeometry, ceilingMaterial);
         mainCeiling.position.set(0, 4.9, 0);
@@ -188,10 +198,12 @@ export class Environment {
     }
 
     createSkylight() {
-        // Marco del tragaluz elevado
+        /** Raised Skylight Frame */
+
         const frameThickness = 0.15;
         const skylightSize = 8;
-        const elevation = 0.3; // Elevación sobre el techo
+        const elevation = 0.3; /** Elevation above ceiling */
+
 
         const frameMaterial = new THREE.MeshPhysicalMaterial({
             color: 0x666666,
@@ -200,14 +212,17 @@ export class Environment {
             envMapIntensity: 1.0
         });
 
-        // Marco exterior elevado
+        /** Raised Outer Frame */
+
         const frameGeometry = new THREE.BoxGeometry(skylightSize + frameThickness * 2, frameThickness, skylightSize + frameThickness * 2);
         const frame = new THREE.Mesh(frameGeometry, frameMaterial);
         frame.position.set(0, 5.0 + elevation, 0);
-        frame.castShadow = false; // Optimización: sin sombras en elementos decorativos
+        frame.castShadow = false; /** Optimization: no shadows on decorative elements */
+
         this.scene.add(frame);
 
-        // Paredes del tragaluz (para crear profundidad)
+        /** Skylight Walls (to create depth) */
+
         const wallHeight = elevation;
         const skylightWalls = [
             { size: [frameThickness, wallHeight, skylightSize + frameThickness * 2], pos: [-(skylightSize / 2 + frameThickness), 5.0 + wallHeight / 2, 0] },
@@ -220,12 +235,14 @@ export class Environment {
             const wallGeometry = new THREE.BoxGeometry(...wall.size);
             const wallMesh = new THREE.Mesh(wallGeometry, frameMaterial);
             wallMesh.position.set(...wall.pos);
-            wallMesh.castShadow = false; // Optimización: sin sombras
+            wallMesh.castShadow = false; /** Optimization: no shadows */
+
             wallMesh.receiveShadow = true;
             this.scene.add(wallMesh);
         });
 
-        // Vidrio del tragaluz con propiedades físicas realistas
+        /** Skylight Glass with realistic physical properties */
+
         const glassGeometry = new THREE.PlaneGeometry(skylightSize, skylightSize);
         const glassMaterial = new THREE.MeshPhysicalMaterial({
             color: 0xffffff,
@@ -246,17 +263,20 @@ export class Environment {
     }
 
     createCeilingBeams(wallTextures) {
-        // Vigas con aspecto de madera (Textura de concreto teñida de café oscuro)
+        /** Wood-look beams (Concrete texture stained dark brown) */
+
         const beamMaterial = new THREE.MeshPhysicalMaterial({
             map: wallTextures ? wallTextures.concrete : null,
             normalMap: wallTextures ? wallTextures.concreteNormal : null,
-            color: 0x5c4033, // Café madera oscuro
+            color: 0x5c4033, /** Dark wood brown */
+
             roughness: 0.8,
             metalness: 0.0,
             envMapIntensity: 0.2
         });
 
-        // Asegurar que la textura se repita bien en las vigas delgadas
+        /** Ensure texture repeats well on thin beams */
+
         if (beamMaterial.map) {
             beamMaterial.map.repeat.set(4, 1);
             beamMaterial.map.wrapS = THREE.RepeatWrapping;
@@ -268,14 +288,20 @@ export class Environment {
             beamMaterial.normalMap.wrapT = THREE.RepeatWrapping;
         }
 
-        // Definir dimensiones más delgadas para las vigas (Antes: 0.3 x 0.5)
-        const beamW = 0.15; // Más delgadas
-        const beamH = 0.25; // Menos altas
-        const beamL = 28;   // Largo completo
+        /** Define thinner dimensions for beams (Before: 0.3 x 0.5) */
 
-        // Vigas principales (Longitudinales X)
+        const beamW = 0.15; /** Thinner */
+
+        const beamH = 0.25; /** Less tall */
+
+        const beamL = 28;   /** Full length */
+
+
+        /** Main Beams (Longitudinal X) */
+
         const mainBeamPositions = [
-            { size: [beamW, beamH, beamL], pos: [-4, 4.9 - beamH / 2, 0] }, // Ajustar altura para pegar al techo (4.9 es altura techo)
+            { size: [beamW, beamH, beamL], pos: [-4, 4.9 - beamH / 2, 0] }, /** Adjust height to stick to ceiling (4.9 is ceiling height) */
+
             { size: [beamW, beamH, beamL], pos: [4, 4.9 - beamH / 2, 0] },
             { size: [beamW, beamH, beamL], pos: [-8, 4.9 - beamH / 2, 0] },
             { size: [beamW, beamH, beamL], pos: [8, 4.9 - beamH / 2, 0] },
@@ -291,7 +317,8 @@ export class Environment {
             this.scene.add(beamMesh);
         });
 
-        // Vigas transversales (Z) - Creando una cuadrícula
+        /** Cross Beams (Z) - Creating a grid */
+
         const crossBeamPositions = [
             { size: [beamL, beamH, beamW], pos: [0, 4.9 - beamH / 2, -4] },
             { size: [beamL, beamH, beamW], pos: [0, 4.9 - beamH / 2, 4] },
@@ -302,8 +329,9 @@ export class Environment {
         ];
 
         crossBeamPositions.forEach(beam => {
-            // Evitar superposición con tragaluz central (aprox -4 a 4 en X/Z) si fuera necesario, 
-            // pero el diseño original las cruzaba o cortaba. Las dejamos cruzar para estética 'rustic'.
+            /** Avoid overlap with central skylight (approx -4 to 4 in X/Z) if necessary, */
+            /** but the original design crossed or cut them. We let them cross for 'rustic' aesthetic. */
+
             const beamMesh = new THREE.Mesh(new THREE.BoxGeometry(...beam.size), beamMaterial);
             beamMesh.position.set(...beam.pos);
             beamMesh.castShadow = true;
@@ -315,7 +343,8 @@ export class Environment {
     createCenterChandelier() {
         const chandelierGroup = new THREE.Group();
 
-        // Materiales
+        /** Materials */
+
         const metalMaterial = new THREE.MeshPhysicalMaterial({
             color: 0x1a1a1a,
             roughness: 0.2,
@@ -342,31 +371,36 @@ export class Environment {
             emissiveIntensity: 0.4
         });
 
-        // Cadena/tubo de soporte central
+        /** Central support chain/tube */
+
         const chainGeometry = new THREE.CylinderGeometry(0.03, 0.03, 0.8, 8);
         const chain = new THREE.Mesh(chainGeometry, metalMaterial);
         chain.position.y = 4.5;
         chandelierGroup.add(chain);
 
-        // Base superior (roseta de techo)
+        /** Upper base (ceiling rosette) */
+
         const rosetteGeometry = new THREE.CylinderGeometry(0.15, 0.12, 0.08, 16);
         const rosette = new THREE.Mesh(rosetteGeometry, goldMaterial);
         rosette.position.y = 4.9;
         chandelierGroup.add(rosette);
 
-        // Cuerpo principal de la lámpara (corona circular)
+        /** Main lamp body (circular crown) */
+
         const crownGeometry = new THREE.TorusGeometry(0.6, 0.08, 8, 24);
         const crown = new THREE.Mesh(crownGeometry, goldMaterial);
         crown.position.y = 4.1;
         crown.rotation.x = Math.PI / 2;
         chandelierGroup.add(crown);
 
-        // Brazos decorativos (6 brazos)
+        /** Decorative arms (6 arms) */
+
         const numArms = 6;
         for (let i = 0; i < numArms; i++) {
             const angle = (i / numArms) * Math.PI * 2;
 
-            // Brazo curvo
+            /** Curved arm */
+
             const armGeometry = new THREE.CylinderGeometry(0.025, 0.02, 0.4, 8);
             const arm = new THREE.Mesh(armGeometry, goldMaterial);
 
@@ -374,11 +408,13 @@ export class Environment {
             arm.position.x = Math.cos(angle) * armRadius;
             arm.position.z = Math.sin(angle) * armRadius;
             arm.position.y = 4.1;
-            arm.rotation.z = Math.PI / 6; // Inclinación
+            arm.rotation.z = Math.PI / 6; /** Tilt */
+
             arm.rotation.y = angle;
             chandelierGroup.add(arm);
 
-            // Lámpara/bombilla en cada brazo
+            /** Lamp/bulb in each arm */
+
             const bulbGeometry = new THREE.SphereGeometry(0.08, 12, 12);
             const bulb = new THREE.Mesh(bulbGeometry, glassMaterial);
             bulb.position.x = Math.cos(angle) * (armRadius + 0.15);
@@ -386,24 +422,28 @@ export class Environment {
             bulb.position.y = 3.95;
             chandelierGroup.add(bulb);
 
-            // Pequeña luz puntual en cada bombilla
+            /** Small point light in each bulb */
+
             const bulbLight = new THREE.PointLight(0xfff8dc, 3, 3, 2);
             bulbLight.position.copy(bulb.position);
             chandelierGroup.add(bulbLight);
         }
 
-        // Lámpara central inferior
+        /** Lower central lamp */
+
         const centerBulbGeometry = new THREE.SphereGeometry(0.12, 16, 16);
         const centerBulb = new THREE.Mesh(centerBulbGeometry, glassMaterial);
         centerBulb.position.y = 3.85;
         chandelierGroup.add(centerBulb);
 
-        // Luz central principal
+        /** Main central light */
+
         const centerLight = new THREE.PointLight(0xfff8dc, 8, 6, 2);
         centerLight.position.y = 3.85;
         chandelierGroup.add(centerLight);
 
-        // Detalles decorativos - cristales colgantes
+        /** Decorative details - hanging crystals */
+
         const numCrystals = 12;
         for (let i = 0; i < numCrystals; i++) {
             const angle = (i / numCrystals) * Math.PI * 2;
@@ -418,7 +458,8 @@ export class Environment {
             chandelierGroup.add(crystal);
         }
 
-        // Posicionar el candelabro en el centro del techo
+        /** Position chandelier in center of ceiling */
+
         chandelierGroup.position.set(0, 0, 0);
         this.scene.add(chandelierGroup);
     }
@@ -429,7 +470,8 @@ export class Environment {
     }
 
     createDecorativePillars(wallTextures) {
-        // Corner pillars
+        /** Corner pillars */
+
         const pillarGeo = new THREE.CylinderGeometry(0.4, 0.4, 4.8, 32);
         const pillarMaterial = new THREE.MeshPhysicalMaterial({
             map: wallTextures ? wallTextures.marble : null,
@@ -454,23 +496,30 @@ export class Environment {
         const baseboardMaterial = new THREE.MeshPhysicalMaterial({
             map: wallTextures ? wallTextures.marble : null,
             normalMap: wallTextures ? wallTextures.marbleNormal : null,
-            color: 0x444444, // Dark marble
+            color: 0x444444, /** Dark marble */
+
             roughness: 0.3,
             metalness: 0.1,
             envMapIntensity: 0.5
         });
 
         const wallThickness = 0.5;
-        const wallHeight = 0.4; // Low height for baseboard
-        // Simple baseboards along the walls
+        const wallHeight = 0.4; /** Low height for baseboard */
+
+        /** Simple baseboards along the walls */
+
         const baseboards = [
-            // Back
+            /** Back */
+
             { size: [28, wallHeight, 0.1], pos: [0, wallHeight / 2, -13.95] },
-            // Front
+            /** Front */
+
             { size: [28, wallHeight, 0.1], pos: [0, wallHeight / 2, 13.95] },
-            // Left
+            /** Left */
+
             { size: [0.1, wallHeight, 28], pos: [-13.95, wallHeight / 2, 0] },
-            // Right
+            /** Right */
+
             { size: [0.1, wallHeight, 28], pos: [13.95, wallHeight / 2, 0] }
         ];
 
@@ -483,28 +532,34 @@ export class Environment {
         });
     }
 
-    // --- Texture Generation Functions ---
+    /** --- Texture Generation Functions --- */
+
 
     createLuxuryMarbleTexture() {
-        const size = 2048; // Alta resolución para el piso
+        const size = 2048; /** High resolution for floor */
 
-        // Crear textura difusa con algoritmos avanzados
+
+        /** Create diffuse texture with advanced algorithms */
+
         const generateLuxuryMarbleDiffuse = () => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             canvas.width = size;
             canvas.height = size;
 
-            // Base con variación sutil de color usando ruido Perlin simulado
+            /** Base with subtle color variation using simulated Perlin noise */
+
             const imageData = ctx.createImageData(size, size);
             const data = imageData.data;
 
-            // Función de ruido simplificada para variaciones naturales
+            /** Simplified noise function for natural variations */
+
             function noise(x, y, scale = 0.01) {
                 return (Math.sin(x * scale) + Math.cos(y * scale) + Math.sin((x + y) * scale * 0.5)) / 3;
             }
 
-            // Crear base con variación de color muy sutil
+            /** Create base with very subtle color variation */
+
             for (let y = 0; y < size; y++) {
                 for (let x = 0; x < size; x++) {
                     const i = (y * size + x) * 4;
@@ -520,13 +575,15 @@ export class Environment {
 
             ctx.putImageData(imageData, 0, 0);
 
-            // Función avanzada para crear vetas orgánicas ultra-realistas
+            /** Advanced function to create ultra-realistic organic veins */
+
             function drawAdvancedVein(startX, startY, color, opacity, thickness, complexity = 8, turbulence = 1) {
                 ctx.globalCompositeOperation = 'multiply';
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
 
-                // Crear múltiples capas para una veta más realista
+                /** Create multiple layers for a more realistic vein */
+
                 for (let layer = 0; layer < 3; layer++) {
                     ctx.strokeStyle = color;
                     ctx.globalAlpha = opacity * (0.4 + layer * 0.2);
@@ -540,14 +597,16 @@ export class Environment {
                     let direction = Math.random() * Math.PI * 2;
 
                     for (let i = 0; i < complexity; i++) {
-                        // Evolución más natural de la dirección
+                        /** More natural direction evolution */
+
                         direction += (Math.random() - 0.5) * 0.8 * turbulence;
                         const distance = (Math.random() * 120 + 80) * (1 - i / complexity * 0.3);
 
                         const nextX = currentX + Math.cos(direction) * distance;
                         const nextY = currentY + Math.sin(direction) * distance;
 
-                        // Control points más sofisticados para curvas naturales
+                        /** More sophisticated control points for natural curves */
+
                         const cp1X = currentX + Math.cos(direction - 0.5) * distance * 0.3;
                         const cp1Y = currentY + Math.sin(direction - 0.5) * distance * 0.3;
                         const cp2X = nextX - Math.cos(direction + 0.5) * distance * 0.3;
@@ -555,7 +614,8 @@ export class Environment {
 
                         ctx.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, nextX, nextY);
 
-                        // Añadir ramificaciones ocasionales
+                        /** Add occasional branches */
+
                         if (Math.random() < 0.3 && i > 2) {
                             const branchLength = distance * 0.6;
                             const branchAngle = direction + (Math.random() - 0.5) * Math.PI * 0.8;
@@ -577,32 +637,40 @@ export class Environment {
                 ctx.globalAlpha = 1.0;
             }
 
-            // Vetas principales negras/grises ultra-realistas
+            /** Ultra-realistic black/gray main veins */
+
             for (let i = 0; i < 8; i++) {
                 const x = Math.random() * size;
                 const y = Math.random() * size;
-                const grayValue = Math.random() * 40 + 20; // Grises muy oscuros para contraste
-                const blueTint = Math.random() * 10; // Ligero tinte azul natural
+                const grayValue = Math.random() * 40 + 20; /** Very dark grays for contrast */
+
+                const blueTint = Math.random() * 10; /** Slight natural blue tint */
+
                 drawAdvancedVein(x, y, `rgb(${grayValue}, ${grayValue}, ${grayValue + blueTint})`, 0.7 + Math.random() * 0.2, Math.random() * 20 + 12, 8 + Math.random() * 4, 1.2);
             }
 
-            // Vetas secundarias de transición
+            /** Secondary transition veins */
+
             for (let i = 0; i < 15; i++) {
                 const x = Math.random() * size;
                 const y = Math.random() * size;
-                const grayValue = Math.random() * 60 + 70; // Grises medios
+                const grayValue = Math.random() * 60 + 70; /** Medium grays */
+
                 drawAdvancedVein(x, y, `rgb(${grayValue}, ${grayValue}, ${grayValue + 5})`, 0.4 + Math.random() * 0.3, Math.random() * 12 + 6, 5 + Math.random() * 3, 0.8);
             }
 
-            // Vetas finas de detalle
+            /** Fine detail veins */
+
             for (let i = 0; i < 25; i++) {
                 const x = Math.random() * size;
                 const y = Math.random() * size;
-                const grayValue = Math.random() * 40 + 120; // Grises claros
+                const grayValue = Math.random() * 40 + 120; /** Light grays */
+
                 drawAdvancedVein(x, y, `rgb(${grayValue}, ${grayValue}, ${grayValue})`, 0.2 + Math.random() * 0.2, Math.random() * 6 + 2, 3 + Math.random() * 2, 0.5);
             }
 
-            // Vetas doradas premium (como en mármol de lujo)
+            /** Premium golden veins (like luxury marble) */
+
             for (let i = 0; i < 6; i++) {
                 const x = Math.random() * size;
                 const y = Math.random() * size;
@@ -612,7 +680,8 @@ export class Environment {
                 drawAdvancedVein(x, y, `rgb(${goldR}, ${goldG}, ${goldB})`, 0.35 + Math.random() * 0.15, Math.random() * 8 + 3, 4 + Math.random() * 2, 0.7);
             }
 
-            // Manchas y variaciones sutiles
+            /** Subtle spots and variations */
+
             ctx.globalCompositeOperation = 'overlay';
             for (let i = 0; i < 30; i++) {
                 const x = Math.random() * size;
@@ -630,7 +699,8 @@ export class Environment {
                 ctx.fill();
             }
 
-            // Cristalizaciones y brillos (efecto de mármol pulido)
+            /** Crystallizations and shines (polished marble effect) */
+
             ctx.globalCompositeOperation = 'screen';
             for (let i = 0; i < 15; i++) {
                 const x = Math.random() * size;
@@ -661,18 +731,21 @@ export class Environment {
             return texture;
         };
 
-        // Crear normal map para el mármol
+        /** Create normal map for marble */
+
         const generateLuxuryMarbleNormal = () => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             canvas.width = size;
             canvas.height = size;
 
-            // Base del normal map
+            /** Normal map base */
+
             ctx.fillStyle = '#8080ff';
             ctx.fillRect(0, 0, size, size);
 
-            // Relieve de las vetas principales
+            /** Relief of main veins */
+
             function drawNormalVein(startX, startY, intensity, thickness, complexity = 6) {
                 ctx.globalCompositeOperation = 'normal';
                 ctx.strokeStyle = `rgba(${100 + intensity}, ${100 + intensity}, 255, 0.6)`;
@@ -704,7 +777,8 @@ export class Environment {
                 ctx.stroke();
             }
 
-            // Normal map para vetas principales
+            /** Normal map for main veins */
+
             for (let i = 0; i < 15; i++) {
                 const x = Math.random() * size;
                 const y = Math.random() * size;
@@ -712,7 +786,8 @@ export class Environment {
                 drawNormalVein(x, y, intensity, Math.random() * 12 + 6, 5 + Math.random() * 4);
             }
 
-            // Variaciones sutiles para superficie pulida
+            /** Subtle variations for polished surface */
+
             for (let i = 0; i < 100; i++) {
                 const x = Math.random() * size;
                 const y = Math.random() * size;
@@ -748,7 +823,8 @@ export class Environment {
     createWallTextures() {
         const textures = {};
 
-        // Función auxiliar para crear textura con normal map
+        /** Helper function to create texture with normal map */
+
         const createTextureWithNormal = (diffuseGenerator, normalGenerator, size = 512) => {
             const diffuseTexture = diffuseGenerator(size);
             const normalTexture = normalGenerator(size);
@@ -761,23 +837,27 @@ export class Environment {
             };
         };
 
-        // 1. Textura de mármol de pared ultra-realista
+        /** 1. Ultra-realistic wall marble texture */
+
         const generateMarbleTexture = (size) => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             canvas.width = size;
             canvas.height = size;
 
-            // Base de mármol con variación natural usando ruido
+            /** Marble base with natural variation using noise */
+
             const imageData = ctx.createImageData(size, size);
             const data = imageData.data;
 
-            // Crear variación de base más realista
+            /** Create more realistic base variation */
+
             for (let y = 0; y < size; y++) {
                 for (let x = 0; x < size; x++) {
                     const i = (y * size + x) * 4;
 
-                    // Ruido múltiple para variación natural
+                    /** Multiple noise for natural variation */
+
                     const noise1 = Math.sin(x * 0.01) * Math.cos(y * 0.01);
                     const noise2 = Math.sin(x * 0.005 + y * 0.008) * 0.5;
                     const noise3 = (Math.random() - 0.5) * 0.1;
@@ -794,7 +874,8 @@ export class Environment {
 
             ctx.putImageData(imageData, 0, 0);
 
-            // Vetas de mármol
+            /** Marble veins */
+
             ctx.globalCompositeOperation = 'multiply';
             for (let i = 0; i < 15; i++) {
                 ctx.strokeStyle = `rgba(200, 200, 200, ${0.3 + Math.random() * 0.4})`;

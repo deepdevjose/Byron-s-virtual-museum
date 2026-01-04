@@ -8,7 +8,7 @@ A WebGL-based virtual museum application built with Three.js, featuring photorea
 **Architecture:** Single-page application with procedural geometry generation  
 **Lighting:** 49-light system with shadow mapping (4 shadow-casting lights max)  
 **Materials:** PBR workflow with metalness, roughness, and transmission properties  
-**Performance:** Optimized for 60 FPS on mid-range hardware
+**Performance:** Optimized for ~60 FPS on mid-range hardware
 
 ## Core Features
 

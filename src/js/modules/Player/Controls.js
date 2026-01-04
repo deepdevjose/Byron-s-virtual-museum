@@ -6,22 +6,27 @@ export class FirstPersonControls {
         this.camera = camera;
         this.renderer = renderer;
 
-        // Movement state
+        /** Movement state */
+
         this.moveForward = false;
         this.moveBackward = false;
         this.moveLeft = false;
         this.moveRight = false;
         this.isRunning = false;
 
-        // Physics state
+        /** Physics state */
+
         this.velocity = new THREE.Vector3();
         this.direction = new THREE.Vector3();
 
-        // Rotation state
-        this.targetRotationX = 0;
-        this.targetRotationY = Math.PI; // Look at back wall
+        /** Rotation state */
 
-        // Configuration
+        this.targetRotationX = 0;
+        this.targetRotationY = Math.PI; /** Look at back wall */
+
+
+        /** Configuration */
+
         this.config = CONFIG.movement;
 
         this.setupEventListeners();
@@ -32,7 +37,8 @@ export class FirstPersonControls {
         document.addEventListener('keyup', (e) => this.onKeyUp(e));
         document.addEventListener('mousemove', (e) => this.onMouseLook(e));
 
-        // Pointer lock
+        /** Pointer lock */
+
         document.addEventListener('click', () => {
             if (document.pointerLockElement !== this.renderer.domElement) {
                 this.renderer.domElement.requestPointerLock();
@@ -77,18 +83,22 @@ export class FirstPersonControls {
             const movementX = event.movementX || 0;
             const movementY = event.movementY || 0;
 
-            // Update target rotation
-            // Note: In original code config was lookSpeed: 0.002
+            /** Update target rotation */
+
+            /** Note: In original code config was lookSpeed: 0.002 */
+
             const lookSpeed = 0.002;
 
             this.targetRotationY -= movementX * lookSpeed;
             this.targetRotationX -= movementY * lookSpeed;
 
-            // Limit vertical look
+            /** Limit vertical look */
+
             const maxVerticalAngle = Math.PI / 3;
             this.targetRotationX = Math.max(-maxVerticalAngle, Math.min(maxVerticalAngle, this.targetRotationX));
 
-            // Apply rotation immediately for responsiveness (or smooth it in update)
+            /** Apply rotation immediately for responsiveness (or smooth it in update) */
+
             this.camera.rotation.set(this.targetRotationX, this.targetRotationY, 0, 'YXZ');
         }
     }
@@ -102,23 +112,29 @@ export class FirstPersonControls {
     }
 
     update(deltaTime) {
-        // Delta time cap
+        /** Delta time cap */
+
         deltaTime = Math.min(deltaTime, 0.1);
 
-        const speed = this.isRunning ? this.config.runSpeed : this.config.speed; // Use config values
-        // Or if config values are different in main.js
-        // walkSpeed: 4.0, runSpeed: 7.0
-        // I will use constants that match the behavior
+        const speed = this.isRunning ? this.config.runSpeed : this.config.speed; /** Use config values */
+
+        /**
+         * Or if config values are different in main.js. walkSpeed: 4.0, runSpeed: 7.0.
+         * I will use constants that match the behavior.
+         */
+
         const walkSpeed = 4.0;
         const runSpeed = 7.0;
         const currentSpeed = this.isRunning ? runSpeed : walkSpeed;
 
-        // Friction
+        /** Friction */
+
         const friction = 10.0;
         this.velocity.x -= this.velocity.x * friction * deltaTime;
         this.velocity.z -= this.velocity.z * friction * deltaTime;
 
-        // Direction
+        /** Direction */
+
         this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
         this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
         this.direction.normalize();
@@ -147,11 +163,12 @@ export class FirstPersonControls {
             this.velocity.add(right.clone().multiplyScalar(velocityDiff * acceleration * deltaTime));
         }
 
-        // Apply Movement
+        /** Apply Movement */
+
         const nextPos = this.velocity.clone().multiplyScalar(deltaTime);
         this.camera.position.add(nextPos);
 
-        // Simple bounds (can be improved later with proper collision system)
-        // For now, rely on external collision check or add bounds here
+        /** Simple bounds (can be improved later with proper collision system). For now, rely on external collision check or add bounds here */
+
     }
 }

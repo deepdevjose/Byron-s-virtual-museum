@@ -1,6 +1,15 @@
 import * as THREE from 'three';
 import CONFIG from '../../config.js';
 
+/**
+ * OPTIMIZED LIGHTING SYSTEM
+ * 
+ * Performance optimization:
+ * - Removed 16 PointLights from ceiling grid (biggest bottleneck)
+ * - Kept wall spotlights and sconces for visual quality
+ * - Using emissive materials for ceiling fixtures (fake lights)
+ */
+
 export class Lighting {
     constructor(scene) {
         this.scene = scene;
@@ -9,113 +18,109 @@ export class Lighting {
     }
 
     setup() {
+        /** Ambient Light */
 
-
-        // Ambient Light (Reduced by 5% from 0.415 -> 0.394)
-        const ambientLight = new THREE.AmbientLight(0x808080, 0.394);
+        const ambientLight = new THREE.AmbientLight(0x808080, 0.4);
         this.scene.add(ambientLight);
 
-        // Ceiling Light Grid (Refined)
+        /** OPTIMIZED: Ceiling fixtures with emissive only (no PointLights) */
+
         this.createCeilingLightGrid();
 
-        // Main Skylight (Environment Light - Reduced by 5% from 0.75 -> 0.71)
+        /** Main Skylight */
+
         this.createSkylight();
 
-        // Fill Lights (Reduced)
+        /** Fill Lights (kept for quality) */
+
         this.createFillLights();
 
-        // Spotlights for Artworks (Reduced)
+        /** Spotlights for Artworks (RESTORED) */
+
         this.createRealisticSpotlights();
 
-        // Wall Sconces
-        this.implementWallSconces();
+        /** Wall Sconces (RESTORED) */
 
-        // Additional Ambient Details
-        this.createAmbientLighting();
+        this.implementWallSconces();
     }
 
     createCeilingLightGrid() {
-        // Grid de luces puntuales en el techo para iluminación uniforme
-        const gridSize = 4;
-        const spacing = 6;
-        const height = 4.6;
-        const startX = -9;
-        const startZ = -9;
+        /** OPTIMIZED: Minimal fixtures - NO PointLights, just 4 corner emissive fixtures
+         * This was the main bottleneck (16 PointLights removed)
+         */
 
-        for (let x = 0; x < gridSize; x++) {
-            for (let z = 0; z < gridSize; z++) {
-                const posX = startX + (x * spacing);
-                const posZ = startZ + (z * spacing);
+        const positions = [
+            [-6, 4.6, -6],
+            [6, 4.6, -6],
+            [-6, 4.6, 6],
+            [6, 4.6, 6]
+        ];
 
-                // Luz puntual principal con tono cálido (Reduced intensity 7.12 -> 5.7 - 20% reduction)
-                const ceilingLight = new THREE.PointLight(0xffd9a0, 5.7, 15, 2.0);
-                ceilingLight.position.set(posX, height, posZ);
-                ceilingLight.castShadow = false;
-                this.scene.add(ceilingLight);
+        positions.forEach(([posX, height, posZ]) => {
+            /** Simple fixture with strong emissive */
 
-                // Fixture visual pequeño
-                const fixtureGeometry = new THREE.CylinderGeometry(0.12, 0.15, 0.08, 12);
-                const fixtureMaterial = new THREE.MeshPhysicalMaterial({
-                    color: 0x2a2a2a,
-                    roughness: 0.3,
-                    metalness: 0.8,
-                    emissive: 0xffd9a0,
-                    emissiveIntensity: 0.08
-                });
-                const fixture = new THREE.Mesh(fixtureGeometry, fixtureMaterial);
-                fixture.position.set(posX, height + 0.2, posZ);
-                fixture.castShadow = false;
-                this.scene.add(fixture);
+            const fixtureGeometry = new THREE.CylinderGeometry(0.15, 0.18, 0.1, 8);
+            const fixtureMaterial = new THREE.MeshStandardMaterial({
+                color: 0x2a2a2a,
+                roughness: 0.3,
+                metalness: 0.8,
+                emissive: 0xffd9a0,
+                emissiveIntensity: 0.4
+            });
+            const fixture = new THREE.Mesh(fixtureGeometry, fixtureMaterial);
+            fixture.position.set(posX, height + 0.2, posZ);
+            fixture.castShadow = false;
+            fixture.receiveShadow = false;
+            this.scene.add(fixture);
 
-                // Pequeño difusor
-                const diffuserGeometry = new THREE.CircleGeometry(0.18, 16);
-                const diffuserMaterial = new THREE.MeshPhysicalMaterial({
-                    color: 0xffffff,
-                    roughness: 0.9,
-                    metalness: 0.0,
-                    emissive: 0xffd9a0,
-                    emissiveIntensity: 0.25,
-                    transparent: true,
-                    opacity: 0.9,
-                    side: THREE.DoubleSide
-                });
-                const diffuser = new THREE.Mesh(diffuserGeometry, diffuserMaterial);
-                diffuser.position.set(posX, height + 0.15, posZ);
-                diffuser.rotation.x = -Math.PI / 2;
-                this.scene.add(diffuser);
-            }
-        }
+            /** Bright diffuser */
+
+            const diffuserGeometry = new THREE.CircleGeometry(0.22, 12);
+            const diffuserMaterial = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                emissive: 0xffd9a0,
+                emissiveIntensity: 1.0,
+                side: THREE.DoubleSide
+            });
+            const diffuser = new THREE.Mesh(diffuserGeometry, diffuserMaterial);
+            diffuser.position.set(posX, height + 0.15, posZ);
+            diffuser.rotation.x = -Math.PI / 2;
+            diffuser.castShadow = false;
+            diffuser.receiveShadow = false;
+            this.scene.add(diffuser);
+        });
     }
 
     createSkylight() {
-        // Luz principal del tragaluz con tono cálido (Reduced intensity 0.75 -> 0.71)
-        const mainSkylight = new THREE.DirectionalLight(0xffd9a0, 0.71);
+        /** Main directional light with shadows */
+
+        const mainSkylight = new THREE.DirectionalLight(0xffd9a0, 0.75);
         mainSkylight.position.set(2, 20, 3);
         mainSkylight.target.position.set(0, 0, 0);
         mainSkylight.castShadow = true;
 
-        // Shadow configuration
-        mainSkylight.shadow.mapSize.width = 2048;
-        mainSkylight.shadow.mapSize.height = 2048;
+        /** Shadow configuration (optimized size) */
+
+        mainSkylight.shadow.mapSize.width = 1024;
+        mainSkylight.shadow.mapSize.height = 1024;
         mainSkylight.shadow.camera.near = 1;
         mainSkylight.shadow.camera.far = 50;
-        mainSkylight.shadow.camera.left = -25;
-        mainSkylight.shadow.camera.right = 25;
-        mainSkylight.shadow.camera.top = 25;
-        mainSkylight.shadow.camera.bottom = -25;
+        mainSkylight.shadow.camera.left = -20;
+        mainSkylight.shadow.camera.right = 20;
+        mainSkylight.shadow.camera.top = 20;
+        mainSkylight.shadow.camera.bottom = -20;
         mainSkylight.shadow.bias = -0.0001;
-        mainSkylight.shadow.radius = 8;
+        mainSkylight.shadow.radius = 6;
 
         this.scene.add(mainSkylight);
         this.scene.add(mainSkylight.target);
     }
 
     createFillLights() {
-        // Reduced intensities (0.29 -> 0.27, 0.25 -> 0.24)
         const fills = [
-            { color: 0xffd9a0, intensity: 0.27, pos: [-15, 12, 8] },
-            { color: 0xffe4b5, intensity: 0.27, pos: [15, 8, -8] },
-            { color: 0xffefd5, intensity: 0.24, pos: [0, 15, 10] }
+            { color: 0xffd9a0, intensity: 0.25, pos: [-15, 12, 8] },
+            { color: 0xffe4b5, intensity: 0.25, pos: [15, 8, -8] },
+            { color: 0xffefd5, intensity: 0.2, pos: [0, 15, 10] }
         ];
 
         fills.forEach(fill => {
@@ -125,52 +130,51 @@ export class Lighting {
         });
     }
 
+    /** RESTORED: Original spotlights for artwork */
+
     createRealisticSpotlights() {
         const UNIFIED_COLOR = 0xffffff;
-        // Reduced intensity (29 -> 27.5)
-        const UNIFIED_INTENSITY = 27.5;
+        const UNIFIED_INTENSITY = 28;
         const UNIFIED_DISTANCE = 22;
         const UNIFIED_ANGLE = Math.PI / 6;
         const UNIFIED_PENUMBRA = 0.7;
         const UNIFIED_DECAY = 1.0;
 
         const spotLightConfigs = [
-            // Pared frontal
-            { pos: [-10, 4.4, -12], target: [-10, 2.2, -13.7], castShadow: false },
-            { pos: [-5, 4.4, -12], target: [-5, 2.2, -13.7], castShadow: false },
-            { pos: [0, 4.4, -12], target: [0, 2.3, -13.7], castShadow: false },
-            { pos: [5, 4.4, -12], target: [5, 2.2, -13.7], castShadow: false },
-            { pos: [10, 4.4, -12], target: [10, 2.2, -13.7], castShadow: false },
-            // Pared izquierda
-            { pos: [-12, 4.4, -7.5], target: [-13.7, 2.2, -7.5], castShadow: false },
-            { pos: [-12, 4.4, -2.5], target: [-13.7, 2.2, -2.5], castShadow: false },
-            { pos: [-12, 4.4, 2.5], target: [-13.7, 2.2, 2.5], castShadow: false },
-            { pos: [-12, 4.4, 7.5], target: [-13.7, 2.2, 7.5], castShadow: false },
-            // Pared derecha
-            { pos: [12, 4.4, -7.5], target: [13.7, 2.2, -7.5], castShadow: false },
-            { pos: [12, 4.4, -2.5], target: [13.7, 2.2, -2.5], castShadow: false },
-            { pos: [12, 4.4, 2.5], target: [13.7, 2.2, 2.5], castShadow: false },
-            { pos: [12, 4.4, 7.5], target: [13.7, 2.2, 7.5], castShadow: false },
-            // Pared trasera
-            { pos: [-9, 4.4, 12], target: [-9, 2.2, 13.7], castShadow: false },
-            { pos: [-4.5, 4.4, 12], target: [-4.5, 2.2, 13.7], castShadow: false },
-            { pos: [0, 4.4, 12], target: [0, 2.3, 13.7], castShadow: true },
-            { pos: [4.5, 4.4, 12], target: [4.5, 2.2, 13.7], castShadow: false },
-            { pos: [9, 4.4, 12], target: [9, 2.2, 13.7], castShadow: false }
+            /** Front wall */
+
+            { pos: [-10, 4.4, -12], target: [-10, 2.2, -13.7] },
+            { pos: [-5, 4.4, -12], target: [-5, 2.2, -13.7] },
+            { pos: [0, 4.4, -12], target: [0, 2.3, -13.7] },
+            { pos: [5, 4.4, -12], target: [5, 2.2, -13.7] },
+            { pos: [10, 4.4, -12], target: [10, 2.2, -13.7] },
+            /** Left wall */
+
+            { pos: [-12, 4.4, -7.5], target: [-13.7, 2.2, -7.5] },
+            { pos: [-12, 4.4, -2.5], target: [-13.7, 2.2, -2.5] },
+            { pos: [-12, 4.4, 2.5], target: [-13.7, 2.2, 2.5] },
+            { pos: [-12, 4.4, 7.5], target: [-13.7, 2.2, 7.5] },
+            /** Right wall */
+
+            { pos: [12, 4.4, -7.5], target: [13.7, 2.2, -7.5] },
+            { pos: [12, 4.4, -2.5], target: [13.7, 2.2, -2.5] },
+            { pos: [12, 4.4, 2.5], target: [13.7, 2.2, 2.5] },
+            { pos: [12, 4.4, 7.5], target: [13.7, 2.2, 7.5] },
+            /** Back wall */
+
+            { pos: [-9, 4.4, 12], target: [-9, 2.2, 13.7] },
+            { pos: [-4.5, 4.4, 12], target: [-4.5, 2.2, 13.7] },
+            { pos: [0, 4.4, 12], target: [0, 2.3, 13.7] },
+            { pos: [4.5, 4.4, 12], target: [4.5, 2.2, 13.7] },
+            { pos: [9, 4.4, 12], target: [9, 2.2, 13.7] }
         ];
 
         spotLightConfigs.forEach(config => {
             const spotLight = new THREE.SpotLight(UNIFIED_COLOR, UNIFIED_INTENSITY, UNIFIED_DISTANCE, UNIFIED_ANGLE, UNIFIED_PENUMBRA, UNIFIED_DECAY);
             spotLight.position.set(...config.pos);
             spotLight.target.position.set(...config.target);
-            spotLight.castShadow = config.castShadow;
+            spotLight.castShadow = false; /** No shadows from artwork spots */
 
-            if (config.castShadow) {
-                spotLight.shadow.mapSize.width = 512;
-                spotLight.shadow.mapSize.height = 512;
-                spotLight.shadow.bias = -0.00015;
-                spotLight.shadow.radius = 4;
-            }
 
             this.scene.add(spotLight);
             this.scene.add(spotLight.target);
@@ -183,40 +187,42 @@ export class Lighting {
     createSpotlightFixture(position) {
         const fixtureGroup = new THREE.Group();
 
-        // Base del foco
-        const baseGeometry = new THREE.CylinderGeometry(0.18, 0.18, 0.12, 16);
-        const baseMaterial = new THREE.MeshPhysicalMaterial({
+        /** Spotlight base */
+
+        const baseGeometry = new THREE.CylinderGeometry(0.18, 0.18, 0.12, 12);
+        const baseMaterial = new THREE.MeshStandardMaterial({
             color: 0x222222,
             roughness: 0.2,
-            metalness: 0.9,
-            envMapIntensity: 1.0
+            metalness: 0.9
         });
         const base = new THREE.Mesh(baseGeometry, baseMaterial);
         base.position.set(0, -0.06, 0);
-        base.castShadow = true;
+        base.castShadow = false;
         fixtureGroup.add(base);
 
-        // Cono del foco
-        const coneGeometry = new THREE.ConeGeometry(0.15, 0.35, 16);
-        const coneMaterial = new THREE.MeshPhysicalMaterial({
+        /** Spotlight cone */
+
+        const coneGeometry = new THREE.ConeGeometry(0.15, 0.35, 12);
+        const coneMaterial = new THREE.MeshStandardMaterial({
             color: 0x333333,
             roughness: 0.1,
-            metalness: 0.95,
-            envMapIntensity: 1.2
+            metalness: 0.95
         });
         const cone = new THREE.Mesh(coneGeometry, coneMaterial);
         cone.position.set(0, -0.3, 0);
         cone.rotation.x = Math.PI;
-        cone.castShadow = true;
+        cone.castShadow = false;
         fixtureGroup.add(cone);
 
-        // Reflector interior
-        const reflectorGeometry = new THREE.ConeGeometry(0.12, 0.25, 16);
-        const reflectorMaterial = new THREE.MeshPhysicalMaterial({
+        /** Inner reflector with emissive */
+
+        const reflectorGeometry = new THREE.ConeGeometry(0.12, 0.25, 12);
+        const reflectorMaterial = new THREE.MeshStandardMaterial({
             color: 0xffffff,
+            emissive: 0xffffcc,
+            emissiveIntensity: 0.4,
             roughness: 0.05,
-            metalness: 0.95,
-            envMapIntensity: 1.5
+            metalness: 0.95
         });
         const reflector = new THREE.Mesh(reflectorGeometry, reflectorMaterial);
         reflector.position.set(0, -0.25, 0);
@@ -228,23 +234,30 @@ export class Lighting {
         this.fixtures.push(fixtureGroup);
     }
 
+    /** RESTORED: Wall sconces with lights */
+
     implementWallSconces() {
         const sconcePositions = [
-            // Pared frontal
+            /** Front wall */
+
             [-7.5, 3.2, -13.8], [-2.5, 3.2, -13.8], [2.5, 3.2, -13.8], [7.5, 3.2, -13.8],
-            // Pared izquierda
+            /** Left wall */
+
             [-13.8, 3.2, -5], [-13.8, 3.2, 0], [-13.8, 3.2, 5],
-            // Pared derecha
+            /** Right wall */
+
             [13.8, 3.2, -5], [13.8, 3.2, 0], [13.8, 3.2, 5],
-            // Pared trasera
+            /** Back wall */
+
             [-6.75, 3.2, 13.8], [-2.25, 3.2, 13.8], [2.25, 3.2, 13.8], [6.75, 3.2, 13.8]
         ];
 
         sconcePositions.forEach(pos => {
             this.createWallSconce(pos);
 
-            // Luz del aplique apuntando HACIA ABAJO (Reduced 12 -> 11.4)
-            const sconceLight = new THREE.SpotLight(0xffd9a0, 11.4, 7, Math.PI / 3, 0.7, 1.1);
+            /** RESTORED: Sconce light */
+
+            const sconceLight = new THREE.SpotLight(0xffd9a0, 11, 7, Math.PI / 3, 0.7, 1.1);
             sconceLight.position.set(...pos);
             sconceLight.target.position.set(pos[0], pos[1] - 2, pos[2]);
             sconceLight.castShadow = false;
@@ -256,7 +269,8 @@ export class Lighting {
     createWallSconce(position) {
         const sconceGroup = new THREE.Group();
 
-        // Base del aplique
+        /** Sconce base */
+
         const baseGeometry = new THREE.CylinderGeometry(0.08, 0.1, 0.15, 12);
         const baseMaterial = new THREE.MeshPhysicalMaterial({
             color: 0x444444,
@@ -266,10 +280,11 @@ export class Lighting {
         });
         const base = new THREE.Mesh(baseGeometry, baseMaterial);
         base.position.set(0, 0, 0.05);
-        base.castShadow = true;
+        base.castShadow = false;
         sconceGroup.add(base);
 
-        // Pantalla del aplique
+        /** Sconce shade - ORIGINAL material with transmission (glass-like) */
+
         const shadeGeometry = new THREE.SphereGeometry(0.12, 16, 16);
         const shadeMaterial = new THREE.MeshPhysicalMaterial({
             color: 0xffffff,
@@ -288,23 +303,5 @@ export class Lighting {
 
         sconceGroup.position.set(...position);
         this.scene.add(sconceGroup);
-    }
-
-    createAmbientLighting() {
-        // Iluminación de suelo indirecta - reducida para ambiente nocturno
-        const floorLights = [
-            { pos: [0, 0.1, 0], color: 0xffd9a0, intensity: 9.5 }, // 10 -> 9.5
-            { pos: [-7, 0.1, -7], color: 0xffd9a0, intensity: 6.65 }, // 7 -> 6.65
-            { pos: [7, 0.1, -7], color: 0xffd9a0, intensity: 6.65 },
-            { pos: [-7, 0.1, 7], color: 0xffd9a0, intensity: 6.65 },
-            { pos: [7, 0.1, 7], color: 0xffd9a0, intensity: 6.65 }
-        ];
-
-        floorLights.forEach(light => {
-            const scaledIntensity = light.intensity >= 8 ? 1.2 : 1.0;
-            const floorLight = new THREE.PointLight(light.color, scaledIntensity, 6.5, 2.4);
-            floorLight.position.set(...light.pos);
-            this.scene.add(floorLight);
-        });
     }
 }

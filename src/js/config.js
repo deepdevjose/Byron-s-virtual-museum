@@ -1,26 +1,31 @@
-// Configuración del Museo Virtual Byron Gálvez
-// Este archivo contiene configuraciones generales del museo
+/** Virtual Museum Byron Galvez Configuration */
+/** This file contains general configuration for the museum. im not sure if someone will see this but i will try my best to make it clear */
+
 
 const CONFIG = {
-    // Información del museo
+    /** Museum Info */
+
     info: {
         title: "Museo Virtual - Byron Gálvez",
         version: "1.0.0",
         devMode: true
     },
 
-    // Configuración de la cámara
+    /** Camera Configuration */
+
     camera: {
         fov: 60,
         near: 0.1,
         far: 200,
         startPos: { x: 0, y: 1.7, z: -8 },
-        rotation: Math.PI // Looking back
+        rotation: Math.PI /** Looking back */
+
     },
 
     shadows: {
         enabled: true,
-        type: 'PCFSoftShadowMap', // Will be resolved to constant in Three.js usage if needed, or string
+        type: 'PCFSoftShadowMap', /** Will be resolved to constant in Three.js usage if needed, or string */
+
         mapSize: 1024
     },
 
@@ -35,7 +40,8 @@ const CONFIG = {
         envMapIntensity: 0.8
     },
 
-    // Configuración de movimiento
+    /** Movement Configuration */
+
     movement: {
         walkSpeed: 4.0,
         runSpeed: 7.0,
@@ -43,8 +49,10 @@ const CONFIG = {
         smoothing: 0.18,
         acceleration: 12.0,
         friction: 10.0,
-        jumpForce: 0.15, // Legacy support
-        gravity: 0.01,   // Legacy support
+        jumpForce: 0.15, /** Legacy support */
+
+        gravity: 0.01,   /** Legacy support */
+
         height: 1.7
     },
 
@@ -57,7 +65,8 @@ const CONFIG = {
         pixelRatio: Math.min(window.devicePixelRatio, 2)
     },
 
-    // Colores del tema (Legacy/Fallback)
+    /** Theme Colors (Legacy/Fallback) */
+
     colors: {
         background: 0x202020,
         fog: 0x202020,
@@ -70,7 +79,8 @@ const CONFIG = {
 
 export default CONFIG;
 
-// Función de verificación de compatibilidad WebGL
+/** WebGL Compatibility Check Function */
+
 function checkWebGLSupport() {
     try {
         const canvas = document.createElement('canvas');

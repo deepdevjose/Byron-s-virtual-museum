@@ -16,7 +16,8 @@ export class Gallery {
     }
 
     createRealisticArtworks() {
-        // ========== PARED FRONTAL - 5 OBRAS ==========
+        /** ========== FRONT WALL - 5 ARTWORKS ========== */
+
         this.createRealisticArtwork({
             position: [-10, 2.2, -13.7],
             size: [2.5, 2.0],
@@ -68,7 +69,8 @@ export class Gallery {
             description: 'Una reflexión sobre la belleza efímera y la contemplación del yo, explorando temas de autoconocimiento.'
         });
 
-        // ========== PARED IZQUIERDA - 4 OBRAS ==========
+        /** ========== LEFT WALL - 4 ARTWORKS ========== */
+
         const leftWallX = -13.7;
         const leftRot = [0, Math.PI / 2, 0];
 
@@ -116,7 +118,8 @@ export class Gallery {
             description: 'Una naturaleza muerta vibrante que celebra la abundancia y los colores de las frutas frescas.'
         });
 
-        // ========== PARED DERECHA - 4 OBRAS ==========
+        /** ========== RIGHT WALL - 4 ARTWORKS ========== */
+
         const rightWallX = 13.7;
         const rightRot = [0, -Math.PI / 2, 0];
 
@@ -164,7 +167,8 @@ export class Gallery {
             description: 'Una representación dinámica de músicos en movimiento, capturando el ritmo y la energía de la marcha musical.'
         });
 
-        // ========== PARED TRASERA - 5 OBRAS ==========
+        /** ========== REAR WALL - 5 ARTWORKS ========== */
+
         const rearWallZ = 13.7;
         const rearRot = [0, Math.PI, 0];
 
@@ -190,7 +194,8 @@ export class Gallery {
             description: 'Una exploración de la forma humana en movimiento, capturando la elegancia y fuerza de la figura erguida.'
         });
 
-        // AUTORRETRATO DEL ARTISTA - CENTRO
+        /** ARTIST SELF-PORTRAIT - CENTER */
+
         this.createArtistPortrait({
             position: [0, 2.3, rearWallZ],
             size: [3.0, 2.5],
@@ -276,7 +281,8 @@ export class Gallery {
 
         const createArtworkWithSize = (artworkSize) => {
             const artworkGeometry = new THREE.PlaneGeometry(artworkSize[0], artworkSize[1]);
-            // Placeholder material initially
+            /** Placeholder material initially */
+
             const artworkMaterial = new THREE.MeshPhysicalMaterial({
                 color: 0x888888,
                 roughness: 0.9,
@@ -293,18 +299,23 @@ export class Gallery {
             artworkGroup.add(artworkMesh);
         };
 
-        // Initial setup with default size, will update when image loads
+        /** Initial setup with default size, will update when image loads */
+
         createFrameWithSize(size);
         createArtworkWithSize(size);
 
         if (imageUrl) {
+            /** SIMPLIFIED: Three.js already handles LOD with mipmaps automatically */
+
             this.textureLoader.load(imageUrl, (loadedTexture) => {
-                // Clean up previous meshes if resizing
+                /** Clean up previous meshes if resizing */
+
                 while (artworkGroup.children.length > 0) {
                     artworkGroup.remove(artworkGroup.children[0]);
                 }
 
-                // Recalculate size
+                /** Recalculate size */
+
                 const imageAspectRatio = loadedTexture.image.width / loadedTexture.image.height;
                 const maxWidth = size[0];
                 const maxHeight = size[1];
@@ -320,12 +331,19 @@ export class Gallery {
 
                 finalSize = [newWidth, newHeight];
 
-                // Re-create elements
+                /** Re-create elements */
+
                 createFrameWithSize(finalSize);
 
+                /** OPTIMIZATION: Configure mipmaps for automatic LOD */
+
                 loadedTexture.encoding = THREE.sRGBEncoding;
-                loadedTexture.minFilter = THREE.LinearMipmapLinearFilter;
-                loadedTexture.generateMipmaps = true;
+                loadedTexture.minFilter = THREE.LinearMipmapLinearFilter; /** Uses mipmaps */
+
+                loadedTexture.magFilter = THREE.LinearFilter;
+                loadedTexture.generateMipmaps = true; /** Generates mipmaps automatically */
+
+                loadedTexture.anisotropy = Math.min(4, this.scene.renderer?.capabilities.getMaxAnisotropy() || 4);
 
                 const artworkMaterial = new THREE.MeshPhysicalMaterial({
                     map: loadedTexture,
@@ -345,14 +363,16 @@ export class Gallery {
 
                 artworkGroup.add(artworkMesh);
 
-                // Update array reference
+                /** Update array reference */
+
                 const index = this.artworks.findIndex(a => a.group === artworkGroup);
                 if (index !== -1) {
                     this.artworks[index].mesh = artworkMesh;
                 }
 
                 if (isMainArtwork) {
-                    // Removed corner lights as per user request
+                    /** Removed corner lights as per user request */
+
                     // this.createFrameLighting(artworkGroup, finalSize);
                 }
             });
@@ -387,12 +407,16 @@ export class Gallery {
     }
 
     createArtistPortrait(config) {
-        // Simplified wrapper for now - similar to createRealisticArtwork but custom styling
-        // For brevity in this refactor, reusing the standard artwork creation but with metadata
+        /** Simplified wrapper for now - similar to createRealisticArtwork but custom styling.
+         * For brevity in this refactor, reusing the standard artwork creation but with metadata.
+         */
+
         this.createRealisticArtwork({ ...config, isMainArtwork: true });
-        // Note: The original code had a very custom frame for the portrait.
-        // If critical, we should copy the `createArtistPortrait` function from main.js fully. 
-        // For MVP refactor, this is acceptable.
+        /** Note: The original code had a very custom frame for the portrait.
+         * If critical, we should copy the `createArtistPortrait` function from main.js fully. 
+         * For MVP refactor, this is acceptable.
+         */
+
     }
 
     createMuseumObjects() {
@@ -402,12 +426,14 @@ export class Gallery {
             description: 'Mesa central discreta'
         });
 
-        // Benches
+        /** Benches */
+
         this.createMuseumBench([0, 0, 4], 0, 'Banco de Contemplación');
         this.createMuseumBench([-6, 0, -6], Math.PI / 4, 'Banco de Contemplación');
         this.createMuseumBench([6, 0, -6], -Math.PI / 4, 'Banco de Contemplación');
 
-        // Podiums
+        /** Podiums */
+
         this.createPodiumWithRope({
             position: [-3, 0, 0],
             title: 'Objeto de Colección'
@@ -417,7 +443,8 @@ export class Gallery {
             title: 'Artefacto Histórico'
         });
 
-        // Walls
+        /** Walls */
+
         this.createFloatingWall({
             position: [-5, 0, -3],
             rotation: Math.PI / 4
@@ -432,7 +459,8 @@ export class Gallery {
         const { position, title, description } = config;
         const tableGroup = new THREE.Group();
 
-        // Base
+        /** Base */
+
         const baseGeometry = new THREE.CylinderGeometry(0.8, 0.9, 0.5, 8);
         const baseMaterial = new THREE.MeshPhysicalMaterial({ color: 0x2d2d2d, roughness: 0.3 });
         const base = new THREE.Mesh(baseGeometry, baseMaterial);
@@ -440,7 +468,8 @@ export class Gallery {
         base.castShadow = true;
         tableGroup.add(base);
 
-        // Glass surface
+        /** Glass surface */
+
         const surfaceGeometry = new THREE.CylinderGeometry(1.2, 1.2, 0.05, 32);
         const surfaceMaterial = new THREE.MeshPhysicalMaterial({
             color: 0xffffff, transparent: true, opacity: 0.3, transmission: 0.9, roughness: 0.05
@@ -463,7 +492,8 @@ export class Gallery {
     }
 
     createMuseumBench(position, rotationY, title) {
-        // Simple bench logic
+        /** Simple bench logic */
+
         const benchGroup = new THREE.Group();
         const seatGeo = new THREE.BoxGeometry(2, 0.1, 0.6);
         const seatMat = new THREE.MeshPhysicalMaterial({ color: 0x5c4033, roughness: 0.6 });
@@ -519,11 +549,14 @@ export class Gallery {
         wallGroup.rotation.y = rotation || 0;
         this.scene.add(wallGroup);
 
-        // Add to main walls collision list if accessible or handle locally
-        // For this refactor, assume they are decoration collisions
+        /** Add to main walls collision list if accessible or handle locally.
+         * For this refactor, assume they are decoration collisions.
+         */
+
         this.decorationCollisions.push({
             x: position[0], z: position[2],
-            radius: 2.0, type: 'box', size: [4.0, 0.2] // Simplified collision
+            radius: 2.0, type: 'box', size: [4.0, 0.2] /** Simplified collision */
+
         });
     }
 }

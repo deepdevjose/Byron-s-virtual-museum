@@ -1,4 +1,5 @@
-/* Reset y configuración base */
+/** Reset and Base Configuration */
+
 * {
     margin: 0;
     padding: 0;
@@ -15,7 +16,8 @@ html {
     font-weight: 300;
 }
 
-/* Loader */
+/** Loader */
+
 #loader {
     position: fixed;
     top: 0;
@@ -77,7 +79,8 @@ html {
     height: 100vh;
 }
 
-/* Canvas Three.js */
+/** Three.js Canvas */
+
 #canvas-container {
     width: 100%;
     height: 100%;
@@ -87,7 +90,8 @@ html {
     z-index: 1;
 }
 
-/* Crosshair para navegación */
+/** Navigation Crosshair */
+
 #crosshair {
     position: fixed;
     top: 50%;
@@ -139,7 +143,8 @@ html {
     }
 }
 
-/* Logo del museo (reducido 50% + 10% más grande + 5% más, centrado) */
+/** Museum Logo */
+
 #logo {
     position: absolute;
     top: 30px;
@@ -186,7 +191,8 @@ html {
     line-height: 1;
 }
 
-/* Controles de navegación (reducidos 50% + 15% más grande) */
+/** Navigation Controls */
+
 #navigation-controls {
     position: absolute;
     bottom: 30px;
@@ -246,7 +252,8 @@ html {
     flex: 1;
 }
 
-/* Iconos SVG en teclas */
+/** SVG Icons in Keys */
+
 .key svg {
     display: block;
     margin: 0 auto;
@@ -254,7 +261,8 @@ html {
     height: 14px;
 }
 
-/* Indicador de estado */
+/** Status Indicator */
+
 #status-indicator {
     position: absolute;
     top: 40px;
@@ -290,7 +298,8 @@ html {
     font-weight: 500;
 }
 
-/* Mapa de navegación mejorado */
+/** Enhanced Navigation Map */
+
 #navigation-map {
     position: absolute;
     bottom: 30px;
@@ -356,7 +365,8 @@ html {
     }
 }
 
-/* Información de obra */
+/** Artwork Info */
+
 .info-panel {
     position: absolute;
     top: 50%;
@@ -400,7 +410,8 @@ html {
     line-height: 1.7;
 }
 
-/* Hints de interacción mejorados */
+/** Interaction Hints */
+
 #interaction-hints {
     position: absolute;
     top: 50%;
@@ -440,7 +451,8 @@ html {
     filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
 }
 
-/* Modal de video mejorado */
+/** Video Modal */
+
 .modal {
     display: none;
     position: fixed;
@@ -500,7 +512,8 @@ html {
     border-radius: 20px;
 }
 
-/* Estados de la modal */
+/** Modal States */
+
 .modal.show {
     display: block;
     animation: modalFadeIn 0.4s ease;
@@ -518,7 +531,8 @@ html {
     }
 }
 
-/* Efectos adicionales */
+/** Additional Effects */
+
 .modal-content::before {
     content: '';
     position: absolute;
@@ -529,12 +543,14 @@ html {
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
 }
 
-/* Cursor personalizado para hotspots */
+/** Custom Cursor for Hotspots */
+
 .hotspot-cursor {
     cursor: pointer;
 }
 
-/* Controles móviles */
+/** Mobile Controls */
+
 #mobile-joystick {
     opacity: 0.8;
     transition: opacity 0.3s ease;
@@ -548,7 +564,8 @@ html {
     pointer-events: auto;
 }
 
-/* Ocultar controles móviles en desktop */
+/** Hide Mobile Controls on Desktop */
+
 @media (min-width: 769px) {
 
     #mobile-joystick,
@@ -557,10 +574,12 @@ html {
     }
 }
 
-/* Responsive mejorado */
+/** Enhanced Responsive */
+
 @media (max-width: 768px) {
 
-    /* Prevenir zoom en móvil */
+    /** Prevent zoom on mobile */
+
     * {
         touch-action: pan-y;
         user-select: none;
@@ -668,7 +687,8 @@ html {
     }
 }
 
-/* Efectos de partículas de fondo */
+/** Background Particle Effects */
+
 @keyframes float {
 
     0%,
@@ -685,7 +705,8 @@ html {
     }
 }
 
-/* Mejoras de accesibilidad */
+/** Accessibility Improvements */
+
 @media (prefers-reduced-motion: reduce) {
 
     .loader-spinner,
@@ -696,7 +717,8 @@ html {
     }
 }
 
-/* Modo alto contraste */
+/** High Contrast Mode */
+
 @media (prefers-contrast: high) {
 
     #logo,
@@ -714,7 +736,8 @@ html {
     }
 }
 
-/* Efectos de profundidad */
+/** Depth Effects */
+
 .depth-effect {
     box-shadow:
         0 4px 8px rgba(0, 0, 0, 0.3),
@@ -722,7 +745,8 @@ html {
         inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-/* Animaciones suaves para elementos interactivos */
+/** Smooth Animations for Interactive Elements */
+
 .interactive {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }

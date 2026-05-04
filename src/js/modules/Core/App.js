@@ -6,6 +6,10 @@ import { Environment } from '../World/Environment.js';
 import { Gallery } from '../World/Gallery.js';
 import { Physics } from '../World/Physics.js';
 import { Audio } from '../Utils/Audio.js';
+import { ArtworkPanel } from '../UI/ArtworkPanel.js';
+import { ArtworkInteraction } from '../Interaction/ArtworkInteraction.js';
+import { TourController } from '../Tour/TourController.js';
+import { TOUR_PATH } from '../Tour/tourPath.js';
 
 export class App {
     constructor() {
@@ -13,8 +17,6 @@ export class App {
         this.camera = null;
         this.renderer = null;
         this.clock = null;
-
-        /** Custom FPS Counter */
 
         this.frameCount = 0;
         this.lastTime = 0;
@@ -26,16 +28,12 @@ export class App {
         this.gallery = null;
         this.physics = null;
         this.audio = null;
+        this.artworkPanel = null;
+        this.artworkInteraction = null;
+        this.tourController = null;
 
-        this.raycaster = null;
-        this.mouse = null;
-
-        this.isLoading = true;
-
-        /** Head Bob State */
-
+        this.artworksData = [];
         this.walkingTime = 0;
-        this.headBobActive = false;
         this.headBobConfig = {
             frequency: 4.5,
             amplitude: 0.03,
@@ -45,527 +43,324 @@ export class App {
     }
 
     async init() {
-
         this.showLoader();
 
         try {
-            await this.preloadImages();
-        } catch (e) {
-            console.warn('Preload had some errors, continuing...', e);
+            this.artworksData = await this.loadArtworks();
+            await this.preloadImages(this.artworksData);
+            this.setupScene();
+            await this.setupModules();
+            this.setupEvents();
+            this.hideLoader();
+            this.showControlInstructions();
+            this.animate();
+        } catch (err) {
+            console.error('Failed to initialize app:', err);
+            this.showFatalError();
         }
+    }
 
-        /** Core Setup */
+    async loadArtworks() {
+        const response = await fetch('./src/data/artworks.json');
+        if (!response.ok) {
+            throw new Error(`No se pudo cargar artworks.json (${response.status})`);
+        }
+        return response.json();
+    }
 
+    preloadImages(artworks) {
+        const images = artworks.map((artwork) => artwork.image).filter(Boolean);
+        if (images.length === 0) return Promise.resolve();
+
+        return new Promise((resolve) => {
+            let loaded = 0;
+            const done = () => {
+                loaded++;
+                if (loaded >= images.length) resolve();
+            };
+
+            images.forEach((src) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = done;
+                img.onerror = done;
+                img.src = src;
+            });
+
+            setTimeout(resolve, 2500);
+        });
+    }
+
+    setupScene() {
         this.scene = new THREE.Scene();
-        this.scene.fog = new THREE.Fog(0x202020, 20, 100);
+        this.scene.fog = new THREE.FogExp2(0x1c1b18, 0.018);
         this.clock = new THREE.Clock();
 
-        this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
-        this.camera.position.set(0, 1.7, -8);
-        this.camera.rotation.y = Math.PI;
+        this.camera = new THREE.PerspectiveCamera(
+            CONFIG.camera.fov,
+            window.innerWidth / window.innerHeight,
+            CONFIG.camera.near,
+            CONFIG.camera.far
+        );
+        this.camera.position.set(CONFIG.camera.startPos.x, CONFIG.camera.startPos.y, CONFIG.camera.startPos.z);
+        this.camera.rotation.y = CONFIG.camera.rotation;
 
         this.renderer = new THREE.WebGLRenderer({
             antialias: CONFIG.performance.antialias,
-            powerPreference: "high-performance"
+            powerPreference: 'high-performance'
         });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.renderer.setPixelRatio(CONFIG.performance.pixelRatio);
         this.renderer.shadowMap.enabled = CONFIG.shadows.enabled;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
-        /** CRITICAL OPTIMIZATION: Disable automatic shadow updates.
-         * All objects are static (paintings, walls, decorations).
-         * Expected gain: 35-50% FPS.
-         */
         this.renderer.shadowMap.autoUpdate = false;
-        this.renderer.shadowMap.needsUpdate = true; // Only calculate in the first frame
-
-
-        this.renderer.physicallyCorrectLights = true;
+        this.renderer.shadowMap.needsUpdate = true;
+        this.renderer.physicallyCorrectLights = CONFIG.lighting.physicallyCorrect;
         this.renderer.outputEncoding = THREE.sRGBEncoding;
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        this.renderer.toneMappingExposure = 0.6;
+        this.renderer.toneMappingExposure = CONFIG.lighting.exposure;
 
         const container = document.getElementById('canvas-container');
-        if (container) {
-            container.appendChild(this.renderer.domElement);
-        } else {
-            document.body.appendChild(this.renderer.domElement);
-        }
-
-        /** Cache UI element for FPS */
-
+        (container || document.body).appendChild(this.renderer.domElement);
         this.fpsElement = document.getElementById('fps-counter');
+    }
 
-        /** Module Initialization */
-
+    async setupModules() {
         this.controls = new FirstPersonControls(this.camera, this.renderer);
-
-        /** Physics needs access to world objects which will be created by Gallery/Environment.
-         * We initialize Physics but we will pass the objects in the update loop or set them later.
-         */
-
         this.physics = new Physics(this.camera, this.controls);
 
         this.lighting = new Lighting(this.scene);
         this.lighting.setup();
 
         this.environment = new Environment(this.scene, this.renderer);
-        this.environment.setup(); // Creates walls
+        this.environment.setup();
 
-        this.gallery = new Gallery(this.scene);
-        this.gallery.setup(); // Creates artworks and museum objects
+        this.gallery = new Gallery(this.scene, null, this.renderer, () => this.updateShadowsIfNeeded());
+        await this.gallery.setup(this.artworksData);
+
+        this.artworkPanel = new ArtworkPanel();
+        this.artworkInteraction = new ArtworkInteraction(
+            this.camera,
+            this.renderer,
+            (artwork) => this.selectArtwork(artwork)
+        );
+        this.artworkInteraction.updateTargets(this.gallery.artworks);
+
+        this.tourController = new TourController(this.camera, this.controls, {
+            path: TOUR_PATH,
+            getArtworkById: (id) => this.gallery.getArtworkById(id),
+            onArtworkFocused: (artwork) => this.selectArtwork(artwork),
+            onStop: () => this.onTourStopped()
+        });
 
         this.audio = new Audio();
         this.audio.setup();
-
-        /** Interaction Setup */
-
-        this.raycaster = new THREE.Raycaster();
-        this.mouse = new THREE.Vector2();
-        this.setupInteraction();
-
-        window.addEventListener('resize', () => this.onWindowResize());
-
-        this.hideLoader();
-
-
-        /** Show Welcome Menu (Restored from backup) */
-
-        this.showControlInstructions();
-
-        this.animate();
+        this.updateShadowsIfNeeded();
     }
 
-    preloadImages() {
-        return new Promise((resolve) => {
-            const images = [
-                'src/assets/images/Amanecer - Byron.jpeg',
-                'src/assets/images/Bailarina - Byron.jpg',
-                'src/assets/images/Naturaleza Muerta - Byron.jpg',
-                // Add key images here
-
-            ];
-
-            let loaded = 0;
-            const total = images.length;
-            if (total === 0) resolve();
-
-            images.forEach(src => {
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                img.onload = () => {
-                    loaded++;
-                    if (loaded === total) resolve();
-                };
-                img.onerror = () => {
-                    loaded++; // Continue anyway
-                    if (loaded === total) resolve();
-                };
-                img.src = src;
-            });
-            // Fallback timeout
-            setTimeout(resolve, 3000);
+    setupEvents() {
+        window.addEventListener('resize', () => this.onWindowResize());
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Escape' && this.tourController?.isActive()) {
+                this.tourController.stop();
+            }
         });
     }
 
-    setupInteraction() {
-        window.addEventListener('click', (e) => this.onClick(e));
+    selectArtwork(artwork) {
+        this.artworkPanel.show(artwork);
     }
 
     showControlInstructions() {
-        /** Detect mobile device first */
-
         const isMobile = this.detectMobileDevice();
-
         const instructions = document.createElement('div');
         instructions.id = 'control-instructions';
-
-        instructions.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.13);
-            backdrop-filter: blur(13.125px);
-            color: white;
-            padding: ${isMobile ? '20px 25px' : '15.75px 18.375px'};
-            border-radius: 7.35px;
-            text-align: center;
-            z-index: 2000;
-            max-width: ${isMobile ? '90%' : '199.5px'};
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0px 4.2px 13.125px rgba(0, 0, 0, 0.4);
-        `;
-
-        const instructionText = isMobile
-            ? `<p style="
-                margin-bottom: 12.6px; 
-                font-size: ${isMobile ? '14px' : '6.825px'};
-                line-height: 1.5;
-                color: rgba(255, 255, 255, 0.85);
-                font-weight: 400;
-            ">Usa el joystick izquierdo para moverte y desliza el dedo en la pantalla para mirar. El botón verde te permite interactuar con las obras.</p>`
-            : `<p style="
-                margin-bottom: 12.6px; 
-                font-size: 6.825px;
-                line-height: 1.5;
-                color: rgba(255, 255, 255, 0.85);
-                font-weight: 400;
-            ">Elige tu modo de exploración</p>`;
-
+        instructions.className = 'welcome-overlay';
+        instructions.setAttribute('data-ui-interactive', 'true');
         instructions.innerHTML = `
-            <h3 style="
-                margin-bottom: 6.3px; 
-                color: #ffffff; 
-                font-weight: 700;
-                font-size: ${isMobile ? '18px' : '11.55px'};
-                letter-spacing: 0.42px;
-                text-transform: uppercase;
-            ">Bienvenido al Museo Virtual</h3>
-            ${instructionText}
-            <div style="display: flex; flex-direction: column; gap: 5.25px;">
-                <button id="start-walking" style="
-                    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.85) 100%);
-                    color: #000;
-                    border: none;
-                    padding: ${isMobile ? '14px 24px' : '6.3px 12.6px'};
-                    border-radius: 4.2px;
-                    border: 1px solid rgba(255, 255, 255, 0.3);
-                    cursor: pointer;
-                    font-weight: 700;
-                    font-size: ${isMobile ? '14px' : '6.825px'};
-                    letter-spacing: 0.2625px;
-                    text-transform: uppercase;
-                    transition: all 0.3s ease;
-                    box-shadow: 0 2.1px 6.3px rgba(255, 255, 255, 0.2);
-                " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 3.15px 8.4px rgba(255, 255, 255, 0.3)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2.1px 6.3px rgba(255, 255, 255, 0.2)';">${isMobile ? 'Iniciar Recorrido' : 'Recorrido Libre'}</button>
-                
-                <button id="start-tour" style="
-                    background: linear-gradient(135deg, rgba(74, 222, 128, 0.9) 0%, rgba(34, 197, 94, 0.9) 100%);
-                    color: #000;
-                    border: none;
-                    padding: ${isMobile ? '14px 24px' : '6.3px 12.6px'};
-                    border-radius: 4.2px;
-                    border: 1px solid rgba(255, 255, 255, 0.3);
-                    cursor: pointer;
-                    font-weight: 700;
-                    font-size: ${isMobile ? '14px' : '6.825px'};
-                    letter-spacing: 0.2625px;
-                    text-transform: uppercase;
-                    transition: all 0.3s ease;
-                    box-shadow: 0 2.1px 6.3px rgba(74, 222, 128, 0.3);
-                " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 3.15px 8.4px rgba(74, 222, 128, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2.1px 6.3px rgba(74, 222, 128, 0.3)';">Recorrido Dinámico</button>
+            <div class="welcome-overlay__eyebrow">Museo Virtual Byron Gálvez</div>
+            <h1>Elige tu modo de exploración</h1>
+            <p>${isMobile
+                ? 'Usa el joystick para moverte y desliza la pantalla para mirar la sala.'
+                : 'Recorre la sala libremente o inicia una visita guiada por piezas clave.'}</p>
+            <div class="welcome-overlay__actions">
+                <button id="start-walking" type="button" data-ui-interactive="true">Recorrido libre</button>
+                <button id="start-tour" type="button" data-ui-interactive="true">Recorrido guiado</button>
             </div>
         `;
 
         document.body.appendChild(instructions);
 
-        /** Free Mode (manual exploration) */
+        document.getElementById('start-walking')?.addEventListener('click', () => {
+            instructions.remove();
+            if (isMobile) {
+                this.createMobileControls();
+            } else {
+                this.renderer.domElement.requestPointerLock();
+            }
+        });
 
-        const btnWalk = document.getElementById('start-walking');
-        if (btnWalk) {
-            btnWalk.addEventListener('click', () => {
-                const el = document.getElementById('control-instructions');
-                if (el) document.body.removeChild(el);
-
-                if (isMobile) {
-                    this.createMobileControls();
-                } else {
-                    this.renderer.domElement.requestPointerLock();
-                }
-            });
-        }
-
-        /** Dynamic Tour Mode */
-
-        const btnTour = document.getElementById('start-tour');
-        if (btnTour) {
-            btnTour.addEventListener('click', () => {
-                const el = document.getElementById('control-instructions');
-                if (el) document.body.removeChild(el);
-                this.startDynamicTour();
-            });
-        }
+        document.getElementById('start-tour')?.addEventListener('click', () => {
+            instructions.remove();
+            this.startGuidedTour();
+        });
     }
 
     detectMobileDevice() {
-        /** Detect if mobile device */
-
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-            || (window.innerWidth <= 768);
-        return isMobile;
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+            || window.innerWidth <= 768;
     }
 
     createMobileControls() {
-
-
-        /** Create virtual joystick for movement (bottom right) */
+        if (document.getElementById('mobile-joystick')) return;
 
         const joystickContainer = document.createElement('div');
         joystickContainer.id = 'mobile-joystick';
-        joystickContainer.style.cssText = `
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 120px;
-            height: 120px;
-            background: rgba(255, 255, 255, 0.15);
-            border: 3px solid rgba(255, 255, 255, 0.4);
-            border-radius: 50%;
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            touch-action: none;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        `;
-
-        const joystickHandle = document.createElement('div');
-        joystickHandle.id = 'joystick-handle';
-        joystickHandle.style.cssText = `
-            width: 50px;
-            height: 50px;
-            background: rgba(255, 255, 255, 0.7);
-            border: 2px solid rgba(255, 255, 255, 0.9);
-            border-radius: 50%;
-            position: absolute;
-            transition: all 0.1s ease;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        `;
-
-        joystickContainer.appendChild(joystickHandle);
+        joystickContainer.setAttribute('data-ui-interactive', 'true');
+        joystickContainer.innerHTML = '<div id="joystick-handle"></div>';
         document.body.appendChild(joystickContainer);
-
-        /** Look Area (full screen except joystick) */
 
         const lookArea = document.createElement('div');
         lookArea.id = 'mobile-look-area';
-        lookArea.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 998;
-            touch-action: none;
-            pointer-events: auto;
-        `;
         document.body.appendChild(lookArea);
 
-        /** Ensure joystick is on top */
-
-        joystickContainer.style.zIndex = '1001';
-
-        /** Add crosshair for mobile */
+        const actionButton = document.createElement('button');
+        actionButton.id = 'mobile-action-button';
+        actionButton.type = 'button';
+        actionButton.textContent = 'Ver';
+        actionButton.setAttribute('data-ui-interactive', 'true');
+        document.body.appendChild(actionButton);
+        actionButton.addEventListener('click', (event) => {
+            event.stopPropagation();
+            this.artworkInteraction.handleClick({
+                target: this.renderer.domElement,
+                clientX: window.innerWidth / 2,
+                clientY: window.innerHeight / 2
+            });
+        });
 
         const crosshair = document.getElementById('crosshair');
-        if (crosshair) {
-            crosshair.classList.add('active');
-            crosshair.style.opacity = '0.6';
-        }
+        if (crosshair) crosshair.classList.add('active');
 
-        this.setupMobileEventListeners(joystickContainer, joystickHandle, lookArea);
+        this.setupMobileEventListeners(joystickContainer, joystickContainer.querySelector('#joystick-handle'), lookArea);
     }
 
     setupMobileEventListeners(joystick, handle, lookArea) {
         let touchStartX = 0;
         let touchStartY = 0;
-        let touchMoveX = 0;
-        let touchMoveY = 0;
         let joystickActive = false;
         let lookTouchId = null;
         let moveTouchId = null;
 
-        /** Joystick for movement */
-
-        joystick.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            moveTouchId = e.touches[0].identifier;
+        joystick.addEventListener('touchstart', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            moveTouchId = event.touches[0].identifier;
             joystickActive = true;
-            const rect = joystick.getBoundingClientRect();
-            touchStartX = rect.left + rect.width / 2;
-            touchStartY = rect.top + rect.height / 2;
         }, { passive: false });
 
-        joystick.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+        joystick.addEventListener('touchmove', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
             if (!joystickActive) return;
 
-            const touch = Array.from(e.touches).find(t => t.identifier === moveTouchId);
+            const touch = Array.from(event.touches).find((item) => item.identifier === moveTouchId);
             if (!touch) return;
 
             const rect = joystick.getBoundingClientRect();
             const centerX = rect.left + rect.width / 2;
             const centerY = rect.top + rect.height / 2;
-
             const deltaX = touch.clientX - centerX;
             const deltaY = touch.clientY - centerY;
-
-            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-            const maxDistance = 35;
-
-            const clampedDistance = Math.min(distance, maxDistance);
+            const maxDistance = 38;
+            const distance = Math.min(Math.hypot(deltaX, deltaY), maxDistance);
             const angle = Math.atan2(deltaY, deltaX);
 
-            const handleX = Math.cos(angle) * clampedDistance;
-            const handleY = Math.sin(angle) * clampedDistance;
+            handle.style.transform = `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px)`;
 
-            handle.style.transform = `translate(${handleX}px, ${handleY}px)`;
-
-            const normalizedX = deltaX / maxDistance;
-            const normalizedY = deltaY / maxDistance;
-
-            /** Update controls */
-
-            if (this.controls) {
-                this.controls.moveForward = normalizedY < -0.3;
-                this.controls.moveBackward = normalizedY > 0.3;
-                this.controls.moveLeft = normalizedX < -0.3;
-                this.controls.moveRight = normalizedX > 0.3;
-            }
-
+            this.controls.moveForward = deltaY / maxDistance < -0.28;
+            this.controls.moveBackward = deltaY / maxDistance > 0.28;
+            this.controls.moveLeft = deltaX / maxDistance < -0.28;
+            this.controls.moveRight = deltaX / maxDistance > 0.28;
         }, { passive: false });
 
-        joystick.addEventListener('touchend', (e) => {
-            e.stopPropagation();
-            const touch = Array.from(e.changedTouches).find(t => t.identifier === moveTouchId);
+        joystick.addEventListener('touchend', (event) => {
+            event.stopPropagation();
+            const touch = Array.from(event.changedTouches).find((item) => item.identifier === moveTouchId);
             if (!touch) return;
 
             joystickActive = false;
             moveTouchId = null;
             handle.style.transform = 'translate(0, 0)';
-
-            /** Stop movement */
-
-            if (this.controls) {
-                this.controls.moveForward = false;
-                this.controls.moveBackward = false;
-                this.controls.moveLeft = false;
-                this.controls.moveRight = false;
-            }
+            this.controls.resetMovement();
         }, { passive: false });
 
-        /** Look Area */
-
-        lookArea.addEventListener('touchstart', (e) => {
-            const rect = joystick.getBoundingClientRect();
-            const touch = e.touches[0];
-            const isOverJoystick = (
-                touch.clientX >= rect.left &&
-                touch.clientX <= rect.right &&
-                touch.clientY >= rect.top &&
-                touch.clientY <= rect.bottom
-            );
-
-            if (isOverJoystick) return;
-
-            e.preventDefault();
+        lookArea.addEventListener('touchstart', (event) => {
             if (lookTouchId !== null) return;
 
+            const touch = event.touches[0];
+            const rect = joystick.getBoundingClientRect();
+            const isOverJoystick = touch.clientX >= rect.left && touch.clientX <= rect.right
+                && touch.clientY >= rect.top && touch.clientY <= rect.bottom;
+            if (isOverJoystick) return;
+
+            event.preventDefault();
             lookTouchId = touch.identifier;
             touchStartX = touch.clientX;
             touchStartY = touch.clientY;
         }, { passive: false });
 
-        lookArea.addEventListener('touchmove', (e) => {
-            const touch = Array.from(e.touches).find(t => t.identifier === lookTouchId);
-            if (!touch) return;
+        lookArea.addEventListener('touchmove', (event) => {
+            const touch = Array.from(event.touches).find((item) => item.identifier === lookTouchId);
+            if (!touch || !this.controls.enabled) return;
 
-            e.preventDefault();
+            event.preventDefault();
+            const deltaX = touch.clientX - touchStartX;
+            const deltaY = touch.clientY - touchStartY;
 
-            touchMoveX = touch.clientX - touchStartX;
-            touchMoveY = touch.clientY - touchStartY;
-
-            /** Update rotation */
-
-            if (this.controls) {
-                this.controls.targetRotationY -= touchMoveX * 0.005;
-                this.controls.targetRotationX -= touchMoveY * 0.005;
-
-                const maxVerticalAngle = Math.PI / 3;
-                this.controls.targetRotationX = Math.max(-maxVerticalAngle, Math.min(maxVerticalAngle, this.controls.targetRotationX));
-
-                // Update camera
-                this.controls.camera.rotation.set(this.controls.targetRotationX, this.controls.targetRotationY, 0, 'YXZ');
-            }
+            this.controls.targetRotationY -= deltaX * 0.005;
+            this.controls.targetRotationX -= deltaY * 0.005;
+            this.controls.targetRotationX = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, this.controls.targetRotationX));
+            this.camera.rotation.set(this.controls.targetRotationX, this.controls.targetRotationY, 0, 'YXZ');
 
             touchStartX = touch.clientX;
             touchStartY = touch.clientY;
         }, { passive: false });
 
-        lookArea.addEventListener('touchend', (e) => {
-            const touch = Array.from(e.changedTouches).find(t => t.identifier === lookTouchId);
-            if (touch) {
-                lookTouchId = null;
-            }
+        lookArea.addEventListener('touchend', (event) => {
+            const touch = Array.from(event.changedTouches).find((item) => item.identifier === lookTouchId);
+            if (touch) lookTouchId = null;
         }, { passive: false });
     }
 
-    startDynamicTour() {
-
-        /** Clean up basic resources if possible, or just redirect */
-
-        if (this.renderer) {
-            this.renderer.domElement.remove();
-        }
-        window.location.href = 'https://byron-s-dynamic-museum.pages.dev/index.html';
+    startGuidedTour() {
+        this.artworkPanel.hide();
+        this.controls.resetMovement();
+        this.tourController.start();
     }
 
-    onClick(event) {
-        if (document.pointerLockElement === this.renderer.domElement) {
-            this.mouse.x = 0;
-            this.mouse.y = 0;
-        } else {
-            this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-        }
-
-        this.raycaster.setFromCamera(this.mouse, this.camera);
-
-        /** Check intersection with Artworks */
-
-        /** Flatten artworks meshes */
-
-        const meshes = this.gallery.artworks.map(a => a.mesh).filter(m => m);
-        const intersects = this.raycaster.intersectObjects(meshes);
-
-        if (intersects.length > 0) {
-            const hit = intersects[0].object;
-            const data = hit.userData;
-            if (data && data.title) {
-
-                this.showNotification(data.title);
-                // logic to show detailed info could go here or imported helper
-
-            }
-        }
-    }
-
-    showNotification(text) {
-        /** Simple visual feedback */
-
-        const notif = document.createElement('div');
-        notif.style.position = 'fixed';
-        notif.style.bottom = '20px';
-        notif.style.left = '50%';
-        notif.style.transform = 'translateX(-50%)';
-        notif.style.background = 'rgba(0,0,0,0.7)';
-        notif.style.color = 'white';
-        notif.style.padding = '10px 20px';
-        notif.style.borderRadius = '5px';
-        notif.innerText = text;
-        document.body.appendChild(notif);
-        setTimeout(() => notif.remove(), 2000);
+    onTourStopped() {
+        this.controls.syncRotationFromCamera();
     }
 
     animate() {
         requestAnimationFrame(() => this.animate());
+        this.updateFPS();
 
-        /** FPS Calculation */
+        const deltaTime = Math.min(this.clock.getDelta(), 0.1);
 
+        if (this.tourController?.isActive()) {
+            this.tourController.update(deltaTime);
+        } else {
+            this.controls.update(deltaTime);
+            this.physics.update(deltaTime, this.gallery.decorationCollisions, this.gallery.museumObjects);
+            this.applyHeadBob(deltaTime);
+        }
+
+        this.renderer.render(this.scene, this.camera);
+    }
+
+    updateFPS() {
         const time = performance.now();
         this.frameCount++;
         if (time >= this.lastTime + 1000) {
@@ -575,32 +370,6 @@ export class App {
             this.frameCount = 0;
             this.lastTime = time;
         }
-
-        const deltaTime = Math.min(this.clock.getDelta(), 0.1);
-
-        /** 1. Update Controls (Input state processing) */
-
-        this.controls.update(deltaTime);
-        /** Note: Controls.js applies movement to camera immediately "this.camera.position.add(nextPos)" */
-
-
-        /** 2. Physics Correction (Collision Detection & Resolution) */
-
-        /** Physics will read camera position and push it back if it collided */
-
-        this.physics.update(
-            deltaTime,
-            this.gallery.decorationCollisions,
-            this.gallery.museumObjects
-        );
-
-        /** 3. Head Bob Effect */
-
-        this.applyHeadBob(deltaTime);
-
-        /** 4. Render */
-
-        this.renderer.render(this.scene, this.camera);
     }
 
     applyHeadBob(deltaTime) {
@@ -608,21 +377,14 @@ export class App {
 
         const velocity = this.controls.velocity;
         const isMoving = Math.abs(velocity.x) > 0.1 || Math.abs(velocity.z) > 0.1;
+        const baseHeight = CONFIG.movement.height;
 
         if (isMoving) {
             this.walkingTime += deltaTime * this.headBobConfig.frequency;
-            /** Vertical Bob */
-
-            const wave = Math.sin(this.walkingTime * 2) * this.headBobConfig.amplitude;
-            this.camera.position.y = 1.7 + wave;
-            /** Horizontal Bob (Tilt) */
-
-            const waveH = Math.cos(this.walkingTime) * this.headBobConfig.amplitudeHorizontal;
-            this.camera.rotation.z = waveH;
+            this.camera.position.y = baseHeight + Math.sin(this.walkingTime * 2) * this.headBobConfig.amplitude;
+            this.camera.rotation.z = Math.cos(this.walkingTime) * this.headBobConfig.amplitudeHorizontal;
         } else {
-            /** Reset */
-
-            this.camera.position.y = THREE.MathUtils.lerp(this.camera.position.y, 1.7, deltaTime * 5);
+            this.camera.position.y = THREE.MathUtils.lerp(this.camera.position.y, baseHeight, deltaTime * 5);
             this.camera.rotation.z = THREE.MathUtils.lerp(this.camera.rotation.z, 0, deltaTime * 5);
         }
     }
@@ -633,27 +395,14 @@ export class App {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    /**
-     * Force shadow update (only if dynamic objects are added).
-     * Not necessary in current state (all objects are static).
-     */
-
     updateShadowsIfNeeded() {
-        if (this.renderer && this.renderer.shadowMap.enabled) {
+        if (this.renderer?.shadowMap.enabled) {
             this.renderer.shadowMap.needsUpdate = true;
         }
     }
 
-    /**
-     * Get biomimetic LOD system statistics.
-     * Useful for debugging and optimization.
-     * NOTE: Manual LOD disabled - Three.js uses mipmaps automatically.
-     */
-
     getLODStats() {
-        console.log('ℹ️ Manual LOD disabled. Three.js uses mipmaps automatically.');
-        console.log('   Mipmaps reduce resolution automatically based on distance.');
-
+        console.log('Manual LOD disabled. Three.js uses mipmaps automatically.');
         return null;
     }
 
@@ -665,5 +414,16 @@ export class App {
     hideLoader() {
         const loader = document.getElementById('loader');
         if (loader) loader.style.display = 'none';
+    }
+
+    showFatalError() {
+        const loader = document.getElementById('loader');
+        if (!loader) return;
+        loader.style.display = 'flex';
+        loader.innerHTML = `
+            <div class="loader-content">
+                <p>No se pudo cargar el museo. Revisa la consola del navegador.</p>
+            </div>
+        `;
     }
 }

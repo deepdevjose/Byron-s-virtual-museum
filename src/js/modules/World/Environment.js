@@ -58,17 +58,12 @@ export class Environment {
 
         /** Floor Logic */
 
-        const floorTexture = this.createLuxuryMarbleTexture();
-        const floorMaterial = new THREE.MeshPhysicalMaterial({
-            map: floorTexture.diffuse,
-            normalMap: floorTexture.normal,
-            color: 0xf5f5f5,
-            roughness: 0.3,
-            metalness: 0.0,
-            reflectivity: 0.1,
-            clearcoat: 0.2,
-            clearcoatRoughness: 0.4,
-            envMapIntensity: 0.2
+        const floorTexture = this.createCuratedFloorTexture();
+        const floorMaterial = new THREE.MeshStandardMaterial({
+            map: floorTexture,
+            color: 0x8f887d,
+            roughness: 0.72,
+            metalness: 0.05
         });
 
         const floorGeometry = new THREE.PlaneGeometry(120, 120, 100, 100);
@@ -95,14 +90,13 @@ export class Environment {
         const backWallGeometry = new THREE.BoxGeometry(28, wallHeight, wallThickness, 8, 8, 1);
         const backWallMaterial = new THREE.MeshPhysicalMaterial({
             map: wallTextures.marble,
-            normalMap: wallTextures.marbleNormal,
-            color: 0xffffff,
-            roughness: 0.2,
+            color: 0xb8b2a6,
+            roughness: 0.82,
             metalness: 0.0,
-            reflectivity: 0.5,
-            envMapIntensity: 0.7,
-            clearcoat: 0.6,
-            clearcoatRoughness: 0.1
+            reflectivity: 0.12,
+            envMapIntensity: 0.18,
+            clearcoat: 0.08,
+            clearcoatRoughness: 0.6
         });
         const backWall = new THREE.Mesh(backWallGeometry, backWallMaterial);
         backWall.position.set(0, wallHeight / 2, -14);
@@ -116,12 +110,11 @@ export class Environment {
         const frontWallGeometry = new THREE.BoxGeometry(28, wallHeight, wallThickness, 8, 8, 1);
         const frontWallMaterial = new THREE.MeshPhysicalMaterial({
             map: wallTextures.stone,
-            normalMap: wallTextures.stoneNormal,
-            color: 0xffffff,
-            roughness: 0.8,
+            color: 0xb5afa3,
+            roughness: 0.86,
             metalness: 0.0,
-            reflectivity: 0.2,
-            envMapIntensity: 0.4
+            reflectivity: 0.08,
+            envMapIntensity: 0.16
         });
         const frontWall = new THREE.Mesh(frontWallGeometry, frontWallMaterial);
         frontWall.position.set(0, wallHeight / 2, 14);
@@ -135,12 +128,11 @@ export class Environment {
         const sideWallGeometry = new THREE.BoxGeometry(wallThickness, wallHeight, 28, 1, 8, 8);
         const sideWallMaterial = new THREE.MeshPhysicalMaterial({
             map: wallTextures.concrete,
-            normalMap: wallTextures.concreteNormal,
-            color: 0xf5f5f5,
-            roughness: 0.9,
+            color: 0xc3bcae,
+            roughness: 0.88,
             metalness: 0.0,
-            reflectivity: 0.1,
-            envMapIntensity: 0.3
+            reflectivity: 0.08,
+            envMapIntensity: 0.14
         });
 
         /** Left */
@@ -171,10 +163,10 @@ export class Environment {
         const ceilingMaterial = new THREE.MeshPhysicalMaterial({
             map: wallTextures ? wallTextures.plaster : null,
             normalMap: wallTextures ? wallTextures.plasterNormal : null,
-            color: 0xffffff,
+            color: 0xd8d1c4,
             roughness: 0.9,
             metalness: 0.0,
-            envMapIntensity: 0.2
+            envMapIntensity: 0.12
         });
 
         if (ceilingMaterial.map) {
@@ -422,11 +414,7 @@ export class Environment {
             bulb.position.y = 3.95;
             chandelierGroup.add(bulb);
 
-            /** Small point light in each bulb */
-
-            const bulbLight = new THREE.PointLight(0xfff8dc, 3, 3, 2);
-            bulbLight.position.copy(bulb.position);
-            chandelierGroup.add(bulbLight);
+            /** Emissive bulb only; real point lights here are expensive and visually noisy. */
         }
 
         /** Lower central lamp */
@@ -438,7 +426,7 @@ export class Environment {
 
         /** Main central light */
 
-        const centerLight = new THREE.PointLight(0xfff8dc, 8, 6, 2);
+        const centerLight = new THREE.PointLight(0xfff8dc, 2.4, 4.5, 2);
         centerLight.position.y = 3.85;
         chandelierGroup.add(centerLight);
 
@@ -475,9 +463,10 @@ export class Environment {
         const pillarGeo = new THREE.CylinderGeometry(0.4, 0.4, 4.8, 32);
         const pillarMaterial = new THREE.MeshPhysicalMaterial({
             map: wallTextures ? wallTextures.marble : null,
-            normalMap: wallTextures ? wallTextures.marbleNormal : null,
-            color: 0xffffff,
-            roughness: 0.2
+            color: 0xb9b1a3,
+            roughness: 0.58,
+            metalness: 0.02,
+            envMapIntensity: 0.18
         });
         const positions = [
             [-13.5, 2.4, -13.5], [13.5, 2.4, -13.5],
@@ -495,12 +484,11 @@ export class Environment {
     createBaseboards(wallTextures) {
         const baseboardMaterial = new THREE.MeshPhysicalMaterial({
             map: wallTextures ? wallTextures.marble : null,
-            normalMap: wallTextures ? wallTextures.marbleNormal : null,
-            color: 0x444444, /** Dark marble */
+            color: 0x51483d,
 
-            roughness: 0.3,
+            roughness: 0.52,
             metalness: 0.1,
-            envMapIntensity: 0.5
+            envMapIntensity: 0.24
         });
 
         const wallThickness = 0.5;
@@ -533,6 +521,72 @@ export class Environment {
     }
 
     /** --- Texture Generation Functions --- */
+
+    createCuratedFloorTexture() {
+        const size = 1024;
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = size;
+        canvas.height = size;
+
+        const base = ctx.createLinearGradient(0, 0, size, size);
+        base.addColorStop(0, '#8f887d');
+        base.addColorStop(0.5, '#9a9285');
+        base.addColorStop(1, '#817a70');
+        ctx.fillStyle = base;
+        ctx.fillRect(0, 0, size, size);
+
+        ctx.globalAlpha = 0.18;
+        for (let i = 0; i < 2200; i++) {
+            const value = 125 + Math.random() * 35;
+            ctx.fillStyle = `rgb(${value}, ${value - 4}, ${value - 12})`;
+            ctx.fillRect(Math.random() * size, Math.random() * size, 1, 1);
+        }
+
+        ctx.globalAlpha = 0.16;
+        ctx.strokeStyle = '#6f685f';
+        ctx.lineWidth = 2;
+        const tile = size / 4;
+        for (let i = 1; i < 4; i++) {
+            ctx.beginPath();
+            ctx.moveTo(i * tile, 0);
+            ctx.lineTo(i * tile, size);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(0, i * tile);
+            ctx.lineTo(size, i * tile);
+            ctx.stroke();
+        }
+
+        ctx.globalAlpha = 0.08;
+        ctx.strokeStyle = '#e1d7c7';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 18; i++) {
+            const y = Math.random() * size;
+            ctx.beginPath();
+            ctx.moveTo(Math.random() * size * 0.2, y);
+            ctx.bezierCurveTo(
+                Math.random() * size,
+                y + (Math.random() - 0.5) * 80,
+                Math.random() * size,
+                y + (Math.random() - 0.5) * 140,
+                size,
+                y + (Math.random() - 0.5) * 120
+            );
+            ctx.stroke();
+        }
+
+        ctx.globalAlpha = 1;
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(6, 6);
+        texture.encoding = THREE.sRGBEncoding;
+        texture.anisotropy = Math.min(4, this.renderer.capabilities.getMaxAnisotropy());
+        texture.needsUpdate = true;
+        return texture;
+    }
 
 
     createLuxuryMarbleTexture() {

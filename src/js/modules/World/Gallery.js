@@ -1,449 +1,309 @@
 import * as THREE from 'three';
-import CONFIG from '../../config.js';
 
 export class Gallery {
-    constructor(scene, textureLoader) {
+    constructor(scene, textureLoader, renderer, onArtworkUpdated) {
         this.scene = scene;
+        this.renderer = renderer;
+        this.onArtworkUpdated = onArtworkUpdated || (() => {});
         this.textureLoader = textureLoader || new THREE.TextureLoader();
         this.artworks = [];
         this.museumObjects = [];
         this.decorationCollisions = [];
     }
 
-    setup() {
-        this.createRealisticArtworks();
+    setup(artworksData = []) {
+        this.artworks = [];
+        this.museumObjects = [];
+        this.decorationCollisions = [];
+        const artworkLoads = this.createRealisticArtworks(artworksData);
         this.createMuseumObjects();
+        return Promise.allSettled(artworkLoads);
     }
 
-    createRealisticArtworks() {
-        /** ========== FRONT WALL - 5 ARTWORKS ========== */
-
-        this.createRealisticArtwork({
-            position: [-10, 2.2, -13.7],
-            size: [2.5, 2.0],
-            imageUrl: './src/assets/images/Bailarina - Byron.jpg',
-            title: 'Bailarina',
-            artist: 'Byron Gálvez',
-            year: '2024',
-            description: 'Una elegante representación del movimiento y la gracia, capturando la esencia de la danza en una composición dinámica.'
-        });
-
-        this.createRealisticArtwork({
-            position: [-5, 2.2, -13.7],
-            size: [2.5, 2.0],
-            imageUrl: './src/assets/images/Maquillaje - Byron.jpg',
-            title: 'Maquillaje',
-            artist: 'Byron Gálvez',
-            year: '2024',
-            description: 'Una representación íntima del arte del maquillaje, capturando la transformación y la belleza del proceso creativo.'
-        });
-
-        this.createRealisticArtwork({
-            position: [0, 2.3, -13.7],
-            size: [3.0, 2.5],
-            imageUrl: './src/assets/images/Amanecer - Byron.jpeg',
-            isMainArtwork: true,
-            title: 'Amanecer',
-            artist: 'Byron Gálvez',
-            year: '2025',
-            description: 'Una representación poética del amanecer que captura la transición entre la noche y el día, evocando esperanza y renovación.'
-        });
-
-        this.createRealisticArtwork({
-            position: [5, 2.2, -13.7],
-            size: [2.5, 2.0],
-            imageUrl: './src/assets/images/Naturaleza Muerta - Byron.jpg',
-            title: 'Naturaleza Muerta',
-            artist: 'Byron Gálvez',
-            year: '2024',
-            description: 'Una interpretación contemporánea del género clásico, explorando la belleza en la simplicidad de los objetos cotidianos.'
-        });
-
-        this.createRealisticArtwork({
-            position: [10, 2.2, -13.7],
-            size: [2.5, 2.0],
-            imageUrl: './src/assets/images/Vanidad - Byron.jpg',
-            title: 'Vanidad',
-            artist: 'Byron Gálvez',
-            year: '2024',
-            description: 'Una reflexión sobre la belleza efímera y la contemplación del yo, explorando temas de autoconocimiento.'
-        });
-
-        /** ========== LEFT WALL - 4 ARTWORKS ========== */
-
-        const leftWallX = -13.7;
-        const leftRot = [0, Math.PI / 2, 0];
-
-        this.createRealisticArtwork({
-            position: [leftWallX, 2.2, -7.5],
-            size: [2.2, 1.8],
-            rotation: leftRot,
-            imageUrl: './src/assets/images/Flautistas - Byron.jpg',
-            title: 'Flautistas',
-            artist: 'Byron Gálvez',
-            year: '2024',
-            description: 'Una armoniosa representación de músicos interpretando la flauta, capturando la melodía visual en cada gesto.'
-        });
-
-        this.createRealisticArtwork({
-            position: [leftWallX, 2.2, -2.5],
-            size: [2.2, 1.8],
-            rotation: leftRot,
-            imageUrl: './src/assets/images/Rocas y Cielo - Byron.jpg',
-            title: 'Rocas y Cielo',
-            artist: 'Byron Gálvez',
-            year: '2023',
-            description: 'Un estudio de contrastes entre la solidez de la tierra y la fluidez del cielo, explorando la relación entre lo terrenal y lo celestial.'
-        });
-
-        this.createRealisticArtwork({
-            position: [leftWallX, 2.2, 2.5],
-            size: [2.2, 1.8],
-            rotation: leftRot,
-            imageUrl: './src/assets/images/Vela - Byron.jpg',
-            title: 'Vela',
-            artist: 'Byron Gálvez',
-            year: '2024',
-            description: 'Una exploración de la luz y la quietud, capturando la delicada belleza de la llama en la oscuridad.'
-        });
-
-        this.createRealisticArtwork({
-            position: [leftWallX, 2.2, 7.5],
-            size: [2.2, 1.8],
-            rotation: leftRot,
-            imageUrl: './src/assets/images/Frutas - Byron.jpg',
-            title: 'Frutas',
-            artist: 'Byron Gálvez',
-            year: '2024',
-            description: 'Una naturaleza muerta vibrante que celebra la abundancia y los colores de las frutas frescas.'
-        });
-
-        /** ========== RIGHT WALL - 4 ARTWORKS ========== */
-
-        const rightWallX = 13.7;
-        const rightRot = [0, -Math.PI / 2, 0];
-
-        this.createRealisticArtwork({
-            position: [rightWallX, 2.2, -7.5],
-            size: [2.2, 1.8],
-            rotation: rightRot,
-            imageUrl: './src/assets/images/Violincello - Byron.jpg',
-            title: 'Violoncello',
-            artist: 'Byron Gálvez',
-            year: '2024',
-            description: 'Una celebración del instrumento musical, capturando la elegancia y profundidad emocional del violoncello.'
-        });
-
-        this.createRealisticArtwork({
-            position: [rightWallX, 2.2, -2.5],
-            size: [2.2, 1.8],
-            rotation: rightRot,
-            imageUrl: './src/assets/images/Musicos - Byron.jpg',
-            title: 'Músicos',
-            artist: 'Byron Gálvez',
-            year: '2023',
-            description: 'Una celebración visual de la música y los artistas que la crean, capturando la pasión y la emoción del arte sonoro.'
-        });
-
-        this.createRealisticArtwork({
-            position: [rightWallX, 2.2, 2.5],
-            size: [2.2, 1.8],
-            rotation: rightRot,
-            imageUrl: './src/assets/images/Veladoras - Byron.jpg',
-            title: 'Veladoras',
-            artist: 'Byron Gálvez',
-            year: '2024',
-            description: 'Una contemplación sobre la luz sagrada de las velas, evocando espiritualidad y calidez en su resplandor.'
-        });
-
-        this.createRealisticArtwork({
-            position: [rightWallX, 2.2, 7.5],
-            size: [2.2, 1.8],
-            rotation: rightRot,
-            imageUrl: './src/assets/images/MusicosM - Byron.jpg',
-            title: 'Músicos en Marcha',
-            artist: 'Byron Gálvez',
-            year: '2024',
-            description: 'Una representación dinámica de músicos en movimiento, capturando el ritmo y la energía de la marcha musical.'
-        });
-
-        /** ========== REAR WALL - 5 ARTWORKS ========== */
-
-        const rearWallZ = 13.7;
-        const rearRot = [0, Math.PI, 0];
-
-        this.createRealisticArtwork({
-            position: [-9, 2.2, rearWallZ],
-            size: [2.2, 1.8],
-            rotation: rearRot,
-            imageUrl: './src/assets/images/Copas - Byron.jpg',
-            title: 'Copas',
-            artist: 'Byron Gálvez',
-            year: '2024',
-            description: 'Una representación elegante de cristalería, explorando la transparencia, reflejos y la belleza de los objetos cotidianos.'
-        });
-
-        this.createRealisticArtwork({
-            position: [-4.5, 2.2, rearWallZ],
-            size: [2.2, 1.8],
-            rotation: rearRot,
-            imageUrl: './src/assets/images/Escultura de pie - Byron.jpg',
-            title: 'Escultura de Pie',
-            artist: 'Byron Gálvez',
-            year: '2024',
-            description: 'Una exploración de la forma humana en movimiento, capturando la elegancia y fuerza de la figura erguida.'
-        });
-
-        /** ARTIST SELF-PORTRAIT - CENTER */
-
-        this.createArtistPortrait({
-            position: [0, 2.3, rearWallZ],
-            size: [3.0, 2.5],
-            rotation: rearRot,
-            imageUrl: './src/assets/images/Byron2.png',
-            title: 'Byron Gálvez',
-            subtitle: 'Artista',
-            year: '2025',
-            description: 'El maestro detrás de estas obras, capturando su esencia creativa y visión personal del mundo.'
-        });
-
-        this.createRealisticArtwork({
-            position: [4.5, 2.2, rearWallZ],
-            size: [2.2, 1.8],
-            rotation: rearRot,
-            imageUrl: './src/assets/images/Escultura sentada - Byron.jpg',
-            title: 'Escultura Sentada',
-            artist: 'Byron Gálvez',
-            year: '2024',
-            description: 'Una contemplación sobre el reposo y la reflexión, mostrando la serenidad en la postura contemplativa.'
-        });
-
-        this.createRealisticArtwork({
-            position: [9, 2.2, rearWallZ],
-            size: [2.2, 1.8],
-            rotation: rearRot,
-            imageUrl: './src/assets/images/Vela2 - Byron.jpg',
-            title: 'Vela 2',
-            artist: 'Byron Gálvez',
-            year: '2024',
-            description: 'Una segunda exploración de la luz de la vela, con diferentes matices de sombra y calidez.'
-        });
-
-
+    createRealisticArtworks(artworksData) {
+        return artworksData.map((artwork) => this.createRealisticArtwork(artwork));
     }
 
-    createRealisticArtwork(config) {
-        const { position, size, imageUrl, isMainArtwork, rotation, title, artist, year, description } = config;
-
+    createRealisticArtwork(data) {
         const artworkGroup = new THREE.Group();
-        let finalSize = size;
-        let artworkMesh = null;
-
-        const createFrameWithSize = (artworkSize) => {
-            const frameDepth = 0.12;
-            const frameWidth = 0.15;
-
-            const outerFrameGeometry = new THREE.BoxGeometry(
-                artworkSize[0] + frameWidth * 2,
-                artworkSize[1] + frameWidth * 2,
-                frameDepth
-            );
-            const frameMaterial = new THREE.MeshPhysicalMaterial({
-                color: 0x2a2a2a,
-                roughness: 0.6,
-                metalness: 0.2,
-                envMapIntensity: 0.5,
-                side: THREE.FrontSide
-            });
-            const outerFrame = new THREE.Mesh(outerFrameGeometry, frameMaterial);
-            outerFrame.position.set(0, 0, -frameDepth * 0.6);
-            outerFrame.castShadow = true;
-            outerFrame.renderOrder = 1;
-            artworkGroup.add(outerFrame);
-
-            const innerFrameGeometry = new THREE.BoxGeometry(
-                artworkSize[0] + frameWidth,
-                artworkSize[1] + frameWidth,
-                frameDepth * 0.4
-            );
-            const innerFrameMaterial = new THREE.MeshPhysicalMaterial({
-                color: 0x8B4513,
-                roughness: 0.8,
-                metalness: 0.1,
-                side: THREE.FrontSide
-            });
-            const innerFrame = new THREE.Mesh(innerFrameGeometry, innerFrameMaterial);
-            innerFrame.position.set(0, 0, -frameDepth * 0.15);
-            innerFrame.castShadow = true;
-            innerFrame.renderOrder = 2;
-            artworkGroup.add(innerFrame);
+        const artworkRecord = {
+            id: data.id,
+            group: artworkGroup,
+            mesh: null,
+            data,
+            config: data
         };
 
-        const createArtworkWithSize = (artworkSize) => {
-            const artworkGeometry = new THREE.PlaneGeometry(artworkSize[0], artworkSize[1]);
-            /** Placeholder material initially */
+        this.buildArtworkGroup(artworkGroup, data, data.size);
 
-            const artworkMaterial = new THREE.MeshPhysicalMaterial({
-                color: 0x888888,
+        artworkGroup.position.set(...data.position);
+        if (data.rotation) {
+            artworkGroup.rotation.set(...data.rotation);
+        }
+
+        this.scene.add(artworkGroup);
+        this.artworks.push(artworkRecord);
+
+        const imageUrl = data.image || data.imageUrl;
+        if (!imageUrl) return Promise.resolve(artworkRecord);
+
+        return new Promise((resolve) => {
+            this.textureLoader.load(
+                imageUrl,
+                (loadedTexture) => {
+                    const imageAspectRatio = loadedTexture.image.width / loadedTexture.image.height;
+                    const finalSize = this.fitArtworkSize(data.size, imageAspectRatio);
+
+                    while (artworkGroup.children.length > 0) {
+                        artworkGroup.remove(artworkGroup.children[0]);
+                    }
+
+                    const mesh = this.buildArtworkGroup(artworkGroup, data, finalSize, loadedTexture);
+                    artworkRecord.mesh = mesh;
+                    this.onArtworkUpdated(artworkRecord);
+                    resolve(artworkRecord);
+                },
+                undefined,
+                () => resolve(artworkRecord)
+            );
+        });
+    }
+
+    buildArtworkGroup(artworkGroup, data, artworkSize, loadedTexture = null) {
+        this.createFrame(artworkGroup, artworkSize, Boolean(data.featured));
+        const artworkMesh = this.createArtworkPlane(artworkSize, data, loadedTexture);
+        artworkGroup.add(artworkMesh);
+        this.createArtworkLabel(artworkGroup, data, artworkSize);
+        return artworkMesh;
+    }
+
+    fitArtworkSize(maxSize, imageAspectRatio) {
+        const maxWidth = maxSize[0];
+        const maxHeight = maxSize[1];
+
+        if (imageAspectRatio > 1) {
+            return [maxWidth, maxWidth / imageAspectRatio];
+        }
+
+        return [maxHeight * imageAspectRatio, maxHeight];
+    }
+
+    createFrame(artworkGroup, artworkSize, featured) {
+        const frameWidth = featured ? 0.22 : 0.18;
+        const outerWidth = artworkSize[0] + frameWidth * 2;
+        const outerHeight = artworkSize[1] + frameWidth * 2;
+        const innerWidth = artworkSize[0] + 0.04;
+        const innerHeight = artworkSize[1] + 0.04;
+
+        const frameShape = new THREE.Shape();
+        frameShape.moveTo(-outerWidth / 2, -outerHeight / 2);
+        frameShape.lineTo(outerWidth / 2, -outerHeight / 2);
+        frameShape.lineTo(outerWidth / 2, outerHeight / 2);
+        frameShape.lineTo(-outerWidth / 2, outerHeight / 2);
+        frameShape.lineTo(-outerWidth / 2, -outerHeight / 2);
+
+        const hole = new THREE.Path();
+        hole.moveTo(-innerWidth / 2, -innerHeight / 2);
+        hole.lineTo(-innerWidth / 2, innerHeight / 2);
+        hole.lineTo(innerWidth / 2, innerHeight / 2);
+        hole.lineTo(innerWidth / 2, -innerHeight / 2);
+        hole.lineTo(-innerWidth / 2, -innerHeight / 2);
+        frameShape.holes.push(hole);
+
+        const frameGeometry = new THREE.ExtrudeGeometry(frameShape, {
+            depth: featured ? 0.22 : 0.18,
+            bevelEnabled: true,
+            bevelSize: 0.028,
+            bevelThickness: 0.028,
+            bevelSegments: 2
+        });
+        frameGeometry.center();
+
+        const frameMaterial = new THREE.MeshPhysicalMaterial({
+            color: featured ? 0x25201b : 0x2c2824,
+            roughness: 0.46,
+            metalness: 0.18,
+            clearcoat: 0.25,
+            clearcoatRoughness: 0.35,
+            envMapIntensity: 0.45
+        });
+
+        const frame = new THREE.Mesh(frameGeometry, frameMaterial);
+        frame.position.z = -0.06;
+        frame.castShadow = true;
+        frame.receiveShadow = true;
+        frame.renderOrder = 1;
+        artworkGroup.add(frame);
+
+        const backingGeometry = new THREE.BoxGeometry(artworkSize[0] + 0.14, artworkSize[1] + 0.14, 0.06);
+        const backingMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0x1a1714,
+            roughness: 0.75,
+            metalness: 0.05
+        });
+        const backing = new THREE.Mesh(backingGeometry, backingMaterial);
+        backing.position.z = -0.09;
+        backing.castShadow = true;
+        backing.receiveShadow = true;
+        artworkGroup.add(backing);
+    }
+
+    createArtworkPlane(artworkSize, data, loadedTexture) {
+        const artworkGeometry = new THREE.PlaneGeometry(artworkSize[0], artworkSize[1]);
+        let artworkMaterial;
+
+        if (loadedTexture) {
+            loadedTexture.encoding = THREE.sRGBEncoding;
+            loadedTexture.minFilter = THREE.LinearMipmapLinearFilter;
+            loadedTexture.magFilter = THREE.LinearFilter;
+            loadedTexture.generateMipmaps = true;
+            loadedTexture.anisotropy = Math.min(4, this.renderer?.capabilities.getMaxAnisotropy() || 4);
+            loadedTexture.needsUpdate = true;
+
+            artworkMaterial = new THREE.MeshPhysicalMaterial({
+                map: loadedTexture,
+                roughness: 0.82,
+                metalness: 0.0,
+                clearcoat: 0.08,
+                clearcoatRoughness: 0.65,
+                envMapIntensity: 0.12,
+                side: THREE.FrontSide
+            });
+        } else {
+            artworkMaterial = new THREE.MeshPhysicalMaterial({
+                color: 0x4b4842,
                 roughness: 0.9,
                 metalness: 0.0,
                 side: THREE.FrontSide
             });
+        }
 
-            artworkMesh = new THREE.Mesh(artworkGeometry, artworkMaterial);
-            artworkMesh.castShadow = true;
-            artworkMesh.receiveShadow = true;
-            artworkMesh.position.set(0, 0, 0.02);
-            artworkMesh.renderOrder = 3;
-            artworkMesh.userData = { title, artist, year, description, isClickable: true };
-            artworkGroup.add(artworkMesh);
+        const artworkMesh = new THREE.Mesh(artworkGeometry, artworkMaterial);
+        artworkMesh.castShadow = true;
+        artworkMesh.receiveShadow = true;
+        artworkMesh.position.z = 0.055;
+        artworkMesh.renderOrder = 3;
+        artworkMesh.userData = {
+            title: data.title,
+            artist: data.artist,
+            year: data.year,
+            description: data.description,
+            isClickable: true,
+            artworkId: data.id
         };
 
-        /** Initial setup with default size, will update when image loads */
-
-        createFrameWithSize(size);
-        createArtworkWithSize(size);
-
-        if (imageUrl) {
-            /** SIMPLIFIED: Three.js already handles LOD with mipmaps automatically */
-
-            this.textureLoader.load(imageUrl, (loadedTexture) => {
-                /** Clean up previous meshes if resizing */
-
-                while (artworkGroup.children.length > 0) {
-                    artworkGroup.remove(artworkGroup.children[0]);
-                }
-
-                /** Recalculate size */
-
-                const imageAspectRatio = loadedTexture.image.width / loadedTexture.image.height;
-                const maxWidth = size[0];
-                const maxHeight = size[1];
-                let newWidth, newHeight;
-
-                if (imageAspectRatio > 1) {
-                    newWidth = maxWidth;
-                    newHeight = maxWidth / imageAspectRatio;
-                } else {
-                    newHeight = maxHeight;
-                    newWidth = maxHeight * imageAspectRatio;
-                }
-
-                finalSize = [newWidth, newHeight];
-
-                /** Re-create elements */
-
-                createFrameWithSize(finalSize);
-
-                /** OPTIMIZATION: Configure mipmaps for automatic LOD */
-
-                loadedTexture.encoding = THREE.sRGBEncoding;
-                loadedTexture.minFilter = THREE.LinearMipmapLinearFilter; /** Uses mipmaps */
-
-                loadedTexture.magFilter = THREE.LinearFilter;
-                loadedTexture.generateMipmaps = true; /** Generates mipmaps automatically */
-
-                loadedTexture.anisotropy = Math.min(4, this.scene.renderer?.capabilities.getMaxAnisotropy() || 4);
-
-                const artworkMaterial = new THREE.MeshPhysicalMaterial({
-                    map: loadedTexture,
-                    roughness: 0.9,
-                    metalness: 0.0,
-                    envMapIntensity: 0.1,
-                    side: THREE.FrontSide
-                });
-
-                const geom = new THREE.PlaneGeometry(finalSize[0], finalSize[1]);
-                artworkMesh = new THREE.Mesh(geom, artworkMaterial);
-                artworkMesh.castShadow = true;
-                artworkMesh.receiveShadow = true;
-                artworkMesh.position.set(0, 0, 0.02);
-                artworkMesh.renderOrder = 3;
-                artworkMesh.userData = { title, artist, year, description, isClickable: true };
-
-                artworkGroup.add(artworkMesh);
-
-                /** Update array reference */
-
-                const index = this.artworks.findIndex(a => a.group === artworkGroup);
-                if (index !== -1) {
-                    this.artworks[index].mesh = artworkMesh;
-                }
-
-                if (isMainArtwork) {
-                    /** Removed corner lights as per user request */
-
-                    // this.createFrameLighting(artworkGroup, finalSize);
-                }
-            });
-        }
-
-        artworkGroup.position.set(...position);
-        if (rotation) {
-            artworkGroup.rotation.set(...rotation);
-        }
-
-        this.scene.add(artworkGroup);
-        this.artworks.push({
-            group: artworkGroup,
-            mesh: artworkMesh, // Initial mesh, might be updated
-            config: config
-        });
+        return artworkMesh;
     }
 
-    createFrameLighting(artworkGroup, size) {
-        const ledPositions = [
-            [-size[0] / 2, size[1] / 2, 0.1],
-            [size[0] / 2, size[1] / 2, 0.1],
-            [-size[0] / 2, -size[1] / 2, 0.1],
-            [size[0] / 2, -size[1] / 2, 0.1]
-        ];
+    createArtworkLabel(artworkGroup, data, artworkSize) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 460;
+        const ctx = canvas.getContext('2d');
 
-        ledPositions.forEach(pos => {
-            const ledLight = new THREE.PointLight(0xffffff, 3, 3, 2);
-            ledLight.position.set(...pos);
-            artworkGroup.add(ledLight);
-        });
+        ctx.fillStyle = 'rgba(236, 229, 214, 0.96)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = 'rgba(37, 32, 26, 0.16)';
+        ctx.fillRect(52, 52, 2, 350);
+
+        ctx.fillStyle = '#2a251f';
+        ctx.font = '600 54px Inter, Arial, sans-serif';
+        this.wrapText(ctx, data.title, 88, 112, 820, 58, 2);
+
+        ctx.fillStyle = '#5e5449';
+        ctx.font = '400 34px Inter, Arial, sans-serif';
+        ctx.fillText(`${data.artist} · ${data.year}`, 88, 236);
+
+        ctx.fillStyle = '#7b7064';
+        ctx.font = '500 28px Inter, Arial, sans-serif';
+        ctx.fillText(data.technique || 'Tecnica mixta', 88, 292);
+
+        ctx.fillStyle = '#6b6155';
+        ctx.font = '300 25px Inter, Arial, sans-serif';
+        this.wrapText(ctx, data.description, 88, 346, 820, 34, 2);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.encoding = THREE.sRGBEncoding;
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+
+        const labelWidth = data.featured ? 1.32 : 1.18;
+        const labelHeight = labelWidth * (canvas.height / canvas.width);
+        const label = new THREE.Mesh(
+            new THREE.PlaneGeometry(labelWidth, labelHeight),
+            new THREE.MeshBasicMaterial({
+                map: texture,
+                transparent: true,
+                toneMapped: false
+            })
+        );
+
+        label.position.set(artworkSize[0] / 2 + labelWidth / 2 + 0.34, -artworkSize[1] / 2 + labelHeight / 2 + 0.06, 0.09);
+        label.castShadow = false;
+        label.receiveShadow = false;
+        label.renderOrder = 4;
+        artworkGroup.add(label);
     }
 
-    createArtistPortrait(config) {
-        /** Simplified wrapper for now - similar to createRealisticArtwork but custom styling.
-         * For brevity in this refactor, reusing the standard artwork creation but with metadata.
-         */
+    wrapText(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
+        const words = String(text || '').split(' ');
+        let line = '';
+        let lineCount = 0;
 
-        this.createRealisticArtwork({ ...config, isMainArtwork: true });
-        /** Note: The original code had a very custom frame for the portrait.
-         * If critical, we should copy the `createArtistPortrait` function from main.js fully. 
-         * For MVP refactor, this is acceptable.
-         */
+        for (let i = 0; i < words.length; i++) {
+            const testLine = `${line}${words[i]} `;
+            const metrics = ctx.measureText(testLine);
+            if (metrics.width > maxWidth && i > 0) {
+                ctx.fillText(line.trim(), x, y);
+                line = `${words[i]} `;
+                y += lineHeight;
+                lineCount++;
 
+                if (lineCount >= maxLines - 1) {
+                    const remaining = `${line}${words.slice(i + 1).join(' ')}`.trim();
+                    ctx.fillText(this.truncateText(ctx, remaining, maxWidth), x, y);
+                    return;
+                }
+            } else {
+                line = testLine;
+            }
+        }
+
+        ctx.fillText(line.trim(), x, y);
+    }
+
+    truncateText(ctx, text, maxWidth) {
+        let value = text;
+        while (ctx.measureText(`${value}...`).width > maxWidth && value.length > 0) {
+            value = value.slice(0, -1);
+        }
+        return `${value.trim()}...`;
+    }
+
+    getArtworkById(id) {
+        return this.artworks.find((artwork) => artwork.id === id) || null;
     }
 
     createMuseumObjects() {
         this.createLowCenterTable({
             position: [0, 0, 0],
-            title: 'Mesa de Exposición',
+            title: 'Mesa de Exposicion',
             description: 'Mesa central discreta'
         });
 
-        /** Benches */
-
-        this.createMuseumBench([0, 0, 4], 0, 'Banco de Contemplación');
-        this.createMuseumBench([-6, 0, -6], Math.PI / 4, 'Banco de Contemplación');
-        this.createMuseumBench([6, 0, -6], -Math.PI / 4, 'Banco de Contemplación');
-
-        /** Podiums */
+        this.createMuseumBench([0, 0, 4], 0, 'Banco de Contemplacion');
+        this.createMuseumBench([-6.4, 0, -5.8], Math.PI / 4, 'Banco de Contemplacion');
+        this.createMuseumBench([6.4, 0, -5.8], -Math.PI / 4, 'Banco de Contemplacion');
 
         this.createPodiumWithRope({
             position: [-3, 0, 0],
-            title: 'Objeto de Colección'
+            title: 'Objeto de Coleccion'
         });
         this.createPodiumWithRope({
             position: [3, 0, 0],
-            title: 'Artefacto Histórico'
+            title: 'Artefacto Historico'
         });
-
-        /** Walls */
 
         this.createFloatingWall({
             position: [-5, 0, -3],
@@ -458,105 +318,185 @@ export class Gallery {
     createLowCenterTable(config) {
         const { position, title, description } = config;
         const tableGroup = new THREE.Group();
+        const stoneMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0x6e675d,
+            roughness: 0.55,
+            metalness: 0.04,
+            clearcoat: 0.18,
+            clearcoatRoughness: 0.45
+        });
 
-        /** Base */
-
-        const baseGeometry = new THREE.CylinderGeometry(0.8, 0.9, 0.5, 8);
-        const baseMaterial = new THREE.MeshPhysicalMaterial({ color: 0x2d2d2d, roughness: 0.3 });
-        const base = new THREE.Mesh(baseGeometry, baseMaterial);
-        base.position.set(0, 0.25, 0);
+        const base = new THREE.Mesh(new THREE.CylinderGeometry(0.72, 0.9, 0.42, 32), stoneMaterial);
+        base.position.y = 0.21;
         base.castShadow = true;
+        base.receiveShadow = true;
         tableGroup.add(base);
 
-        /** Glass surface */
+        const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.58, 0.32, 32), stoneMaterial);
+        neck.position.y = 0.56;
+        neck.castShadow = true;
+        neck.receiveShadow = true;
+        tableGroup.add(neck);
 
-        const surfaceGeometry = new THREE.CylinderGeometry(1.2, 1.2, 0.05, 32);
         const surfaceMaterial = new THREE.MeshPhysicalMaterial({
-            color: 0xffffff, transparent: true, opacity: 0.3, transmission: 0.9, roughness: 0.05
+            color: 0xf1eadf,
+            transparent: true,
+            opacity: 0.34,
+            transmission: 0.85,
+            roughness: 0.08,
+            metalness: 0.0,
+            clearcoat: 0.9
         });
-        const surface = new THREE.Mesh(surfaceGeometry, surfaceMaterial);
-        surface.position.set(0, 0.53, 0);
+        const surface = new THREE.Mesh(new THREE.CylinderGeometry(1.18, 1.18, 0.06, 48), surfaceMaterial);
+        surface.position.y = 0.76;
+        surface.castShadow = false;
         tableGroup.add(surface);
 
         tableGroup.position.set(...position);
         tableGroup.userData = { title, description, type: 'lowCenterTable' };
         this.scene.add(tableGroup);
 
-        this.decorationCollisions.push({
-            x: position[0],
-            z: position[2],
-            radius: 1.3
-        });
-
-        this.museumObjects.push({ group: tableGroup, config });
+        this.decorationCollisions.push({ x: position[0], z: position[2], radius: 1.25 });
+        this.museumObjects.push({ group: tableGroup, config: { ...config, type: 'table' } });
     }
 
     createMuseumBench(position, rotationY, title) {
-        /** Simple bench logic */
-
         const benchGroup = new THREE.Group();
-        const seatGeo = new THREE.BoxGeometry(2, 0.1, 0.6);
-        const seatMat = new THREE.MeshPhysicalMaterial({ color: 0x5c4033, roughness: 0.6 });
-        const seat = new THREE.Mesh(seatGeo, seatMat);
-        seat.position.y = 0.5;
-        benchGroup.add(seat);
+        const woodMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0x6a5541,
+            roughness: 0.64,
+            metalness: 0.02,
+            clearcoat: 0.16,
+            clearcoatRoughness: 0.5
+        });
+        const metalMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0x282623,
+            roughness: 0.38,
+            metalness: 0.72
+        });
 
-        const legGeo = new THREE.BoxGeometry(0.1, 0.5, 0.6);
-        const leg1 = new THREE.Mesh(legGeo, seatMat); leg1.position.set(-0.8, 0.25, 0);
-        const leg2 = new THREE.Mesh(legGeo, seatMat); leg2.position.set(0.8, 0.25, 0);
-        benchGroup.add(leg1);
-        benchGroup.add(leg2);
+        const slatPositions = [-0.22, 0, 0.22];
+        slatPositions.forEach((z) => {
+            const slat = new THREE.Mesh(new THREE.BoxGeometry(2.25, 0.08, 0.16), woodMaterial);
+            slat.position.set(0, 0.58, z);
+            slat.castShadow = true;
+            slat.receiveShadow = true;
+            benchGroup.add(slat);
+        });
+
+        const back = new THREE.Mesh(new THREE.BoxGeometry(2.25, 0.1, 0.16), woodMaterial);
+        back.position.set(0, 0.92, 0.34);
+        back.rotation.x = -0.18;
+        back.castShadow = true;
+        back.receiveShadow = true;
+        benchGroup.add(back);
+
+        [-0.86, 0.86].forEach((x) => {
+            const leg = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.52, 0.44), metalMaterial);
+            leg.position.set(x, 0.28, 0);
+            leg.castShadow = true;
+            leg.receiveShadow = true;
+            benchGroup.add(leg);
+
+            const foot = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.06, 0.5), metalMaterial);
+            foot.position.set(x, 0.04, 0);
+            foot.castShadow = true;
+            foot.receiveShadow = true;
+            benchGroup.add(foot);
+        });
 
         benchGroup.position.set(...position);
-        if (rotationY) benchGroup.rotation.y = rotationY;
-
+        benchGroup.rotation.y = rotationY || 0;
+        benchGroup.userData = { title, type: 'bench' };
         this.scene.add(benchGroup);
-        this.decorationCollisions.push({ x: position[0], z: position[2], radius: 0.8 });
+
+        this.decorationCollisions.push({ x: position[0], z: position[2], radius: 1.05 });
+        this.museumObjects.push({ group: benchGroup, config: { position, title, type: 'bench' } });
     }
 
     createPodiumWithRope(config) {
         const { position, title } = config;
         const podiumGroup = new THREE.Group();
+        const podiumMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0xd7d0c4,
+            roughness: 0.5,
+            metalness: 0.03,
+            clearcoat: 0.2,
+            clearcoatRoughness: 0.4
+        });
+        const trimMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0x3d3328,
+            roughness: 0.32,
+            metalness: 0.35
+        });
 
-        const podiumGeo = new THREE.CylinderGeometry(0.4, 0.45, 1.0, 16);
-        const podiumMat = new THREE.MeshPhysicalMaterial({ color: 0xf0f0f0, roughness: 0.2 });
-        const podium = new THREE.Mesh(podiumGeo, podiumMat);
-        podium.position.set(0, 0.5, 0);
-        podium.castShadow = true;
-        podiumGroup.add(podium);
+        const base = new THREE.Mesh(new THREE.CylinderGeometry(0.52, 0.64, 0.18, 32), trimMaterial);
+        base.position.y = 0.09;
+        base.castShadow = true;
+        base.receiveShadow = true;
+        podiumGroup.add(base);
+
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 0.86, 32), podiumMaterial);
+        body.position.y = 0.58;
+        body.castShadow = true;
+        body.receiveShadow = true;
+        podiumGroup.add(body);
+
+        const top = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.52, 0.12, 32), trimMaterial);
+        top.position.y = 1.07;
+        top.castShadow = true;
+        top.receiveShadow = true;
+        podiumGroup.add(top);
+
+        const object = new THREE.Mesh(
+            new THREE.TorusKnotGeometry(0.18, 0.045, 64, 8),
+            new THREE.MeshPhysicalMaterial({ color: 0x6b4f2f, roughness: 0.35, metalness: 0.3 })
+        );
+        object.position.y = 1.28;
+        object.castShadow = true;
+        podiumGroup.add(object);
 
         podiumGroup.position.set(...position);
         podiumGroup.userData = { title, type: 'podium' };
         this.scene.add(podiumGroup);
 
-        this.decorationCollisions.push({ x: position[0], z: position[2], radius: 0.6 });
-        this.museumObjects.push({ group: podiumGroup, config });
+        this.decorationCollisions.push({ x: position[0], z: position[2], radius: 0.72 });
+        this.museumObjects.push({ group: podiumGroup, config: { ...config, type: 'podium' } });
     }
 
     createFloatingWall(config) {
         const { position, rotation } = config;
         const wallGroup = new THREE.Group();
+        const wallMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0xb8b2a6,
+            roughness: 0.82,
+            metalness: 0.0,
+            clearcoat: 0.08,
+            clearcoatRoughness: 0.6
+        });
 
-        const wallGeo = new THREE.BoxGeometry(4.0, 2.0, 0.2);
-        const wallMat = new THREE.MeshPhysicalMaterial({ color: 0xe8e8e8, roughness: 0.7 });
-        const wall = new THREE.Mesh(wallGeo, wallMat);
-        wall.position.set(0, 1.0, 0);
+        const wall = new THREE.Mesh(new THREE.BoxGeometry(4.0, 2.15, 0.22), wallMaterial);
+        wall.position.y = 1.08;
         wall.castShadow = true;
         wall.receiveShadow = true;
         wallGroup.add(wall);
+
+        const capMaterial = new THREE.MeshPhysicalMaterial({ color: 0x51483d, roughness: 0.62, metalness: 0.05 });
+        const capTop = new THREE.Mesh(new THREE.BoxGeometry(4.1, 0.08, 0.28), capMaterial);
+        capTop.position.y = 2.18;
+        capTop.castShadow = true;
+        wallGroup.add(capTop);
+
+        const capBottom = new THREE.Mesh(new THREE.BoxGeometry(4.1, 0.08, 0.3), capMaterial);
+        capBottom.position.y = 0.08;
+        capBottom.castShadow = true;
+        wallGroup.add(capBottom);
 
         wallGroup.position.set(...position);
         wallGroup.rotation.y = rotation || 0;
         this.scene.add(wallGroup);
 
-        /** Add to main walls collision list if accessible or handle locally.
-         * For this refactor, assume they are decoration collisions.
-         */
-
-        this.decorationCollisions.push({
-            x: position[0], z: position[2],
-            radius: 2.0, type: 'box', size: [4.0, 0.2] /** Simplified collision */
-
-        });
+        this.decorationCollisions.push({ x: position[0], z: position[2], radius: 2.0, type: 'box', size: [4.0, 0.22] });
+        this.museumObjects.push({ group: wallGroup, config: { ...config, type: 'wall' } });
     }
 }

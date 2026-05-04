@@ -20,7 +20,7 @@ export class Lighting {
     setup() {
         /** Ambient Light */
 
-        const ambientLight = new THREE.AmbientLight(0x808080, 0.4);
+        const ambientLight = new THREE.AmbientLight(0x9a8d7d, 0.26);
         this.scene.add(ambientLight);
 
         /** OPTIMIZED: Ceiling fixtures with emissive only (no PointLights) */
@@ -94,7 +94,7 @@ export class Lighting {
     createSkylight() {
         /** Main directional light with shadows */
 
-        const mainSkylight = new THREE.DirectionalLight(0xffd9a0, 0.75);
+        const mainSkylight = new THREE.DirectionalLight(0xffd9a0, 0.62);
         mainSkylight.position.set(2, 20, 3);
         mainSkylight.target.position.set(0, 0, 0);
         mainSkylight.castShadow = true;
@@ -118,9 +118,9 @@ export class Lighting {
 
     createFillLights() {
         const fills = [
-            { color: 0xffd9a0, intensity: 0.25, pos: [-15, 12, 8] },
-            { color: 0xffe4b5, intensity: 0.25, pos: [15, 8, -8] },
-            { color: 0xffefd5, intensity: 0.2, pos: [0, 15, 10] }
+            { color: 0xffd9a0, intensity: 0.16, pos: [-15, 12, 8] },
+            { color: 0xffe4b5, intensity: 0.15, pos: [15, 8, -8] },
+            { color: 0xffefd5, intensity: 0.12, pos: [0, 15, 10] }
         ];
 
         fills.forEach(fill => {
@@ -134,7 +134,7 @@ export class Lighting {
 
     createRealisticSpotlights() {
         const UNIFIED_COLOR = 0xffffff;
-        const UNIFIED_INTENSITY = 28;
+        const UNIFIED_INTENSITY = 24;
         const UNIFIED_DISTANCE = 22;
         const UNIFIED_ANGLE = Math.PI / 6;
         const UNIFIED_PENUMBRA = 0.7;
@@ -257,7 +257,7 @@ export class Lighting {
 
             /** RESTORED: Sconce light */
 
-            const sconceLight = new THREE.SpotLight(0xffd9a0, 11, 7, Math.PI / 3, 0.7, 1.1);
+            const sconceLight = new THREE.SpotLight(0xffd9a0, 4.5, 5.8, Math.PI / 3, 0.75, 1.2);
             sconceLight.position.set(...pos);
             sconceLight.target.position.set(pos[0], pos[1] - 2, pos[2]);
             sconceLight.castShadow = false;

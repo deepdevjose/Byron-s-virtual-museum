@@ -5,6 +5,7 @@ export class FirstPersonControls {
     constructor(camera, renderer) {
         this.camera = camera;
         this.renderer = renderer;
+        this.enabled = true;
 
         /** Movement state */
 
@@ -23,6 +24,7 @@ export class FirstPersonControls {
 
         this.targetRotationX = 0;
         this.targetRotationY = Math.PI; /** Look at back wall */
+        this.camera.rotation.order = 'YXZ';
 
 
         /** Configuration */
@@ -37,10 +39,8 @@ export class FirstPersonControls {
         document.addEventListener('keyup', (e) => this.onKeyUp(e));
         document.addEventListener('mousemove', (e) => this.onMouseLook(e));
 
-        /** Pointer lock */
-
-        document.addEventListener('click', () => {
-            if (document.pointerLockElement !== this.renderer.domElement) {
+        this.renderer.domElement.addEventListener('click', () => {
+            if (this.enabled && document.pointerLockElement !== this.renderer.domElement) {
                 this.renderer.domElement.requestPointerLock();
             }
         });
@@ -49,6 +49,8 @@ export class FirstPersonControls {
     }
 
     onKeyDown(event) {
+        if (!this.enabled) return;
+
         switch (event.code) {
             case 'ArrowUp':
             case 'KeyW': this.moveForward = true; break;
@@ -64,6 +66,8 @@ export class FirstPersonControls {
     }
 
     onKeyUp(event) {
+        if (!this.enabled) return;
+
         switch (event.code) {
             case 'ArrowUp':
             case 'KeyW': this.moveForward = false; break;
@@ -79,7 +83,7 @@ export class FirstPersonControls {
     }
 
     onMouseLook(event) {
-        if (document.pointerLockElement === this.renderer.domElement) {
+        if (this.enabled && document.pointerLockElement === this.renderer.domElement) {
             const movementX = event.movementX || 0;
             const movementY = event.movementY || 0;
 
@@ -87,7 +91,7 @@ export class FirstPersonControls {
 
             /** Note: In original code config was lookSpeed: 0.002 */
 
-            const lookSpeed = 0.002;
+            const lookSpeed = this.config.lookSpeed;
 
             this.targetRotationY -= movementX * lookSpeed;
             this.targetRotationX -= movementY * lookSpeed;
@@ -116,20 +120,16 @@ export class FirstPersonControls {
 
         deltaTime = Math.min(deltaTime, 0.1);
 
-        const speed = this.isRunning ? this.config.runSpeed : this.config.speed; /** Use config values */
+        if (!this.enabled) {
+            this.velocity.set(0, 0, 0);
+            return;
+        }
 
-        /**
-         * Or if config values are different in main.js. walkSpeed: 4.0, runSpeed: 7.0.
-         * I will use constants that match the behavior.
-         */
-
-        const walkSpeed = 4.0;
-        const runSpeed = 7.0;
-        const currentSpeed = this.isRunning ? runSpeed : walkSpeed;
+        const currentSpeed = this.isRunning ? this.config.runSpeed : this.config.walkSpeed;
 
         /** Friction */
 
-        const friction = 10.0;
+        const friction = this.config.friction;
         this.velocity.x -= this.velocity.x * friction * deltaTime;
         this.velocity.z -= this.velocity.z * friction * deltaTime;
 
@@ -139,7 +139,7 @@ export class FirstPersonControls {
         this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
         this.direction.normalize();
 
-        const acceleration = 12.0;
+        const acceleration = this.config.acceleration;
 
         if (this.moveForward || this.moveBackward) {
             const forward = new THREE.Vector3(0, 0, -1);
@@ -170,5 +170,28 @@ export class FirstPersonControls {
 
         /** Simple bounds (can be improved later with proper collision system). For now, rely on external collision check or add bounds here */
 
+    }
+
+    setEnabled(enabled) {
+        this.enabled = enabled;
+        if (!enabled) {
+            this.resetMovement();
+        }
+    }
+
+    resetMovement() {
+        this.moveForward = false;
+        this.moveBackward = false;
+        this.moveLeft = false;
+        this.moveRight = false;
+        this.isRunning = false;
+        this.velocity.set(0, 0, 0);
+    }
+
+    syncRotationFromCamera() {
+        const euler = new THREE.Euler().setFromQuaternion(this.camera.quaternion, 'YXZ');
+        this.targetRotationX = euler.x;
+        this.targetRotationY = euler.y;
+        this.camera.rotation.set(this.targetRotationX, this.targetRotationY, 0, 'YXZ');
     }
 }

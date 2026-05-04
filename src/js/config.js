@@ -31,7 +31,7 @@ const CONFIG = {
 
     lighting: {
         physicallyCorrect: true,
-        exposure: 1,
+        exposure: 0.75,
         shadowBias: -0.0001
     },
 
@@ -69,7 +69,7 @@ const CONFIG = {
 
     colors: {
         background: 0x202020,
-        fog: 0x202020,
+        fog: 0x1c1b18,
         lights: {
             ambient: 0xffffff,
             spot: 0xfff0dd
@@ -96,5 +96,4 @@ function checkWebGLSupport() {
         return false;
     }
 }
-
 

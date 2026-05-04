@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const candidates = [
+  'src/js/main.js',
   'src/index.js',
   'src/main.js',
   'index.js',

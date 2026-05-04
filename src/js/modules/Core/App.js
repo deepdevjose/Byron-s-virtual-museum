@@ -34,11 +34,24 @@ export class App {
 
         this.artworksData = [];
         this.walkingTime = 0;
+        this.cameraMotionState = {
+            phase: 0,
+            intensity: 0,
+            breatheTime: 0
+        };
         this.headBobConfig = {
-            frequency: 4.5,
-            amplitude: 0.03,
-            amplitudeHorizontal: 0.015,
-            enabled: true
+            enabled: true,
+            walkFrequency: 6.6,
+            runFrequency: 9.1,
+            verticalWalk: 0.028,
+            verticalRun: 0.048,
+            pitchWalk: 0.006,
+            pitchRun: 0.011,
+            rollWalk: 0.012,
+            rollRun: 0.022,
+            yawWalk: 0.003,
+            yawRun: 0.006,
+            settleSpeed: 7.5
         };
     }
 
@@ -130,7 +143,7 @@ export class App {
         this.physics = new Physics(this.camera, this.controls);
 
         this.lighting = new Lighting(this.scene);
-        this.lighting.setup();
+        this.lighting.setup(this.artworksData);
 
         this.environment = new Environment(this.scene, this.renderer);
         this.environment.setup();
@@ -142,7 +155,7 @@ export class App {
         this.artworkInteraction = new ArtworkInteraction(
             this.camera,
             this.renderer,
-            (artwork) => this.selectArtwork(artwork)
+            (artwork, options) => this.selectArtwork(artwork, options)
         );
         this.artworkInteraction.updateTargets(this.gallery.artworks);
 
@@ -167,8 +180,8 @@ export class App {
         });
     }
 
-    selectArtwork(artwork) {
-        this.artworkPanel.show(artwork);
+    selectArtwork(artwork, options = {}) {
+        this.artworkPanel.show(artwork, options);
     }
 
     showControlInstructions() {
@@ -354,7 +367,7 @@ export class App {
         } else {
             this.controls.update(deltaTime);
             this.physics.update(deltaTime, this.gallery.decorationCollisions, this.gallery.museumObjects);
-            this.applyHeadBob(deltaTime);
+            this.applyOrganicCameraMotion(deltaTime);
         }
 
         this.renderer.render(this.scene, this.camera);
@@ -372,21 +385,58 @@ export class App {
         }
     }
 
-    applyHeadBob(deltaTime) {
+    applyOrganicCameraMotion(deltaTime) {
         if (!this.headBobConfig.enabled) return;
 
         const velocity = this.controls.velocity;
-        const isMoving = Math.abs(velocity.x) > 0.1 || Math.abs(velocity.z) > 0.1;
+        const horizontalSpeed = Math.hypot(velocity.x, velocity.z);
+        const isMoving = horizontalSpeed > 0.08;
+        const runBlend = this.controls.isRunning
+            ? THREE.MathUtils.clamp(horizontalSpeed / CONFIG.movement.runSpeed, 0, 1)
+            : 0;
+        const targetIntensity = isMoving
+            ? THREE.MathUtils.clamp(horizontalSpeed / CONFIG.movement.walkSpeed, 0, 1)
+            : 0;
+        const response = 1 - Math.exp(-this.headBobConfig.settleSpeed * deltaTime);
         const baseHeight = CONFIG.movement.height;
 
-        if (isMoving) {
-            this.walkingTime += deltaTime * this.headBobConfig.frequency;
-            this.camera.position.y = baseHeight + Math.sin(this.walkingTime * 2) * this.headBobConfig.amplitude;
-            this.camera.rotation.z = Math.cos(this.walkingTime) * this.headBobConfig.amplitudeHorizontal;
-        } else {
-            this.camera.position.y = THREE.MathUtils.lerp(this.camera.position.y, baseHeight, deltaTime * 5);
-            this.camera.rotation.z = THREE.MathUtils.lerp(this.camera.rotation.z, 0, deltaTime * 5);
-        }
+        this.cameraMotionState.intensity = THREE.MathUtils.lerp(
+            this.cameraMotionState.intensity,
+            targetIntensity,
+            response
+        );
+        this.cameraMotionState.breatheTime += deltaTime;
+
+        const strideFrequency = THREE.MathUtils.lerp(
+            this.headBobConfig.walkFrequency,
+            this.headBobConfig.runFrequency,
+            runBlend
+        );
+        this.cameraMotionState.phase += deltaTime * strideFrequency * (0.65 + this.cameraMotionState.intensity * 0.45);
+        this.walkingTime = this.cameraMotionState.phase;
+
+        const phase = this.cameraMotionState.phase;
+        const intensity = this.cameraMotionState.intensity;
+        const verticalAmplitude = THREE.MathUtils.lerp(this.headBobConfig.verticalWalk, this.headBobConfig.verticalRun, runBlend);
+        const pitchAmplitude = THREE.MathUtils.lerp(this.headBobConfig.pitchWalk, this.headBobConfig.pitchRun, runBlend);
+        const rollAmplitude = THREE.MathUtils.lerp(this.headBobConfig.rollWalk, this.headBobConfig.rollRun, runBlend);
+        const yawAmplitude = THREE.MathUtils.lerp(this.headBobConfig.yawWalk, this.headBobConfig.yawRun, runBlend);
+
+        const stepLift = Math.abs(Math.sin(phase));
+        const heelDrop = Math.sin(phase * 2 + 0.35);
+        const breath = Math.sin(this.cameraMotionState.breatheTime * 1.25) * 0.004 * (1 - intensity);
+        const verticalOffset = ((stepLift * verticalAmplitude) + (heelDrop * verticalAmplitude * 0.28)) * intensity + breath;
+        const pitchOffset = Math.sin(phase * 2 + 0.8) * pitchAmplitude * intensity;
+        const rollOffset = Math.sin(phase) * rollAmplitude * intensity;
+        const yawOffset = Math.sin(phase + Math.PI * 0.5) * yawAmplitude * intensity;
+
+        this.camera.position.y = THREE.MathUtils.lerp(this.camera.position.y, baseHeight + verticalOffset, response);
+        this.camera.rotation.set(
+            this.controls.targetRotationX + pitchOffset,
+            this.controls.targetRotationY + yawOffset,
+            rollOffset,
+            'YXZ'
+        );
     }
 
     onWindowResize() {

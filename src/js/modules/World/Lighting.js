@@ -17,7 +17,7 @@ export class Lighting {
         this.fixtures = [];
     }
 
-    setup() {
+    setup(artworksData = []) {
         /** Ambient Light */
 
         const ambientLight = new THREE.AmbientLight(0x9a8d7d, 0.26);
@@ -37,7 +37,7 @@ export class Lighting {
 
         /** Spotlights for Artworks (RESTORED) */
 
-        this.createRealisticSpotlights();
+        this.createRealisticSpotlights(artworksData);
 
         /** Wall Sconces (RESTORED) */
 
@@ -132,42 +132,14 @@ export class Lighting {
 
     /** RESTORED: Original spotlights for artwork */
 
-    createRealisticSpotlights() {
+    createRealisticSpotlights(artworksData = []) {
         const UNIFIED_COLOR = 0xffffff;
-        const UNIFIED_INTENSITY = 24;
+        const UNIFIED_INTENSITY = 22;
         const UNIFIED_DISTANCE = 22;
         const UNIFIED_ANGLE = Math.PI / 6;
         const UNIFIED_PENUMBRA = 0.7;
         const UNIFIED_DECAY = 1.0;
-
-        const spotLightConfigs = [
-            /** Front wall */
-
-            { pos: [-10, 4.4, -12], target: [-10, 2.2, -13.7] },
-            { pos: [-5, 4.4, -12], target: [-5, 2.2, -13.7] },
-            { pos: [0, 4.4, -12], target: [0, 2.3, -13.7] },
-            { pos: [5, 4.4, -12], target: [5, 2.2, -13.7] },
-            { pos: [10, 4.4, -12], target: [10, 2.2, -13.7] },
-            /** Left wall */
-
-            { pos: [-12, 4.4, -7.5], target: [-13.7, 2.2, -7.5] },
-            { pos: [-12, 4.4, -2.5], target: [-13.7, 2.2, -2.5] },
-            { pos: [-12, 4.4, 2.5], target: [-13.7, 2.2, 2.5] },
-            { pos: [-12, 4.4, 7.5], target: [-13.7, 2.2, 7.5] },
-            /** Right wall */
-
-            { pos: [12, 4.4, -7.5], target: [13.7, 2.2, -7.5] },
-            { pos: [12, 4.4, -2.5], target: [13.7, 2.2, -2.5] },
-            { pos: [12, 4.4, 2.5], target: [13.7, 2.2, 2.5] },
-            { pos: [12, 4.4, 7.5], target: [13.7, 2.2, 7.5] },
-            /** Back wall */
-
-            { pos: [-9, 4.4, 12], target: [-9, 2.2, 13.7] },
-            { pos: [-4.5, 4.4, 12], target: [-4.5, 2.2, 13.7] },
-            { pos: [0, 4.4, 12], target: [0, 2.3, 13.7] },
-            { pos: [4.5, 4.4, 12], target: [4.5, 2.2, 13.7] },
-            { pos: [9, 4.4, 12], target: [9, 2.2, 13.7] }
-        ];
+        const spotLightConfigs = this.createArtworkSpotlightConfigs(artworksData);
 
         spotLightConfigs.forEach(config => {
             const spotLight = new THREE.SpotLight(UNIFIED_COLOR, UNIFIED_INTENSITY, UNIFIED_DISTANCE, UNIFIED_ANGLE, UNIFIED_PENUMBRA, UNIFIED_DECAY);
@@ -181,6 +153,24 @@ export class Lighting {
             this.spotlights.push(spotLight);
 
             this.createSpotlightFixture(config.pos);
+        });
+    }
+
+    createArtworkSpotlightConfigs(artworksData) {
+        if (!Array.isArray(artworksData) || artworksData.length === 0) {
+            return [];
+        }
+
+        return artworksData.map((artwork) => {
+            const target = artwork.position || [0, 2.2, 0];
+            const rotationY = Array.isArray(artwork.rotation) ? artwork.rotation[1] : 0;
+            const normal = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), rotationY);
+            const lightPosition = new THREE.Vector3(target[0], 4.4, target[2]).addScaledVector(normal, 1.7);
+
+            return {
+                pos: [lightPosition.x, lightPosition.y, lightPosition.z],
+                target: [target[0], target[1], target[2]]
+            };
         });
     }
 

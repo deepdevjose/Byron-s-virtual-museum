@@ -43,9 +43,10 @@ export class ArtworkPanel {
         });
     }
 
-    show(artwork) {
+    show(artwork, options = {}) {
         if (!artwork || !artwork.data) return;
 
+        this.stopAudioGuide();
         this.currentArtwork = artwork;
         const data = artwork.data;
         this.panel.querySelector('.artwork-panel__title').textContent = data.title;
@@ -54,9 +55,19 @@ export class ArtworkPanel {
         this.panel.querySelector('.artwork-panel__description').textContent = data.description;
 
         const audioButton = this.panel.querySelector('[data-action="audio"]');
+        const detailButton = this.panel.querySelector('[data-action="detail"]');
         audioButton.hidden = !data.audio;
+        detailButton.textContent = data.video ? 'Ver animación' : 'Ver detalle';
 
         this.panel.classList.add('is-visible');
+
+        if (options.playAudio && data.audio) {
+            this.playAudioGuide();
+        }
+
+        if (options.openDetail) {
+            this.openDetail(artwork, { autoplayVideo: true });
+        }
     }
 
     hide() {
@@ -65,7 +76,7 @@ export class ArtworkPanel {
         this.stopAudioGuide();
     }
 
-    openDetail(artwork = this.currentArtwork) {
+    openDetail(artwork = this.currentArtwork, options = {}) {
         if (!artwork || !artwork.data) return;
 
         if (document.pointerLockElement) {
@@ -79,15 +90,22 @@ export class ArtworkPanel {
         const content = modal.querySelector('.modal-content');
         if (!content) return;
 
+        this.stopDetailMedia(modal);
+
+        const hasVideo = Boolean(data.video);
+        const mediaMarkup = hasVideo
+            ? this.createVideoMarkup(data, options)
+            : this.createImageMarkup(data);
+
         content.className = 'modal-content artwork-detail';
         content.setAttribute('data-ui-interactive', 'true');
         content.innerHTML = `
             <button id="close-modal" class="close-btn" type="button" data-ui-interactive="true">&times;</button>
-            <div class="artwork-detail__image-wrap">
-                <img class="artwork-detail__image" src="${this.escapeAttribute(data.image)}" alt="${this.escapeAttribute(data.title)}">
+            <div class="artwork-detail__media-wrap${hasVideo ? ' artwork-detail__media-wrap--video' : ''}">
+                ${mediaMarkup}
             </div>
             <div class="artwork-detail__body">
-                <span class="artwork-detail__eyebrow">Obra seleccionada</span>
+                <span class="artwork-detail__eyebrow">${hasVideo ? 'Obra animada' : 'Obra seleccionada'}</span>
                 <h2>${this.escapeHtml(data.title)}</h2>
                 <p class="artwork-detail__meta">${this.escapeHtml(data.artist)} · ${this.escapeHtml(data.year)}</p>
                 <p class="artwork-detail__technique">${this.escapeHtml(data.technique || 'Técnica mixta')}</p>
@@ -97,11 +115,17 @@ export class ArtworkPanel {
 
         content.querySelector('#close-modal').addEventListener('click', () => this.closeDetail());
         modal.classList.add('show');
+
+        const video = content.querySelector('video');
+        if (video && options.autoplayVideo !== false) {
+            video.play().catch(() => {});
+        }
     }
 
     closeDetail() {
         const modal = document.getElementById('video-modal');
         if (modal) {
+            this.stopDetailMedia(modal);
             modal.classList.remove('show');
         }
     }
@@ -124,6 +148,37 @@ export class ArtworkPanel {
         this.audioGuide.pause();
         this.audioGuide.currentTime = 0;
         this.audioGuide = null;
+    }
+
+    stopDetailMedia(modal) {
+        modal.querySelectorAll('video, audio').forEach((media) => {
+            media.pause();
+            media.currentTime = 0;
+        });
+    }
+
+    createVideoMarkup(data) {
+        return `
+            <video
+                class="artwork-detail__video"
+                controls
+                playsinline
+                preload="metadata"
+                poster="${this.escapeAttribute(data.image)}"
+            >
+                <source src="${this.escapeAttribute(data.video)}" type="video/mp4">
+            </video>
+        `;
+    }
+
+    createImageMarkup(data) {
+        return `
+            <img
+                class="artwork-detail__image"
+                src="${this.escapeAttribute(data.image)}"
+                alt="${this.escapeAttribute(data.title)}"
+            >
+        `;
     }
 
     escapeHtml(value) {

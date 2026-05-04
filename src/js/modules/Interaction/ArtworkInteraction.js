@@ -42,7 +42,7 @@ export class ArtworkInteraction {
 
         const selected = this.artworks.find((artwork) => artwork.mesh === hits[0].object);
         if (selected) {
-            this.onArtworkSelected(selected);
+            this.onArtworkSelected(selected, { source: 'click', openDetail: true, playAudio: true });
             return true;
         }
 

@@ -43,12 +43,14 @@ const CONFIG = {
     /** Movement Configuration */
 
     movement: {
-        walkSpeed: 4.0,
-        runSpeed: 7.0,
+        walkSpeed: 3.35,
+        runSpeed: 5.65,
         lookSpeed: 0.002,
         smoothing: 0.18,
-        acceleration: 12.0,
-        friction: 10.0,
+        acceleration: 8.5,
+        deceleration: 7.2,
+        runAcceleration: 7.4,
+        friction: 8.0,
         jumpForce: 0.15, /** Legacy support */
 
         gravity: 0.01,   /** Legacy support */
@@ -96,4 +98,3 @@ function checkWebGLSupport() {
         return false;
     }
 }
-

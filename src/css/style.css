@@ -714,6 +714,7 @@ html {
     background: rgba(20, 18, 16, 0.96);
 }
 
+.artwork-detail__media-wrap,
 .artwork-detail__image-wrap {
     display: flex;
     align-items: center;
@@ -723,12 +724,25 @@ html {
     background: #0f0e0d;
 }
 
-.artwork-detail__image {
+.artwork-detail__media-wrap--video {
+    background:
+        radial-gradient(circle at 50% 38%, rgba(215, 179, 106, 0.12), transparent 52%),
+        #0f0e0d;
+}
+
+.artwork-detail__image,
+.artwork-detail__video {
     display: block;
     max-width: 100%;
     max-height: calc(100vh - 112px);
     object-fit: contain;
     box-shadow: 0 18px 55px rgba(0, 0, 0, 0.38);
+}
+
+.artwork-detail__video {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #050505;
 }
 
 .artwork-detail__body {
@@ -980,6 +994,7 @@ html {
         max-height: calc(100vh - 24px);
     }
 
+    .artwork-detail__media-wrap,
     .artwork-detail__image-wrap {
         min-height: 240px;
         padding: 16px;

@@ -4,6 +4,7 @@ const path = require('path');
 const root = process.cwd();
 const filePath = path.join(root, 'src/data/artworks.json');
 const requiredFields = ['id', 'title', 'artist', 'year', 'technique', 'description', 'image', 'position', 'size'];
+const remoteAssetPattern = /^https?:\/\//i;
 
 function fail(message) {
   console.error(`Artwork validation failed: ${message}`);
@@ -57,11 +58,34 @@ artworks.forEach((artwork, index) => {
   }
 
   if (artwork.audio) {
-    const audioPath = artwork.audio.replace(/^\.\//, '');
-    if (!fs.existsSync(path.join(root, audioPath))) {
-      fail(`"${artwork.id}" audio not found: ${artwork.audio}`);
-    }
+    validateAssetReference(artwork, 'audio');
+  }
+
+  if (artwork.video) {
+    validateAssetReference(artwork, 'video');
   }
 });
 
 console.log(`Artwork validation passed: ${artworks.length} records`);
+
+function validateAssetReference(artwork, field) {
+  const value = artwork[field];
+
+  if (typeof value !== 'string' || value.trim() === '') {
+    fail(`"${artwork.id}" ${field} must be a non-empty string`);
+  }
+
+  if (remoteAssetPattern.test(value)) {
+    try {
+      new URL(value);
+    } catch (error) {
+      fail(`"${artwork.id}" ${field} URL is invalid: ${value}`);
+    }
+    return;
+  }
+
+  const assetPath = value.replace(/^\.\//, '');
+  if (!fs.existsSync(path.join(root, assetPath))) {
+    fail(`"${artwork.id}" ${field} not found: ${value}`);
+  }
+}

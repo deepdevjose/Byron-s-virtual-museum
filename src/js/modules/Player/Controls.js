@@ -19,6 +19,9 @@ export class FirstPersonControls {
 
         this.velocity = new THREE.Vector3();
         this.direction = new THREE.Vector3();
+        this.desiredVelocity = new THREE.Vector3();
+        this.horizontalSpeed = 0;
+        this.speedRatio = 0;
 
         /** Rotation state */
 
@@ -125,43 +128,48 @@ export class FirstPersonControls {
             return;
         }
 
-        const currentSpeed = this.isRunning ? this.config.runSpeed : this.config.walkSpeed;
-
-        /** Friction */
-
-        const friction = this.config.friction;
-        this.velocity.x -= this.velocity.x * friction * deltaTime;
-        this.velocity.z -= this.velocity.z * friction * deltaTime;
-
         /** Direction */
 
         this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
         this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
-        this.direction.normalize();
+        const isMoving = this.direction.lengthSq() > 0;
+        const currentSpeed = this.isRunning ? this.config.runSpeed : this.config.walkSpeed;
 
-        const acceleration = this.config.acceleration;
+        this.desiredVelocity.set(0, 0, 0);
 
-        if (this.moveForward || this.moveBackward) {
-            const forward = new THREE.Vector3(0, 0, -1);
-            forward.applyQuaternion(this.camera.quaternion);
+        if (isMoving) {
+            this.direction.normalize();
+            const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
+            const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
             forward.y = 0;
-            forward.normalize();
-
-            const targetVelocityZ = this.direction.z * currentSpeed;
-            const velocityDiff = targetVelocityZ - (this.velocity.dot(forward));
-            this.velocity.add(forward.clone().multiplyScalar(velocityDiff * acceleration * deltaTime));
-        }
-
-        if (this.moveLeft || this.moveRight) {
-            const right = new THREE.Vector3(1, 0, 0);
-            right.applyQuaternion(this.camera.quaternion);
             right.y = 0;
+            forward.normalize();
             right.normalize();
 
-            const targetVelocityX = this.direction.x * currentSpeed;
-            const velocityDiff = targetVelocityX - (this.velocity.dot(right));
-            this.velocity.add(right.clone().multiplyScalar(velocityDiff * acceleration * deltaTime));
+            const backwardsMultiplier = this.direction.z < 0 ? 0.72 : 1;
+            const strafeMultiplier = Math.abs(this.direction.x) > 0 && Math.abs(this.direction.z) === 0 ? 0.86 : 1;
+            const targetSpeed = currentSpeed * backwardsMultiplier * strafeMultiplier;
+
+            this.desiredVelocity
+                .addScaledVector(forward, this.direction.z * targetSpeed)
+                .addScaledVector(right, this.direction.x * targetSpeed);
         }
+
+        const response = isMoving
+            ? (this.isRunning ? this.config.runAcceleration : this.config.acceleration)
+            : (this.config.deceleration || this.config.friction);
+        const blend = 1 - Math.exp(-response * deltaTime);
+
+        this.velocity.x = THREE.MathUtils.lerp(this.velocity.x, this.desiredVelocity.x, blend);
+        this.velocity.z = THREE.MathUtils.lerp(this.velocity.z, this.desiredVelocity.z, blend);
+
+        if (!isMoving && Math.hypot(this.velocity.x, this.velocity.z) < 0.02) {
+            this.velocity.x = 0;
+            this.velocity.z = 0;
+        }
+
+        this.horizontalSpeed = Math.hypot(this.velocity.x, this.velocity.z);
+        this.speedRatio = currentSpeed > 0 ? THREE.MathUtils.clamp(this.horizontalSpeed / currentSpeed, 0, 1) : 0;
 
         /** Apply Movement */
 
@@ -186,6 +194,9 @@ export class FirstPersonControls {
         this.moveRight = false;
         this.isRunning = false;
         this.velocity.set(0, 0, 0);
+        this.desiredVelocity.set(0, 0, 0);
+        this.horizontalSpeed = 0;
+        this.speedRatio = 0;
     }
 
     syncRotationFromCamera() {

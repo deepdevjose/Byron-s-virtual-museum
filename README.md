@@ -2,7 +2,7 @@
 
 A browser-based virtual museum dedicated to Byron Gálvez, built with Three.js, WebGL, JavaScript, HTML, and CSS. The project presents a navigable 3D gallery with framed artworks, metadata panels, artwork detail modals, guided tour mode, credits, ambient audio, and externally delivered animated artwork videos.
 
-Preview image: add `docs/figures/museum-overview.png` when a current museum screenshot is available.
+![Byron Gálvez Virtual Museum overview](docs/figures/museum-overview.png)
 
 ## Live Demo
 

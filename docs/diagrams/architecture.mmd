@@ -1,0 +1,22 @@
+flowchart TD
+    HTML[index.html] --> Main[src/js/main.js]
+    Main --> App[Core/App.js]
+    Config[src/js/config.js] --> App
+    Data[src/data/artworks.json] --> App
+    App --> Scene[THREE.Scene]
+    App --> Camera[PerspectiveCamera]
+    App --> Renderer[WebGLRenderer]
+    App --> Controls[Player/Controls.js]
+    App --> Physics[World/Physics.js]
+    App --> Lighting[World/Lighting.js]
+    App --> Environment[World/Environment.js]
+    App --> Gallery[World/Gallery.js]
+    App --> Interaction[Interaction/ArtworkInteraction.js]
+    App --> Panel[UI/ArtworkPanel.js]
+    App --> Tour[Tour/TourController.js]
+    App --> Audio[Utils/Audio.js]
+    Gallery --> Artworks[Artwork meshes and labels]
+    Interaction --> Artworks
+    Panel --> Modal[Artwork detail modal]
+    Data --> Cloudinary[Cloudinary video delivery URLs]
+    Cloudinary --> Modal

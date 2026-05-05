@@ -1,0 +1,13 @@
+flowchart TD
+    Start[User enters museum] --> Welcome[Welcome overlay]
+    Welcome --> Free[Free exploration]
+    Welcome --> Guided[Guided tour]
+    Free --> Aim[Look at artwork]
+    Aim --> Select[Select artwork]
+    Guided --> TourStop[Camera moves to artwork stop]
+    TourStop --> Select
+    Select --> Modal[Artwork modal or media detail]
+    Modal --> Close[Close modal]
+    Close --> Continue[Continue exploration or tour]
+    Continue --> Credits[Credits modal]
+    Credits --> End[Session continues or ends]

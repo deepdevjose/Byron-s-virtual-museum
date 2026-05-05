@@ -1,0 +1,9 @@
+flowchart TD
+    Data[Artwork video URL in artworks.json] --> Select[Visitor selects artwork]
+    Select --> Modal[ArtworkPanel opens detail modal]
+    Modal --> Create[Create video markup]
+    Create --> Delivery[Browser requests Cloudinary delivery URL]
+    Delivery --> Playback[Visitor plays or views video]
+    Playback --> Close[Visitor closes modal]
+    Close --> CurrentCleanup[Current cleanup: pause and rewind]
+    Close --> Recommended[Recommended cleanup: remove src and call load]

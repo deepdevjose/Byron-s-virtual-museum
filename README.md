@@ -1,129 +1,205 @@
-# Virtual Museum - Byron Gálvez Gallery
+# Byron Gálvez Virtual Museum
 
-A WebGL-based virtual museum application built with Three.js, featuring photorealistic rendering, physically-based materials, and immersive navigation controls.
+A browser-based virtual museum dedicated to Byron Gálvez, built with Three.js, WebGL, JavaScript, HTML, and CSS. The project presents a navigable 3D gallery with framed artworks, metadata panels, artwork detail modals, guided tour mode, credits, ambient audio, and externally delivered animated artwork videos.
 
-## Technical Overview
+Preview image: add `docs/figures/museum-overview.png` when a current museum screenshot is available.
 
-**Rendering Engine:** Three.js r128 with WebGL 2.0
-**Architecture:** Single-page application with procedural geometry generation  
-**Lighting:** 49-light system with shadow mapping (4 shadow-casting lights max)  
-**Materials:** PBR workflow with metalness, roughness, and transmission properties  
-**Performance:** Optimized for ~60 FPS on mid-range hardware
+## Live Demo
 
-## Core Features
+Deployment URL: Pending.
 
-- **First-person navigation** with pointer lock controls and collision detection
-- **Advanced lighting system** with spotlights, point lights, and directional skylight
-- **Realistic artwork display** with multi-layered frames and LED accent lighting
-- **Interactive modals** with video playback support
-- **Procedural materials** for floors, walls, and architectural elements
-- **Shadow mapping** with PCF soft shadows (2048×2048 resolution)
-- **Tone mapping** using ACES Filmic for cinematic color grading
+The repository does not currently include a deployment configuration or published demo URL.
 
+## Features
+
+- First-person free exploration with desktop keyboard and pointer-lock controls.
+- Runtime mobile controls with joystick, look area, and action button.
+- Procedural 3D gallery environment with floor, walls, ceiling, skylight, decor, and generated materials.
+- Artwork catalog loaded from `src/data/artworks.json`.
+- Framed artwork meshes with image textures and generated in-scene labels.
+- Center-screen raycasting for artwork hover and selection.
+- Artwork side panel and detail modal for image, audio, or video content.
+- Guided tour mode generated from wall-mounted artwork positions.
+- Credits modal and guided-tour completion sequence.
+- FPS counter and standalone validation or benchmark scripts.
+
+## Technology Stack
+
+- Three.js r128
+- WebGL
+- JavaScript ES modules
+- HTML
+- CSS
+- JSON artwork data
+- Cloudinary delivery URLs for artwork videos
+- Node.js for standalone validation scripts
+
+See [`docs/tables/technologies.md`](docs/tables/technologies.md) for a fuller technology table.
+
+## Installation
+
+This is a static web project. There is no `package.json` and no npm install step in the current repository.
+
+Clone the repository, then serve it with a local HTTP server from the repository root:
+
+```bash
+python3 -m http.server 8000
+```
+
+Open:
+
+```text
+http://localhost:8000
+```
+
+Using an HTTP server is recommended because the app fetches `src/data/artworks.json`.
+
+## Development Command
+
+```bash
+python3 -m http.server 8000
+```
+
+## Build Command
+
+No build step is currently configured. The project is designed to run as static files.
+
+## Validation Commands
+
+```bash
+node scripts/smoke-test.js
+node scripts/validate-artworks.js
+```
+
+Browser-console benchmark and verification scripts are available in `scripts/`.
 
 ## Project Structure
 
-```
+```text
 Byron-s-virtual-museum/
-│
-├── index.html                    # Application entry point
-├── README.md                     # Project documentation
-│
-├── src/
-│   ├── js/
-│   │   ├── main.js               # Main Three.js scene logic
-│   │   ├── config.js             # Centralized configuration parameters
-│   │   └── modules/
-│   │       ├── Core/
-│   │       │   └── App.js        # Application bootstrap and core logic
-│   │       ├── Player/
-│   │       │   └── Controls.js   # First-person controls and navigation
-│   │       ├── Utils/
-│   │       │   ├── Audio.js              # Audio management utilities
-│   │       │   ├── FrustumCulling.js     # Frustum culling logic
-│   │       │   ├── LODSystem.js          # Level-of-detail system
-│   │       │   └── OcclusionCulling.js   # Occlusion culling logic
-│   │       └── World/
-│   │           ├── Environment.js        # Environment setup
-│   │           ├── Gallery.js            # Gallery and artwork logic
-│   │           ├── Lighting.js           # Lighting system
-│   │           └── Physics.js            # Physics and collision
-│   ├── css/
-│   │   └── style.css            # UI styling with liquid glass effects
-│   └── assets/
-│       ├── audio/
-│       │   └── ambient_sound.mp3 # Background ambient audio
-│       └── images/               # Artwork and texture images
-│           ├── Amanecer - Byron.jpeg
-│           ├── Bailarina - Byron.jpg
-│           ├── Byron2.png
-│           ├── Copas - Byron.jpg
-│           ├── Escultura de pie - Byron.jpg
-│           ├── Escultura sentada - Byron.jpg
-│           ├── Flautistas - Byron.jpg
-│           ├── Frutas - Byron.jpg
-│           ├── Maquillaje - Byron.jpg
-│           ├── Musicos - Byron.jpg
-│           ├── MusicosM - Byron.jpg
-│           ├── Naturaleza Muerta - Byron.jpg
-│           ├── Rocas y Cielo - Byron.jpg
-│           ├── Vanidad - Byron.jpg
-│           ├── Vela - Byron.jpg
-│           ├── Vela2 - Byron.jpg
-│           ├── Veladoras - Byron.jpg
-│           └── Violincello - Byron.jpg
-│
-├── scripts/                      # Benchmark and verification scripts
-│   ├── benchmark-lod.js          # LOD system performance test
-│   ├── benchmark-occlusion.js    # Occlusion culling benchmark
-│   ├── benchmark-shadows.js      # Shadow system benchmark
-│   ├── smoke-test.js             # Basic scene and asset load test
-│   └── verify-frustum-culling.js # Frustum culling verification
+├── index.html
+├── README.md
+├── docs/
+├── scripts/
+│   ├── benchmark-lod.js
+│   ├── benchmark-occlusion.js
+│   ├── benchmark-shadows.js
+│   ├── smoke-test.js
+│   ├── validate-artworks.js
+│   └── verify-frustum-culling.js
+└── src/
+    ├── assets/
+    │   ├── audio/
+    │   ├── credits/
+    │   └── images/
+    ├── css/
+    │   └── style.css
+    ├── data/
+    │   └── artworks.json
+    └── js/
+        ├── config.js
+        ├── main.js
+        └── modules/
+            ├── Core/
+            ├── Interaction/
+            ├── Player/
+            ├── Tour/
+            ├── UI/
+            ├── Utils/
+            └── World/
 ```
 
-## Technical Specifications
+## Documentation Index
 
-- **Camera:** Perspective, FOV 60°, near 0.1, far 1000
-- **Shadow Resolution:** 2048×2048 for primary lights, 1024×1024 for secondary
-- **Collision System:** 2D circle-based distance checking with push-back
-- **Movement:** WASD controls with velocity-based physics and lerp smoothing
-- **Tone Mapping:** ACESFilmicToneMapping with exposure 0.8
-- **Modular Architecture:** Scene logic, controls, utilities, and world features are organized in ES6 modules for maintainability and scalability.
-- **Utility Scripts:** Dedicated scripts for benchmarking LOD, occlusion, shadows, and verifying culling systems.
-- **Asset Management:** All images and audio are organized under `src/assets` for easy reference and extension.
-## Scripts & Utilities
+- [`docs/00-article-plan.md`](docs/00-article-plan.md)
+- [`docs/01-project-overview.md`](docs/01-project-overview.md)
+- [`docs/02-problem-statement.md`](docs/02-problem-statement.md)
+- [`docs/03-objectives.md`](docs/03-objectives.md)
+- [`docs/04-system-architecture.md`](docs/04-system-architecture.md)
+- [`docs/05-methodology.md`](docs/05-methodology.md)
+- [`docs/06-implementation.md`](docs/06-implementation.md)
+- [`docs/07-gallery-and-artwork-model.md`](docs/07-gallery-and-artwork-model.md)
+- [`docs/08-cloudinary-video-integration.md`](docs/08-cloudinary-video-integration.md)
+- [`docs/09-ui-ux-design.md`](docs/09-ui-ux-design.md)
+- [`docs/10-guided-tour.md`](docs/10-guided-tour.md)
+- [`docs/11-performance-optimization.md`](docs/11-performance-optimization.md)
+- [`docs/12-testing-and-validation.md`](docs/12-testing-and-validation.md)
+- [`docs/13-results.md`](docs/13-results.md)
+- [`docs/14-discussion.md`](docs/14-discussion.md)
+- [`docs/15-limitations.md`](docs/15-limitations.md)
+- [`docs/16-future-work.md`](docs/16-future-work.md)
+- [`docs/17-maintenance-guide.md`](docs/17-maintenance-guide.md)
+- [`docs/code-documentation.md`](docs/code-documentation.md)
 
-The `scripts/` directory contains standalone Node.js/JS scripts for performance testing and verification:
+### Diagrams
 
-- **benchmark-lod.js**: Benchmarks the Level-of-Detail (LOD) system.
-- **benchmark-occlusion.js**: Tests occlusion culling performance.
-- **benchmark-shadows.js**: Evaluates shadow rendering and performance.
-- **smoke-test.js**: Runs a basic scene and asset load test.
-- **verify-frustum-culling.js**: Verifies frustum culling logic.
+- [`docs/diagrams/architecture.mmd`](docs/diagrams/architecture.mmd)
+- [`docs/diagrams/user-flow.mmd`](docs/diagrams/user-flow.mmd)
+- [`docs/diagrams/artwork-interaction-flow.mmd`](docs/diagrams/artwork-interaction-flow.mmd)
+- [`docs/diagrams/cloudinary-video-flow.mmd`](docs/diagrams/cloudinary-video-flow.mmd)
+- [`docs/diagrams/guided-tour-flow.mmd`](docs/diagrams/guided-tour-flow.mmd)
 
-These scripts are useful for profiling, regression testing, and validating optimizations.
+### Tables
 
-## Browser Requirements
+- [`docs/tables/technologies.md`](docs/tables/technologies.md)
+- [`docs/tables/performance-metrics.md`](docs/tables/performance-metrics.md)
+- [`docs/tables/testing-checklist.md`](docs/tables/testing-checklist.md)
+- [`docs/tables/asset-optimization.md`](docs/tables/asset-optimization.md)
 
-## Modular Codebase
+## Cloudinary Video Note
 
-The project is organized into feature-based modules:
+Animated artwork videos are intended to be delivered externally through Cloudinary instead of stored directly in this repository. Artwork records currently include Cloudinary delivery URLs in `src/data/artworks.json`, and the detail modal creates media markup only when an artwork is opened.
 
-- **Core:** Application bootstrap and main logic (`App.js`)
-- **Player:** Navigation and controls (`Controls.js`)
-- **Utils:** Audio, frustum culling, LOD, and occlusion utilities
-- **World:** Environment, gallery, lighting, and physics systems
+Recommended future hardening includes standardized Cloudinary transformations such as:
 
-- Modern browser with WebGL 2.0 support
-- Recommended: Chrome 90+, Firefox 88+, Safari 14+
-- Minimum GPU: Integrated graphics (Intel HD 4000 or equivalent)
+```text
+q_auto,f_auto,w_1280
+```
+
+and stronger modal cleanup that removes media sources and calls `load()` after closing.
+
+## Project Status
+
+Implemented:
+
+- 3D gallery environment.
+- Free exploration controls.
+- Artwork data loading and gallery placement.
+- Artwork interaction and detail modal.
+- Credits modal.
+- Guided tour mode.
+- Cloudinary video URL support in artwork metadata and modal markup.
+- Documentation system for technical article development.
+
+Pending:
+
+- Published live demo URL.
+- Formal performance measurements.
+- Full Cloudinary optimization rollout.
+- Captions and transcripts for media.
+- Broader accessibility review.
+- Cross-browser and mobile validation matrix.
+
+## Roadmap
+
+- Standardize optimized Cloudinary video URLs.
+- Improve artwork metadata and curatorial text.
+- Add captions, transcripts, and expanded audio guides.
+- Improve guided tour narration and controls.
+- Strengthen mobile controls and responsive testing.
+- Add formal performance evaluation.
+- Consider WebXR as a future experimental track.
 
 ## Credits
 
-**Developer:** Jose Manuel Cortes Ceron  
-**Artwork:** Byron Gálvez  
-**License:** Non-commercial use only
+- Development: José Manuel Cortés Cerón
+- Artwork: Byron Gálvez
+- Technologies: Three.js, WebGL, JavaScript, HTML, CSS, Cloudinary
 
----
+## Rights And Usage
 
-*This project is intended for educational and portfolio purposes. All rights reserved. Not for commercial distribution.*
+The visual artworks presented in this project belong to their respective authors or rights holders. This virtual museum is intended for educational, cultural, and dissemination purposes.
+
+## License
+
+No open-source license file is currently included in the repository. Until a license is added, reuse, redistribution, and commercial use should be treated as restricted.

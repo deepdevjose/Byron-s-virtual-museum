@@ -1,0 +1,14 @@
+flowchart TD
+    Look[Visitor aims camera] --> Raycast[ArtworkInteraction raycasts]
+    Raycast --> Hit{Artwork mesh hit?}
+    Hit -- No --> Clear[Clear hover state]
+    Hit -- Yes --> Hover[Set artwork hover]
+    Hover --> Crosshair[Show interactive crosshair]
+    Crosshair --> Click{Visitor clicks or taps action}
+    Click -- No --> Continue[Continue exploration]
+    Click -- Yes --> Select[App.selectArtwork]
+    Select --> Context{Free exploration or tour?}
+    Context -- Free --> Detail[Open detail modal]
+    Context -- Tour --> Panel[Show locked tour panel]
+    Panel --> Detail
+    Detail --> Media[Image, audio, or video content]

@@ -6,7 +6,7 @@ A browser-based virtual museum dedicated to Byron Gálvez, built with Three.js, 
 
 ## Live Demo
 
-Deployment URL: Pending.
+Deployment URL: [Click here to see](https://deepdevjose.github.io/Byron-s-virtual-museum/)
 
 The repository does not currently include a deployment configuration or published demo URL.
 

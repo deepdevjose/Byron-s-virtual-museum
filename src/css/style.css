@@ -685,7 +685,8 @@ html {
 
 .welcome-overlay button,
 .artwork-panel__button,
-.tour-hud__button {
+.tour-hud__button,
+.free-exploration-hud__button {
     min-height: 42px;
     border: 1px solid rgba(255, 255, 255, 0.16);
     border-radius: 6px;
@@ -700,7 +701,8 @@ html {
 
 .welcome-overlay button:hover,
 .artwork-panel__button:hover,
-.tour-hud__button:hover {
+.tour-hud__button:hover,
+.free-exploration-hud__button:hover {
     background: rgba(255, 255, 255, 0.18);
     border-color: rgba(255, 255, 255, 0.28);
     transform: translateY(-1px);
@@ -710,6 +712,39 @@ html {
 .artwork-panel__button--primary {
     background: #d7b36a;
     color: #17130f;
+}
+
+/* ==========================================================================
+   Free Exploration HUD
+   --------------------------------------------------------------------------
+   Lightweight exit control shown while visitors move manually through the
+   museum.
+   ========================================================================== */
+
+.free-exploration-hud {
+    position: fixed;
+    inset: 0;
+    z-index: 1500;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.24s ease;
+}
+
+.free-exploration-hud.is-visible {
+    opacity: 1;
+}
+
+.free-exploration-hud__button {
+    position: fixed;
+    top: 18px;
+    right: 24px;
+    width: max-content;
+    min-width: 0;
+    min-height: 34px;
+    padding: 0 12px;
+    pointer-events: auto;
+    white-space: nowrap;
+    font-size: 12px;
 }
 
 /* ==========================================================================
@@ -1271,6 +1306,11 @@ html {
     }
 
     .tour-hud__button {
+        top: 16px;
+        right: 16px;
+    }
+
+    .free-exploration-hud__button {
         top: 16px;
         right: 16px;
     }

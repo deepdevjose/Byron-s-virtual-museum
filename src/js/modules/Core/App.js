@@ -66,6 +66,8 @@ export class App {
         };
 
         this.startMenuActive = false;
+        this.freeExplorationActive = false;
+        this.freeExplorationHud = null;
         this.creditsModal = null;
         this.creditsAutoCloseTimer = null;
         this.creditsCloseCallback = null;
@@ -231,6 +233,7 @@ export class App {
 
         this.audio = new Audio();
         this.audio.setup();
+        this.createFreeExplorationHud();
         this.updateShadowsIfNeeded();
     }
 
@@ -407,8 +410,13 @@ export class App {
      */
     showControlInstructions() {
         const isMobile = this.detectMobileDevice();
+        document.getElementById('control-instructions')?.remove();
         this.startMenuActive = true;
+        this.freeExplorationActive = false;
+        this.hideFreeExplorationHud();
         this.controls.setEnabled(false);
+        this.controls.setMovementEnabled?.(false);
+        this.controls.setPointerLockEnabled?.(false);
         this.artworkInteraction?.setEnabled(false);
 
         const instructions = document.createElement('div');
@@ -450,6 +458,74 @@ export class App {
         document.getElementById('start-credits')?.addEventListener('click', () => {
             this.openCreditsModal();
         });
+    }
+
+    /**
+     * Creates the free-exploration HUD with the close-tour control.
+     */
+    createFreeExplorationHud() {
+        if (this.freeExplorationHud) return;
+
+        this.freeExplorationHud = document.createElement('div');
+        this.freeExplorationHud.id = 'free-exploration-hud';
+        this.freeExplorationHud.className = 'free-exploration-hud';
+        this.freeExplorationHud.setAttribute('data-ui-interactive', 'true');
+        this.freeExplorationHud.innerHTML = `
+            <button class="free-exploration-hud__button" type="button" data-ui-interactive="true" aria-label="Cerrar recorrido libre">Cerrar recorrido</button>
+        `;
+        this.freeExplorationHud.querySelector('button').addEventListener('click', (event) => {
+            event.stopPropagation();
+            this.endFreeExploration();
+        });
+        document.body.appendChild(this.freeExplorationHud);
+    }
+
+    /**
+     * Shows the free-exploration close control.
+     */
+    showFreeExplorationHud() {
+        this.createFreeExplorationHud();
+        this.freeExplorationHud.classList.add('is-visible');
+    }
+
+    /**
+     * Hides the free-exploration close control.
+     */
+    hideFreeExplorationHud() {
+        this.freeExplorationHud?.classList.remove('is-visible');
+    }
+
+    /**
+     * Removes touch controls that only belong to active free exploration.
+     */
+    removeMobileControls() {
+        document.getElementById('mobile-joystick')?.remove();
+        document.getElementById('mobile-look-area')?.remove();
+        document.getElementById('mobile-action-button')?.remove();
+
+        const crosshair = document.getElementById('crosshair');
+        if (crosshair) {
+            crosshair.classList.remove('active', 'interactive');
+        }
+    }
+
+    /**
+     * Ends free exploration and returns the visitor to the mode chooser.
+     */
+    endFreeExploration() {
+        if (!this.freeExplorationActive) return;
+
+        this.freeExplorationActive = false;
+        this.controls.setEnabled(false);
+        this.controls.setMovementEnabled?.(false);
+        this.controls.setPointerLockEnabled?.(false);
+        this.controls.resetMovement();
+        this.artworkInteraction?.setEnabled(false);
+        this.artworkPanel.closeDetail();
+        this.artworkPanel.hide({ resumeAmbient: true });
+        this.removeMobileControls();
+        this.hideFreeExplorationHud();
+        this.showControlInstructions();
     }
 
     /**
@@ -605,6 +681,8 @@ export class App {
      */
     startGuidedTour() {
         clearTimeout(this.tourCompletionTimer);
+        this.freeExplorationActive = false;
+        this.hideFreeExplorationHud();
         this.artworkPanel.hide({ resumeAmbient: false });
         this.controls.resetMovement();
         this.controls.setEnabled(true);
@@ -683,10 +761,12 @@ export class App {
      * @param {boolean} [options.createMobileControls] - Create touch controls when needed.
      */
     enableFreeExploration(options = {}) {
+        this.freeExplorationActive = true;
         this.controls.setEnabled(true);
         this.controls.setMovementEnabled?.(true);
         this.controls.setPointerLockEnabled?.(true);
         this.artworkInteraction?.setEnabled(true);
+        this.showFreeExplorationHud();
 
         if (options.createMobileControls && this.detectMobileDevice()) {
             this.createMobileControls();

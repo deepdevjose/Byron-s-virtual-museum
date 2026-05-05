@@ -1,21 +1,19 @@
 import * as THREE from 'three';
 
 /**
- * Occlusion Culling System for Museums
- * Useful for:
- * - Very large museums (>100 artworks)
- * - Scenes with many walls/rooms
- * - Very limited hardware
+ * Wall-based occlusion culling utility for museum scenes.
  *
- * Hides artworks that are behind walls or outside the field of view.
+ * This optional utility is intended for large museums, multi-room scenes, or
+ * limited hardware. It hides artworks on walls that are not generally in front
+ * of the camera, while keeping nearby artworks visible to avoid obvious pop-in.
  *
- * How it works:
- * 1. Determines which wall the camera is facing
- * 2. Hides all artworks on other walls
- * 3. Only renders what the user can actually see
+ * Current App does not call this utility during the main loop, but benchmark
+ * scripts use it as a performance experiment.
  */
-
 export class OcclusionCulling {
+    /**
+     * Creates wall definitions, visibility threshold, and statistics.
+     */
     constructor() {
         this.stats = {
             totalObjects: 0,
@@ -24,32 +22,31 @@ export class OcclusionCulling {
             drawCallsSaved: 0
         };
 
-        // Museum walls definition
-
+        // Wall normals describe the visible face direction for each wall.
         this.walls = {
             front: {
-                normal: new THREE.Vector3(0, 0, 1),  /** Faces +Z */
+                normal: new THREE.Vector3(0, 0, 1),
 
                 position: new THREE.Vector3(0, 0, -13.7),
                 name: 'Front Wall'
 
             },
             back: {
-                normal: new THREE.Vector3(0, 0, -1), /** Faces -Z */
+                normal: new THREE.Vector3(0, 0, -1),
 
                 position: new THREE.Vector3(0, 0, 10),
                 name: 'Back Wall'
 
             },
             left: {
-                normal: new THREE.Vector3(1, 0, 0),  /** Faces +X */
+                normal: new THREE.Vector3(1, 0, 0),
 
                 position: new THREE.Vector3(-13.7, 0, 0),
                 name: 'Left Wall'
 
             },
             right: {
-                normal: new THREE.Vector3(-1, 0, 0), /** Faces -X */
+                normal: new THREE.Vector3(-1, 0, 0),
 
                 position: new THREE.Vector3(13.7, 0, 0),
                 name: 'Right Wall'
@@ -57,19 +54,20 @@ export class OcclusionCulling {
             }
         };
 
-        // Visibility threshold (dot product)
-        this.visibilityThreshold = 0.3; // More tolerant = more artworks visible
+        // Dot-product threshold; lower values keep more artworks visible.
+        this.visibilityThreshold = 0.3;
 
 
-        // Assignments cache wall->artworks
-        this.wallAssignments = new Map(); // artwork -> wall
+        // Cache each artwork's nearest wall after the first assignment pass.
+        this.wallAssignments = new Map();
 
     }
 
     /**
-     * Assigns each artwork to its corresponding wall (once at startup)
+     * Assigns each artwork to its nearest wall.
+     *
+     * @param {Array<Object>} artworks - Gallery artwork records with groups.
      */
-
     assignArtworksToWalls(artworks) {
         console.log('Assigning artworks to walls...');
 
@@ -79,8 +77,7 @@ export class OcclusionCulling {
             const pos = new THREE.Vector3();
             artwork.group.getWorldPosition(pos);
 
-            // Determine which wall it belongs to based on position
-
+            // Determine wall ownership by nearest predefined wall position.
             let closestWall = null;
             let minDistance = Infinity;
 
@@ -100,24 +97,22 @@ export class OcclusionCulling {
     }
 
     /**
-     * Calculates which walls are visible from the camera position
+     * Calculates which walls are generally in front of the camera.
+     *
+     * @param {THREE.Vector3} cameraPosition - Current camera position.
+     * @param {THREE.Vector3} cameraDirection - Normalized camera direction.
+     * @returns {string[]} Wall keys that pass the visibility threshold.
      */
-
     getVisibleWalls(cameraPosition, cameraDirection) {
         const visibleWalls = [];
 
         Object.entries(this.walls).forEach(([key, wall]) => {
-            // Vector from camera to wall
-
             const toWall = new THREE.Vector3()
                 .subVectors(wall.position, cameraPosition)
                 .normalize();
 
-            // Dot product between camera direction and direction to wall
-
+            // Positive dot products indicate the wall is in front of the camera.
             const dot = cameraDirection.dot(toWall);
-
-            // If dot product is positive, the wall is in front of the camera
 
             if (dot > this.visibilityThreshold) {
                 visibleWalls.push(key);
@@ -128,23 +123,23 @@ export class OcclusionCulling {
     }
 
     /**
-     * Determines if a specific artwork should be visible
+     * Determines whether one artwork should remain visible.
+     *
+     * @param {Object} artwork - Gallery artwork record.
+     * @param {THREE.Vector3} cameraPosition - Current camera position.
+     * @param {THREE.Vector3} cameraDirection - Normalized camera direction.
+     * @returns {boolean} True when the artwork should be visible.
      */
-
     isArtworkVisible(artwork, cameraPosition, cameraDirection) {
         const artworkWall = this.wallAssignments.get(artwork);
-        if (!artworkWall) return true; // If not assigned, leave visible
+        if (!artworkWall) return true; // If not assigned, leave visible.
 
 
         const wall = this.walls[artworkWall];
 
-        // Vector from camera to wall
-
         const toWall = new THREE.Vector3()
             .subVectors(wall.position, cameraPosition)
             .normalize();
-
-        // Check if looking towards that wall
 
         const dot = cameraDirection.dot(toWall);
 
@@ -160,14 +155,13 @@ export class OcclusionCulling {
     }
 
     /**
-     * Updates visibility of all artworks based on camera position
-     * This is the function called every frame
+     * Updates visibility of all artworks based on camera orientation.
+     *
+     * @param {Array<Object>} artworks - Gallery artwork records.
+     * @param {THREE.Camera} camera - Active camera.
      */
-
     update(artworks, camera) {
         if (this.wallAssignments.size === 0) {
-            // First time - assign artworks to walls
-
             this.assignArtworksToWalls(artworks);
         }
 
@@ -184,8 +178,7 @@ export class OcclusionCulling {
                 cameraDirection
             );
 
-            // Update only if state changed
-
+            // Avoid redundant visibility writes.
             if (artwork.group.visible !== shouldBeVisible) {
                 artwork.group.visible = shouldBeVisible;
             }
@@ -199,14 +192,15 @@ export class OcclusionCulling {
 
         this.stats.visibleObjects = visible;
         this.stats.culledObjects = culled;
-        this.stats.drawCallsSaved = culled * 3; // ~3 draw calls per artwork (frame + artwork)
+        this.stats.drawCallsSaved = culled * 3; // Approximate frame + artwork draw calls.
 
     }
 
     /**
-     * Get culling statistics
+     * Gets culling statistics for diagnostics and benchmark scripts.
+     *
+     * @returns {{total: number, visible: number, culled: number, cullPercentage: number, drawCallsSaved: number}}
      */
-
     getStats() {
         const cullPercentage = this.stats.totalObjects > 0
             ? ((this.stats.culledObjects / this.stats.totalObjects) * 100).toFixed(1)
@@ -222,9 +216,10 @@ export class OcclusionCulling {
     }
 
     /**
-     * Reset assignments (useful if museum geometry changes)
+     * Clears cached wall assignments.
+     *
+     * Useful after changing museum geometry or artwork positions.
      */
-
     reset() {
         this.wallAssignments.clear();
         this.stats.culledObjects = 0;

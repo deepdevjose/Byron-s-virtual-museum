@@ -1,6 +1,20 @@
 import * as THREE from 'three';
 
+/**
+ * Builds artwork displays and decorative museum objects.
+ *
+ * Gallery owns the artwork records used by raycasting, hover effects, physics
+ * collision metadata, and guided-tour lookup. Artwork planes are first created
+ * with fallback materials, then rebuilt after image textures load so the final
+ * frame fits the source image aspect ratio.
+ */
 export class Gallery {
+    /**
+     * @param {THREE.Scene} scene - Scene that receives artwork and decor groups.
+     * @param {THREE.TextureLoader|null} textureLoader - Optional texture loader for tests.
+     * @param {THREE.WebGLRenderer} renderer - Renderer used for texture capability queries.
+     * @param {Function} onArtworkUpdated - Callback invoked after an artwork texture loads.
+     */
     constructor(scene, textureLoader, renderer, onArtworkUpdated) {
         this.scene = scene;
         this.renderer = renderer;
@@ -11,6 +25,12 @@ export class Gallery {
         this.decorationCollisions = [];
     }
 
+    /**
+     * Clears previous gallery state and builds all artworks and decor.
+     *
+     * @param {Array<Object>} [artworksData=[]] - Artwork records from `artworks.json`.
+     * @returns {Promise<Array<PromiseSettledResult<Object>>>} Settled image-load results.
+     */
     setup(artworksData = []) {
         this.artworks = [];
         this.museumObjects = [];
@@ -20,10 +40,26 @@ export class Gallery {
         return Promise.allSettled(artworkLoads);
     }
 
+    /**
+     * Starts creation of every artwork in the catalog.
+     *
+     * @param {Array<Object>} artworksData - Artwork records.
+     * @returns {Array<Promise<Object>>} Promises resolving to artwork records.
+     */
     createRealisticArtworks(artworksData) {
         return artworksData.map((artwork) => this.createRealisticArtwork(artwork));
     }
 
+    /**
+     * Creates one framed artwork group and loads its image texture.
+     *
+     * The group is positioned immediately so the museum remains visible even if
+     * a texture fails. Once the image loads, the group is rebuilt to match the
+     * source aspect ratio and update raycast targets.
+     *
+     * @param {Object} data - Artwork metadata.
+     * @returns {Promise<Object>} Resolves to the gallery artwork record.
+     */
     createRealisticArtwork(data) {
         const artworkGroup = new THREE.Group();
         const artworkRecord = {
@@ -74,6 +110,16 @@ export class Gallery {
         });
     }
 
+    /**
+     * Builds the frame, artwork plane, and wall label for one artwork.
+     *
+     * @param {THREE.Group} artworkGroup - Parent group for artwork meshes.
+     * @param {Object} data - Artwork metadata.
+     * @param {number[]} artworkSize - Final [width, height] in scene units.
+     * @param {THREE.Texture|null} [loadedTexture=null] - Optional artwork image texture.
+     * @param {Object|null} [artworkRecord=null] - Record that receives hover references.
+     * @returns {THREE.Mesh} The clickable artwork plane.
+     */
     buildArtworkGroup(artworkGroup, data, artworkSize, loadedTexture = null, artworkRecord = null) {
         this.createFrame(artworkGroup, artworkSize, Boolean(data.featured), artworkRecord);
         const artworkMesh = this.createArtworkPlane(artworkSize, data, loadedTexture);
@@ -82,6 +128,13 @@ export class Gallery {
         return artworkMesh;
     }
 
+    /**
+     * Fits an image inside the configured maximum artwork dimensions.
+     *
+     * @param {number[]} maxSize - Maximum [width, height] for the artwork.
+     * @param {number} imageAspectRatio - Source image width divided by height.
+     * @returns {number[]} Fitted [width, height] preserving image aspect ratio.
+     */
     fitArtworkSize(maxSize, imageAspectRatio) {
         const maxWidth = maxSize[0];
         const maxHeight = maxSize[1];
@@ -93,6 +146,14 @@ export class Gallery {
         return [maxHeight * imageAspectRatio, maxHeight];
     }
 
+    /**
+     * Creates the extruded artwork frame and backing board.
+     *
+     * @param {THREE.Group} artworkGroup - Parent artwork group.
+     * @param {number[]} artworkSize - Artwork [width, height] in scene units.
+     * @param {boolean} featured - Whether to use the larger featured frame.
+     * @param {Object|null} [artworkRecord=null] - Record that stores hover material references.
+     */
     createFrame(artworkGroup, artworkSize, featured, artworkRecord = null) {
         const frameWidth = featured ? 0.22 : 0.18;
         const outerWidth = artworkSize[0] + frameWidth * 2;
@@ -154,7 +215,7 @@ export class Gallery {
         backing.receiveShadow = true;
         artworkGroup.add(backing);
 
-        // Store references for hover effects
+        // Keep material references so hover state can be restored exactly.
         if (artworkRecord) {
             artworkRecord.frame = frame;
             artworkRecord.backing = backing;
@@ -163,6 +224,17 @@ export class Gallery {
         }
     }
 
+    /**
+     * Creates the clickable artwork plane.
+     *
+     * Texture settings favor visual quality at oblique viewing angles while
+     * staying within the renderer's anisotropy capability.
+     *
+     * @param {number[]} artworkSize - Artwork [width, height] in scene units.
+     * @param {Object} data - Artwork metadata copied into mesh userData.
+     * @param {THREE.Texture|null} loadedTexture - Optional image texture.
+     * @returns {THREE.Mesh} Artwork plane mesh.
+     */
     createArtworkPlane(artworkSize, data, loadedTexture) {
         const artworkGeometry = new THREE.PlaneGeometry(artworkSize[0], artworkSize[1]);
         let artworkMaterial;
@@ -210,6 +282,16 @@ export class Gallery {
         return artworkMesh;
     }
 
+    /**
+     * Generates a canvas-based wall label for one artwork.
+     *
+     * Canvas text is converted to a texture so labels exist inside the 3D scene
+     * and receive the same camera perspective as the framed work.
+     *
+     * @param {THREE.Group} artworkGroup - Parent artwork group.
+     * @param {Object} data - Artwork metadata used for label text.
+     * @param {number[]} artworkSize - Artwork [width, height] in scene units.
+     */
     createArtworkLabel(artworkGroup, data, artworkSize) {
         const canvas = document.createElement('canvas');
         canvas.width = 1024;
@@ -261,6 +343,17 @@ export class Gallery {
         artworkGroup.add(label);
     }
 
+    /**
+     * Draws wrapped text onto a canvas context.
+     *
+     * @param {CanvasRenderingContext2D} ctx - Canvas context.
+     * @param {string} text - Text to draw.
+     * @param {number} x - Left drawing coordinate.
+     * @param {number} y - Baseline of the first line.
+     * @param {number} maxWidth - Maximum line width in pixels.
+     * @param {number} lineHeight - Line height in pixels.
+     * @param {number} maxLines - Maximum number of rendered lines.
+     */
     wrapText(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
         const words = String(text || '').split(' ');
         let line = '';
@@ -288,6 +381,14 @@ export class Gallery {
         ctx.fillText(line.trim(), x, y);
     }
 
+    /**
+     * Shortens canvas text with an ellipsis until it fits the target width.
+     *
+     * @param {CanvasRenderingContext2D} ctx - Canvas context used for measurement.
+     * @param {string} text - Text to truncate.
+     * @param {number} maxWidth - Maximum width in pixels.
+     * @returns {string} Truncated text with an ellipsis.
+     */
     truncateText(ctx, text, maxWidth) {
         let value = text;
         while (ctx.measureText(`${value}...`).width > maxWidth && value.length > 0) {
@@ -296,39 +397,51 @@ export class Gallery {
         return `${value.trim()}...`;
     }
 
+    /**
+     * Updates frame and backing materials for artwork hover feedback.
+     *
+     * @param {Object} artwork - Gallery artwork record.
+     * @param {boolean} isHovered - Whether the artwork is currently targeted.
+     */
     setArtworkHoverState(artwork, isHovered) {
         if (!artwork || !artwork.frame) return;
 
         artwork.isHovered = isHovered;
 
         if (isHovered) {
-            // Highlight frame with a golden/warm color
-            const hoverColor = new THREE.Color(0xd4af37); // Gold color
+            const hoverColor = new THREE.Color(0xd4af37);
             artwork.frame.material.color.copy(hoverColor);
             artwork.frame.material.metalness = 0.35;
             artwork.frame.material.roughness = 0.3;
             artwork.frame.material.emissive = new THREE.Color(0x4a4020);
             artwork.frame.material.emissiveIntensity = 0.15;
             
-            // Subtly brighten backing
+            // Brighten the backing just enough to make targeting readable.
             artwork.backing.material.color.copy(new THREE.Color(0x2a2420));
         } else {
-            // Restore original colors
             artwork.frame.material.color.copy(artwork.originalFrameColor);
             artwork.frame.material.metalness = 0.18;
             artwork.frame.material.roughness = 0.46;
             artwork.frame.material.emissive = new THREE.Color(0x000000);
             artwork.frame.material.emissiveIntensity = 0;
             
-            // Restore backing
             artwork.backing.material.color.copy(artwork.originalBackingColor);
         }
     }
 
+    /**
+     * Finds an artwork record by its catalog id.
+     *
+     * @param {string} id - Artwork id from `artworks.json`.
+     * @returns {Object|null} Matching artwork record, or null when missing.
+     */
     getArtworkById(id) {
         return this.artworks.find((artwork) => artwork.id === id) || null;
     }
 
+    /**
+     * Creates non-artwork museum objects and their collision metadata.
+     */
     createMuseumObjects() {
         this.createLowCenterTable({
             position: [0, 0, 0],
@@ -359,6 +472,14 @@ export class Gallery {
         });
     }
 
+    /**
+     * Adds the central glass-topped table and circular collision boundary.
+     *
+     * @param {Object} config - Table configuration.
+     * @param {number[]} config.position - [x, y, z] scene position.
+     * @param {string} config.title - Display/debug title.
+     * @param {string} config.description - Display/debug description.
+     */
     createLowCenterTable(config) {
         const { position, title, description } = config;
         const tableGroup = new THREE.Group();
@@ -404,6 +525,13 @@ export class Gallery {
         this.museumObjects.push({ group: tableGroup, config: { ...config, type: 'table' } });
     }
 
+    /**
+     * Adds a bench and its collision boundary.
+     *
+     * @param {number[]} position - [x, y, z] scene position.
+     * @param {number} rotationY - Y-axis rotation in radians.
+     * @param {string} title - Display/debug title.
+     */
     createMuseumBench(position, rotationY, title) {
         const benchGroup = new THREE.Group();
         const woodMaterial = new THREE.MeshPhysicalMaterial({
@@ -458,6 +586,13 @@ export class Gallery {
         this.museumObjects.push({ group: benchGroup, config: { position, title, type: 'bench' } });
     }
 
+    /**
+     * Adds a decorative podium with a sculptural object and collision boundary.
+     *
+     * @param {Object} config - Podium configuration.
+     * @param {number[]} config.position - [x, y, z] scene position.
+     * @param {string} config.title - Display/debug title.
+     */
     createPodiumWithRope(config) {
         const { position, title } = config;
         const podiumGroup = new THREE.Group();
@@ -508,6 +643,13 @@ export class Gallery {
         this.museumObjects.push({ group: podiumGroup, config: { ...config, type: 'podium' } });
     }
 
+    /**
+     * Adds a freestanding wall segment and broad collision boundary.
+     *
+     * @param {Object} config - Wall configuration.
+     * @param {number[]} config.position - [x, y, z] scene position.
+     * @param {number} config.rotation - Y-axis rotation in radians.
+     */
     createFloatingWall(config) {
         const { position, rotation } = config;
         const wallGroup = new THREE.Group();

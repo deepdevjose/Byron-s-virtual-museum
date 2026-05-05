@@ -1,23 +1,43 @@
 import * as THREE from 'three';
 import CONFIG from '../../config.js';
 
+/**
+ * Constructs the static museum environment.
+ *
+ * Environment owns the architectural shell, procedural texture generation,
+ * ceiling details, skylight glass, chandelier, pillars, and baseboards. Most
+ * meshes are static and can safely rely on the app's manual shadow refresh.
+ */
 export class Environment {
+    /**
+     * @param {THREE.Scene} scene - Scene that receives environment geometry.
+     * @param {THREE.WebGLRenderer} renderer - Renderer used for texture capability queries.
+     */
     constructor(scene, renderer) {
         this.scene = scene;
         this.renderer = renderer;
         this.walls = [];
     }
 
+    /**
+     * Builds the sky/environment backdrop and the gallery architecture.
+     */
     setup() {
         this.loadEnvironmentMap();
         this.createRealisticGallery();
     }
 
+    /**
+     * Adds a large inward-facing gradient sphere around the museum.
+     *
+     * The PMREM generator is prepared for environment lighting compatibility,
+     * although this module currently uses a shader sky instead of an HDR map.
+     */
     loadEnvironmentMap() {
         const pmremGenerator = new THREE.PMREMGenerator(this.renderer);
         pmremGenerator.compileEquirectangularShader();
 
-        /** Create realistic sky gradient */
+        /** Create a realistic sky gradient. */
 
         const skyGeometry = new THREE.SphereGeometry(100, 32, 32);
         const skyMaterial = new THREE.ShaderMaterial({
@@ -53,10 +73,13 @@ export class Environment {
         this.scene.add(sky);
     }
 
+    /**
+     * Creates the main floor, perimeter walls, ceiling, and architectural trim.
+     */
     createRealisticGallery() {
         this.walls = [];
 
-        /** Floor Logic */
+        /** Floor surface. */
 
         const floorTexture = this.createCuratedFloorTexture();
         const floorMaterial = new THREE.MeshStandardMaterial({
@@ -79,13 +102,13 @@ export class Environment {
         floor.receiveShadow = true;
         this.scene.add(floor);
 
-        /** Walls Logic */
+        /** Perimeter walls. */
 
         const wallTextures = this.createWallTextures();
         const wallHeight = 4.8;
         const wallThickness = 0.25;
 
-        /** Back Wall */
+        /** Back wall. */
 
         const backWallGeometry = new THREE.BoxGeometry(28, wallHeight, wallThickness, 8, 8, 1);
         const backWallMaterial = new THREE.MeshPhysicalMaterial({
@@ -105,7 +128,7 @@ export class Environment {
         this.scene.add(backWall);
         this.walls.push(backWall);
 
-        /** Front Wall */
+        /** Front wall. */
 
         const frontWallGeometry = new THREE.BoxGeometry(28, wallHeight, wallThickness, 8, 8, 1);
         const frontWallMaterial = new THREE.MeshPhysicalMaterial({
@@ -123,7 +146,7 @@ export class Environment {
         this.scene.add(frontWall);
         this.walls.push(frontWall);
 
-        /** Side Walls */
+        /** Side walls. */
 
         const sideWallGeometry = new THREE.BoxGeometry(wallThickness, wallHeight, 28, 1, 8, 8);
         const sideWallMaterial = new THREE.MeshPhysicalMaterial({
@@ -135,7 +158,7 @@ export class Environment {
             envMapIntensity: 0.14
         });
 
-        /** Left */
+        /** Left wall. */
 
         const leftWall = new THREE.Mesh(sideWallGeometry, sideWallMaterial);
         leftWall.position.set(-14, wallHeight / 2, 0);
@@ -144,7 +167,7 @@ export class Environment {
         this.scene.add(leftWall);
         this.walls.push(leftWall);
 
-        /** Right */
+        /** Right wall. */
 
         const rightWall = new THREE.Mesh(sideWallGeometry, sideWallMaterial);
         rightWall.position.set(14, wallHeight / 2, 0);
@@ -157,8 +180,13 @@ export class Environment {
         this.createArchitecturalDetails(wallTextures);
     }
 
+    /**
+     * Creates the closed ceiling and suspended decorative details.
+     *
+     * @param {Object} wallTextures - Procedural wall texture set.
+     */
     createCompleteCeiling(wallTextures) {
-        /** Use plaster texture for ceiling if available */
+        /** Use plaster texture for ceiling if available. */
 
         const ceilingMaterial = new THREE.MeshPhysicalMaterial({
             map: wallTextures ? wallTextures.plaster : null,
@@ -175,7 +203,7 @@ export class Environment {
             ceilingMaterial.map.wrapT = THREE.RepeatWrapping;
         }
 
-        /** Main Ceiling COMPLETE - no openings */
+        /** Main ceiling slab with no physical opening. */
 
         const mainCeilingGeometry = new THREE.BoxGeometry(28, 0.2, 28);
         const mainCeiling = new THREE.Mesh(mainCeilingGeometry, ceilingMaterial);
@@ -189,12 +217,15 @@ export class Environment {
         this.createCeilingBeams(wallTextures);
     }
 
+    /**
+     * Adds the decorative skylight frame and transparent glass plane.
+     */
     createSkylight() {
-        /** Raised Skylight Frame */
+        /** Raised skylight frame. */
 
         const frameThickness = 0.15;
         const skylightSize = 8;
-        const elevation = 0.3; /** Elevation above ceiling */
+        const elevation = 0.3; /** Elevation above the ceiling. */
 
 
         const frameMaterial = new THREE.MeshPhysicalMaterial({
@@ -204,16 +235,16 @@ export class Environment {
             envMapIntensity: 1.0
         });
 
-        /** Raised Outer Frame */
+        /** Raised outer frame. */
 
         const frameGeometry = new THREE.BoxGeometry(skylightSize + frameThickness * 2, frameThickness, skylightSize + frameThickness * 2);
         const frame = new THREE.Mesh(frameGeometry, frameMaterial);
         frame.position.set(0, 5.0 + elevation, 0);
-        frame.castShadow = false; /** Optimization: no shadows on decorative elements */
+        frame.castShadow = false; /** Decorative metal does not need to update shadow maps. */
 
         this.scene.add(frame);
 
-        /** Skylight Walls (to create depth) */
+        /** Skylight walls add visual depth above the ceiling plane. */
 
         const wallHeight = elevation;
         const skylightWalls = [
@@ -227,13 +258,13 @@ export class Environment {
             const wallGeometry = new THREE.BoxGeometry(...wall.size);
             const wallMesh = new THREE.Mesh(wallGeometry, frameMaterial);
             wallMesh.position.set(...wall.pos);
-            wallMesh.castShadow = false; /** Optimization: no shadows */
+            wallMesh.castShadow = false; /** Decorative depth walls skip shadow casting. */
 
             wallMesh.receiveShadow = true;
             this.scene.add(wallMesh);
         });
 
-        /** Skylight Glass with realistic physical properties */
+        /** Skylight glass with physical transparency settings. */
 
         const glassGeometry = new THREE.PlaneGeometry(skylightSize, skylightSize);
         const glassMaterial = new THREE.MeshPhysicalMaterial({
@@ -254,20 +285,25 @@ export class Environment {
         this.scene.add(glass);
     }
 
+    /**
+     * Adds ceiling beams with repeated procedural material.
+     *
+     * @param {Object} wallTextures - Procedural wall texture set.
+     */
     createCeilingBeams(wallTextures) {
-        /** Wood-look beams (Concrete texture stained dark brown) */
+        /** Wood-look beams using a darkened concrete texture. */
 
         const beamMaterial = new THREE.MeshPhysicalMaterial({
             map: wallTextures ? wallTextures.concrete : null,
             normalMap: wallTextures ? wallTextures.concreteNormal : null,
-            color: 0x5c4033, /** Dark wood brown */
+            color: 0x5c4033, /** Dark wood-brown tint. */
 
             roughness: 0.8,
             metalness: 0.0,
             envMapIntensity: 0.2
         });
 
-        /** Ensure texture repeats well on thin beams */
+        /** Ensure texture repeats well on thin beams. */
 
         if (beamMaterial.map) {
             beamMaterial.map.repeat.set(4, 1);
@@ -280,19 +316,19 @@ export class Environment {
             beamMaterial.normalMap.wrapT = THREE.RepeatWrapping;
         }
 
-        /** Define thinner dimensions for beams (Before: 0.3 x 0.5) */
+        /** Thin beam dimensions sized to sit close to the ceiling. */
 
-        const beamW = 0.15; /** Thinner */
+        const beamW = 0.15;
 
-        const beamH = 0.25; /** Less tall */
+        const beamH = 0.25;
 
-        const beamL = 28;   /** Full length */
+        const beamL = 28;
 
 
-        /** Main Beams (Longitudinal X) */
+        /** Main longitudinal beams. */
 
         const mainBeamPositions = [
-            { size: [beamW, beamH, beamL], pos: [-4, 4.9 - beamH / 2, 0] }, /** Adjust height to stick to ceiling (4.9 is ceiling height) */
+            { size: [beamW, beamH, beamL], pos: [-4, 4.9 - beamH / 2, 0] },
 
             { size: [beamW, beamH, beamL], pos: [4, 4.9 - beamH / 2, 0] },
             { size: [beamW, beamH, beamL], pos: [-8, 4.9 - beamH / 2, 0] },
@@ -309,7 +345,7 @@ export class Environment {
             this.scene.add(beamMesh);
         });
 
-        /** Cross Beams (Z) - Creating a grid */
+        /** Cross beams complete the ceiling grid. */
 
         const crossBeamPositions = [
             { size: [beamL, beamH, beamW], pos: [0, 4.9 - beamH / 2, -4] },
@@ -321,8 +357,7 @@ export class Environment {
         ];
 
         crossBeamPositions.forEach(beam => {
-            /** Avoid overlap with central skylight (approx -4 to 4 in X/Z) if necessary, */
-            /** but the original design crossed or cut them. We let them cross for 'rustic' aesthetic. */
+            /** Beams intentionally cross the decorative skylight for the current design. */
 
             const beamMesh = new THREE.Mesh(new THREE.BoxGeometry(...beam.size), beamMaterial);
             beamMesh.position.set(...beam.pos);
@@ -332,10 +367,13 @@ export class Environment {
         });
     }
 
+    /**
+     * Adds the central chandelier and one low-cost point light.
+     */
     createCenterChandelier() {
         const chandelierGroup = new THREE.Group();
 
-        /** Materials */
+        /** Shared chandelier materials. */
 
         const metalMaterial = new THREE.MeshPhysicalMaterial({
             color: 0x1a1a1a,
@@ -363,21 +401,21 @@ export class Environment {
             emissiveIntensity: 0.4
         });
 
-        /** Central support chain/tube */
+        /** Central support chain/tube. */
 
         const chainGeometry = new THREE.CylinderGeometry(0.03, 0.03, 0.8, 8);
         const chain = new THREE.Mesh(chainGeometry, metalMaterial);
         chain.position.y = 4.5;
         chandelierGroup.add(chain);
 
-        /** Upper base (ceiling rosette) */
+        /** Upper base (ceiling rosette). */
 
         const rosetteGeometry = new THREE.CylinderGeometry(0.15, 0.12, 0.08, 16);
         const rosette = new THREE.Mesh(rosetteGeometry, goldMaterial);
         rosette.position.y = 4.9;
         chandelierGroup.add(rosette);
 
-        /** Main lamp body (circular crown) */
+        /** Main lamp body (circular crown). */
 
         const crownGeometry = new THREE.TorusGeometry(0.6, 0.08, 8, 24);
         const crown = new THREE.Mesh(crownGeometry, goldMaterial);
@@ -385,13 +423,13 @@ export class Environment {
         crown.rotation.x = Math.PI / 2;
         chandelierGroup.add(crown);
 
-        /** Decorative arms (6 arms) */
+        /** Decorative arms. */
 
         const numArms = 6;
         for (let i = 0; i < numArms; i++) {
             const angle = (i / numArms) * Math.PI * 2;
 
-            /** Curved arm */
+            /** Curved arm. */
 
             const armGeometry = new THREE.CylinderGeometry(0.025, 0.02, 0.4, 8);
             const arm = new THREE.Mesh(armGeometry, goldMaterial);
@@ -400,12 +438,12 @@ export class Environment {
             arm.position.x = Math.cos(angle) * armRadius;
             arm.position.z = Math.sin(angle) * armRadius;
             arm.position.y = 4.1;
-            arm.rotation.z = Math.PI / 6; /** Tilt */
+            arm.rotation.z = Math.PI / 6; /** Slight upward tilt. */
 
             arm.rotation.y = angle;
             chandelierGroup.add(arm);
 
-            /** Lamp/bulb in each arm */
+            /** Lamp/bulb in each arm. */
 
             const bulbGeometry = new THREE.SphereGeometry(0.08, 12, 12);
             const bulb = new THREE.Mesh(bulbGeometry, glassMaterial);
@@ -414,23 +452,23 @@ export class Environment {
             bulb.position.y = 3.95;
             chandelierGroup.add(bulb);
 
-            /** Emissive bulb only; real point lights here are expensive and visually noisy. */
+            /** Emissive bulb only; point lights here are expensive and visually noisy. */
         }
 
-        /** Lower central lamp */
+        /** Lower central lamp. */
 
         const centerBulbGeometry = new THREE.SphereGeometry(0.12, 16, 16);
         const centerBulb = new THREE.Mesh(centerBulbGeometry, glassMaterial);
         centerBulb.position.y = 3.85;
         chandelierGroup.add(centerBulb);
 
-        /** Main central light */
+        /** Main central light. */
 
         const centerLight = new THREE.PointLight(0xfff8dc, 2.4, 4.5, 2);
         centerLight.position.y = 3.85;
         chandelierGroup.add(centerLight);
 
-        /** Decorative details - hanging crystals */
+        /** Decorative hanging crystals. */
 
         const numCrystals = 12;
         for (let i = 0; i < numCrystals; i++) {
@@ -446,19 +484,29 @@ export class Environment {
             chandelierGroup.add(crystal);
         }
 
-        /** Position chandelier in center of ceiling */
+        /** Position chandelier in the center of the ceiling. */
 
         chandelierGroup.position.set(0, 0, 0);
         this.scene.add(chandelierGroup);
     }
 
+    /**
+     * Adds pillars and baseboards after the main room shell is created.
+     *
+     * @param {Object} wallTextures - Procedural wall texture set.
+     */
     createArchitecturalDetails(wallTextures) {
         this.createDecorativePillars(wallTextures);
         this.createBaseboards(wallTextures);
     }
 
+    /**
+     * Adds marble-textured corner pillars.
+     *
+     * @param {Object} wallTextures - Procedural wall texture set.
+     */
     createDecorativePillars(wallTextures) {
-        /** Corner pillars */
+        /** Corner pillars. */
 
         const pillarGeo = new THREE.CylinderGeometry(0.4, 0.4, 4.8, 32);
         const pillarMaterial = new THREE.MeshPhysicalMaterial({
@@ -481,6 +529,11 @@ export class Environment {
         });
     }
 
+    /**
+     * Adds low trim along the gallery walls.
+     *
+     * @param {Object} wallTextures - Procedural wall texture set.
+     */
     createBaseboards(wallTextures) {
         const baseboardMaterial = new THREE.MeshPhysicalMaterial({
             map: wallTextures ? wallTextures.marble : null,
@@ -492,21 +545,21 @@ export class Environment {
         });
 
         const wallThickness = 0.5;
-        const wallHeight = 0.4; /** Low height for baseboard */
+        const wallHeight = 0.4; /** Low baseboard height. */
 
-        /** Simple baseboards along the walls */
+        /** Simple baseboards along the walls. */
 
         const baseboards = [
-            /** Back */
+            /** Back wall trim. */
 
             { size: [28, wallHeight, 0.1], pos: [0, wallHeight / 2, -13.95] },
-            /** Front */
+            /** Front wall trim. */
 
             { size: [28, wallHeight, 0.1], pos: [0, wallHeight / 2, 13.95] },
-            /** Left */
+            /** Left wall trim. */
 
             { size: [0.1, wallHeight, 28], pos: [-13.95, wallHeight / 2, 0] },
-            /** Right */
+            /** Right wall trim. */
 
             { size: [0.1, wallHeight, 28], pos: [13.95, wallHeight / 2, 0] }
         ];
@@ -520,8 +573,13 @@ export class Environment {
         });
     }
 
-    /** --- Texture Generation Functions --- */
+    /** --- Texture generation functions. --- */
 
+    /**
+     * Creates the main floor texture procedurally.
+     *
+     * @returns {THREE.CanvasTexture} Repeating floor texture.
+     */
     createCuratedFloorTexture() {
         const size = 1024;
         const canvas = document.createElement('canvas');
@@ -589,11 +647,16 @@ export class Environment {
     }
 
 
+    /**
+     * Creates high-resolution diffuse and normal textures for polished marble.
+     *
+     * @returns {{diffuse: THREE.CanvasTexture, normal: THREE.CanvasTexture}} Texture pair.
+     */
     createLuxuryMarbleTexture() {
-        const size = 2048; /** High resolution for floor */
+        const size = 2048; /** High resolution for large surfaces. */
 
 
-        /** Create diffuse texture with advanced algorithms */
+        /** Create diffuse texture with layered procedural noise. */
 
         const generateLuxuryMarbleDiffuse = () => {
             const canvas = document.createElement('canvas');
@@ -601,18 +664,18 @@ export class Environment {
             canvas.width = size;
             canvas.height = size;
 
-            /** Base with subtle color variation using simulated Perlin noise */
+            /** Base with subtle color variation using simulated Perlin-style noise. */
 
             const imageData = ctx.createImageData(size, size);
             const data = imageData.data;
 
-            /** Simplified noise function for natural variations */
+            /** Simplified noise function for natural variations. */
 
             function noise(x, y, scale = 0.01) {
                 return (Math.sin(x * scale) + Math.cos(y * scale) + Math.sin((x + y) * scale * 0.5)) / 3;
             }
 
-            /** Create base with very subtle color variation */
+            /** Create a base with very subtle color variation. */
 
             for (let y = 0; y < size; y++) {
                 for (let x = 0; x < size; x++) {
@@ -629,14 +692,14 @@ export class Environment {
 
             ctx.putImageData(imageData, 0, 0);
 
-            /** Advanced function to create ultra-realistic organic veins */
+            /** Draw layered organic veins. */
 
             function drawAdvancedVein(startX, startY, color, opacity, thickness, complexity = 8, turbulence = 1) {
                 ctx.globalCompositeOperation = 'multiply';
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
 
-                /** Create multiple layers for a more realistic vein */
+                /** Use multiple layers for a more realistic vein. */
 
                 for (let layer = 0; layer < 3; layer++) {
                     ctx.strokeStyle = color;
@@ -651,7 +714,7 @@ export class Environment {
                     let direction = Math.random() * Math.PI * 2;
 
                     for (let i = 0; i < complexity; i++) {
-                        /** More natural direction evolution */
+                        /** Let vein direction drift naturally over each segment. */
 
                         direction += (Math.random() - 0.5) * 0.8 * turbulence;
                         const distance = (Math.random() * 120 + 80) * (1 - i / complexity * 0.3);
@@ -659,7 +722,7 @@ export class Environment {
                         const nextX = currentX + Math.cos(direction) * distance;
                         const nextY = currentY + Math.sin(direction) * distance;
 
-                        /** More sophisticated control points for natural curves */
+                        /** Use Bezier control points for natural curves. */
 
                         const cp1X = currentX + Math.cos(direction - 0.5) * distance * 0.3;
                         const cp1Y = currentY + Math.sin(direction - 0.5) * distance * 0.3;
@@ -668,7 +731,7 @@ export class Environment {
 
                         ctx.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, nextX, nextY);
 
-                        /** Add occasional branches */
+                        /** Add occasional branches. */
 
                         if (Math.random() < 0.3 && i > 2) {
                             const branchLength = distance * 0.6;
@@ -691,39 +754,39 @@ export class Environment {
                 ctx.globalAlpha = 1.0;
             }
 
-            /** Ultra-realistic black/gray main veins */
+            /** Primary black/gray veins. */
 
             for (let i = 0; i < 8; i++) {
                 const x = Math.random() * size;
                 const y = Math.random() * size;
-                const grayValue = Math.random() * 40 + 20; /** Very dark grays for contrast */
+                const grayValue = Math.random() * 40 + 20; /** Very dark grays for contrast. */
 
-                const blueTint = Math.random() * 10; /** Slight natural blue tint */
+                const blueTint = Math.random() * 10; /** Slight natural blue tint. */
 
                 drawAdvancedVein(x, y, `rgb(${grayValue}, ${grayValue}, ${grayValue + blueTint})`, 0.7 + Math.random() * 0.2, Math.random() * 20 + 12, 8 + Math.random() * 4, 1.2);
             }
 
-            /** Secondary transition veins */
+            /** Secondary transition veins. */
 
             for (let i = 0; i < 15; i++) {
                 const x = Math.random() * size;
                 const y = Math.random() * size;
-                const grayValue = Math.random() * 60 + 70; /** Medium grays */
+                const grayValue = Math.random() * 60 + 70; /** Medium grays. */
 
                 drawAdvancedVein(x, y, `rgb(${grayValue}, ${grayValue}, ${grayValue + 5})`, 0.4 + Math.random() * 0.3, Math.random() * 12 + 6, 5 + Math.random() * 3, 0.8);
             }
 
-            /** Fine detail veins */
+            /** Fine detail veins. */
 
             for (let i = 0; i < 25; i++) {
                 const x = Math.random() * size;
                 const y = Math.random() * size;
-                const grayValue = Math.random() * 40 + 120; /** Light grays */
+                const grayValue = Math.random() * 40 + 120; /** Light grays. */
 
                 drawAdvancedVein(x, y, `rgb(${grayValue}, ${grayValue}, ${grayValue})`, 0.2 + Math.random() * 0.2, Math.random() * 6 + 2, 3 + Math.random() * 2, 0.5);
             }
 
-            /** Premium golden veins (like luxury marble) */
+            /** Golden accent veins for a polished-marble look. */
 
             for (let i = 0; i < 6; i++) {
                 const x = Math.random() * size;
@@ -734,7 +797,7 @@ export class Environment {
                 drawAdvancedVein(x, y, `rgb(${goldR}, ${goldG}, ${goldB})`, 0.35 + Math.random() * 0.15, Math.random() * 8 + 3, 4 + Math.random() * 2, 0.7);
             }
 
-            /** Subtle spots and variations */
+            /** Subtle spots and variations. */
 
             ctx.globalCompositeOperation = 'overlay';
             for (let i = 0; i < 30; i++) {
@@ -753,7 +816,7 @@ export class Environment {
                 ctx.fill();
             }
 
-            /** Crystallizations and shines (polished marble effect) */
+            /** Crystallizations and highlights for a polished effect. */
 
             ctx.globalCompositeOperation = 'screen';
             for (let i = 0; i < 15; i++) {
@@ -785,7 +848,7 @@ export class Environment {
             return texture;
         };
 
-        /** Create normal map for marble */
+        /** Create normal map for marble. */
 
         const generateLuxuryMarbleNormal = () => {
             const canvas = document.createElement('canvas');
@@ -793,12 +856,12 @@ export class Environment {
             canvas.width = size;
             canvas.height = size;
 
-            /** Normal map base */
+            /** Normal-map base color. */
 
             ctx.fillStyle = '#8080ff';
             ctx.fillRect(0, 0, size, size);
 
-            /** Relief of main veins */
+            /** Relief for main veins. */
 
             function drawNormalVein(startX, startY, intensity, thickness, complexity = 6) {
                 ctx.globalCompositeOperation = 'normal';
@@ -831,7 +894,7 @@ export class Environment {
                 ctx.stroke();
             }
 
-            /** Normal map for main veins */
+            /** Normal-map vein passes. */
 
             for (let i = 0; i < 15; i++) {
                 const x = Math.random() * size;
@@ -840,7 +903,7 @@ export class Environment {
                 drawNormalVein(x, y, intensity, Math.random() * 12 + 6, 5 + Math.random() * 4);
             }
 
-            /** Subtle variations for polished surface */
+            /** Subtle variations for the polished surface. */
 
             for (let i = 0; i < 100; i++) {
                 const x = Math.random() * size;
@@ -864,7 +927,7 @@ export class Environment {
             texture.wrapS = THREE.RepeatWrapping;
             texture.wrapT = THREE.RepeatWrapping;
             texture.repeat.set(4, 4);
-            texture.encoding = THREE.LinearEncoding; // Normal maps use linear encoding
+            texture.encoding = THREE.LinearEncoding; // Normal maps use linear encoding.
             return texture;
         };
 
@@ -874,24 +937,29 @@ export class Environment {
         };
     }
 
+    /**
+     * Creates all procedural wall texture variants used by the gallery shell.
+     *
+     * @returns {Object} Named diffuse and normal textures for wall materials.
+     */
     createWallTextures() {
         const textures = {};
 
-        /** Helper function to create texture with normal map */
+        /** Helper function to create a texture with a normal map. */
 
         const createTextureWithNormal = (diffuseGenerator, normalGenerator, size = 512) => {
             const diffuseTexture = diffuseGenerator(size);
             const normalTexture = normalGenerator(size);
 
             return {
-                diffuse: diffuseTexture, // Map in threejs is 'map', normal is 'normalMap'
+                diffuse: diffuseTexture, // Three.js uses `map` and `normalMap`.
                 normal: normalTexture,
                 map: diffuseTexture,
                 normalMap: normalTexture
             };
         };
 
-        /** 1. Ultra-realistic wall marble texture */
+        /** 1. Wall marble texture. */
 
         const generateMarbleTexture = (size) => {
             const canvas = document.createElement('canvas');
@@ -899,18 +967,18 @@ export class Environment {
             canvas.width = size;
             canvas.height = size;
 
-            /** Marble base with natural variation using noise */
+            /** Marble base with natural variation using noise. */
 
             const imageData = ctx.createImageData(size, size);
             const data = imageData.data;
 
-            /** Create more realistic base variation */
+            /** Create realistic base variation. */
 
             for (let y = 0; y < size; y++) {
                 for (let x = 0; x < size; x++) {
                     const i = (y * size + x) * 4;
 
-                    /** Multiple noise for natural variation */
+                    /** Multiple noise frequencies create natural variation. */
 
                     const noise1 = Math.sin(x * 0.01) * Math.cos(y * 0.01);
                     const noise2 = Math.sin(x * 0.005 + y * 0.008) * 0.5;
@@ -928,7 +996,7 @@ export class Environment {
 
             ctx.putImageData(imageData, 0, 0);
 
-            /** Marble veins */
+            /** Marble veins. */
 
             ctx.globalCompositeOperation = 'multiply';
             for (let i = 0; i < 15; i++) {
@@ -948,7 +1016,7 @@ export class Environment {
                 ctx.stroke();
             }
 
-            // Vetas más finas
+            // Fine veins.
             ctx.globalCompositeOperation = 'darken';
             for (let i = 0; i < 20; i++) {
                 ctx.strokeStyle = `rgba(180, 180, 180, ${0.2 + Math.random() * 0.3})`;
@@ -968,11 +1036,11 @@ export class Environment {
             canvas.width = size;
             canvas.height = size;
 
-            // Base azul para normal map
+            // Blue normal-map base.
             ctx.fillStyle = '#8080ff';
             ctx.fillRect(0, 0, size, size);
 
-            // Variaciones sutiles
+            // Subtle variations.
             for (let i = 0; i < 30; i++) {
                 const x = Math.random() * size;
                 const y = Math.random() * size;
@@ -991,14 +1059,14 @@ export class Environment {
             return new THREE.CanvasTexture(canvas);
         };
 
-        // 2. Textura de piedra natural ultra-realista
+        // 2. Natural stone texture.
         const generateStoneTexture = (size) => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             canvas.width = size;
             canvas.height = size;
 
-            // Base de piedra con múltiples capas de ruido
+            // Stone base with multiple layers of noise.
             const imageData = ctx.createImageData(size, size);
             const data = imageData.data;
 
@@ -1006,7 +1074,7 @@ export class Environment {
                 for (let x = 0; x < size; x++) {
                     const i = (y * size + x) * 4;
 
-                    // Múltiples frecuencias de ruido para textura natural
+                    // Multiple noise frequencies create a natural texture.
                     const noise1 = Math.sin(x * 0.02) * Math.cos(y * 0.02) * 20;
                     const noise2 = Math.sin(x * 0.05 + y * 0.03) * 15;
                     const noise3 = Math.sin(x * 0.1 + y * 0.15) * 8;
@@ -1014,7 +1082,7 @@ export class Environment {
 
                     const totalNoise = noise1 + noise2 + noise3 + noise4;
 
-                    // Colores base de piedra natural
+                    // Natural stone base colors.
                     const baseR = 240 + totalNoise * 0.3;
                     const baseG = 238 + totalNoise * 0.35;
                     const baseB = 220 + totalNoise * 0.4;
@@ -1028,7 +1096,7 @@ export class Environment {
 
             ctx.putImageData(imageData, 0, 0);
 
-            // Grietas y fisuras
+            // Cracks and fissures.
             ctx.globalCompositeOperation = 'multiply';
             for (let i = 0; i < 8; i++) {
                 ctx.strokeStyle = `rgba(200, 200, 200, ${0.4 + Math.random() * 0.3})`;
@@ -1058,7 +1126,7 @@ export class Environment {
             ctx.fillStyle = '#8080ff';
             ctx.fillRect(0, 0, size, size);
 
-            // Relieve de piedra
+            // Stone relief.
             for (let i = 0; i < 100; i++) {
                 const x = Math.random() * size;
                 const y = Math.random() * size;
@@ -1073,14 +1141,14 @@ export class Environment {
             return new THREE.CanvasTexture(canvas);
         };
 
-        // 3. Textura de concreto moderno ultra-realista
+        // 3. Modern concrete texture.
         const generateConcreteTexture = (size) => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             canvas.width = size;
             canvas.height = size;
 
-            // Base de concreto con múltiples capas de realismo
+            // Concrete base with layered surface variation.
             const imageData = ctx.createImageData(size, size);
             const data = imageData.data;
 
@@ -1088,7 +1156,7 @@ export class Environment {
                 for (let x = 0; x < size; x++) {
                     const i = (y * size + x) * 4;
 
-                    // Simulación de agregados en el concreto
+                    // Simulate aggregate variation in the concrete.
                     const aggregate1 = Math.sin(x * 0.03) * Math.cos(y * 0.025) * 12;
                     const aggregate2 = Math.sin(x * 0.08 + y * 0.06) * 8;
                     const fine_texture = Math.sin(x * 0.2 + y * 0.18) * 4;
@@ -1096,7 +1164,7 @@ export class Environment {
 
                     const totalVariation = aggregate1 + aggregate2 + fine_texture + randomness;
 
-                    // Color base de concreto moderno
+                    // Modern concrete base color.
                     const baseColor = 235 + totalVariation * 0.4;
 
                     data[i] = Math.min(255, Math.max(210, baseColor));     // R
@@ -1108,11 +1176,11 @@ export class Environment {
 
             ctx.putImageData(imageData, 0, 0);
 
-            // Líneas de moldaje más realistas
+            // Mold lines for poured concrete.
             ctx.globalCompositeOperation = 'overlay';
             const lineSpacing = size / 3;
             for (let i = 1; i < 3; i++) {
-                // Línea principal
+                // Primary line.
                 ctx.strokeStyle = 'rgba(200, 200, 200, 0.8)';
                 ctx.lineWidth = 3;
                 ctx.beginPath();
@@ -1120,7 +1188,7 @@ export class Environment {
                 ctx.lineTo(size, i * lineSpacing);
                 ctx.stroke();
 
-                // Sombra de la línea
+                // Line shadow.
                 ctx.strokeStyle = 'rgba(180, 180, 180, 0.4)';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
@@ -1129,7 +1197,7 @@ export class Environment {
                 ctx.stroke();
             }
 
-            // Manchas y variaciones de humedad
+            // Moisture stains and subtle surface variation.
             ctx.globalCompositeOperation = 'multiply';
             for (let i = 0; i < 8; i++) {
                 const x = Math.random() * size;
@@ -1159,7 +1227,7 @@ export class Environment {
             ctx.fillStyle = '#8080ff';
             ctx.fillRect(0, 0, size, size);
 
-            // Relieve del concreto
+            // Concrete relief.
             for (let i = 0; i < 150; i++) {
                 const x = Math.random() * size;
                 const y = Math.random() * size;
@@ -1171,7 +1239,7 @@ export class Environment {
                 ctx.fill();
             }
 
-            // Líneas de moldaje en normal
+            // Mold lines in the normal map.
             for (let i = 1; i < 4; i++) {
                 const y = (i / 4) * size;
                 ctx.strokeStyle = 'rgba(140, 140, 255, 0.6)';
@@ -1185,14 +1253,14 @@ export class Environment {
             return new THREE.CanvasTexture(canvas);
         };
 
-        // 4. Textura de yeso artesanal ultra-realista
+        // 4. Hand-applied plaster texture.
         const generatePlasterTexture = (size) => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             canvas.width = size;
             canvas.height = size;
 
-            // Base de yeso con variación natural
+            // Plaster base with natural variation.
             const imageData = ctx.createImageData(size, size);
             const data = imageData.data;
 
@@ -1200,7 +1268,7 @@ export class Environment {
                 for (let x = 0; x < size; x++) {
                     const i = (y * size + x) * 4;
 
-                    // Simulación de textura de yeso aplicado a mano
+                    // Simulate hand-applied plaster texture.
                     const brush1 = Math.sin(x * 0.015 + y * 0.008) * 8;
                     const brush2 = Math.sin(x * 0.03 + y * 0.025) * 5;
                     const trowel = Math.sin(x * 0.007 + y * 0.012) * 12;
@@ -1208,7 +1276,7 @@ export class Environment {
 
                     const texture_variation = brush1 + brush2 + trowel + fine_detail;
 
-                    // Color base de yeso natural
+                    // Natural plaster base color.
                     const baseR = 252 + texture_variation * 0.3;
                     const baseG = 250 + texture_variation * 0.35;
                     const baseB = 246 + texture_variation * 0.4;
@@ -1222,7 +1290,7 @@ export class Environment {
 
             ctx.putImageData(imageData, 0, 0);
 
-            // Marcas de herramientas más realistas
+            // Tool marks.
             ctx.globalCompositeOperation = 'overlay';
             for (let i = 0; i < 40; i++) {
                 const x = Math.random() * size;
@@ -1235,7 +1303,7 @@ export class Environment {
                 ctx.translate(x, y);
                 ctx.rotate(angle);
 
-                // Marca principal de la herramienta
+                // Primary tool mark.
                 const gradient = ctx.createLinearGradient(-length / 2, -width / 2, length / 2, width / 2);
                 gradient.addColorStop(0, 'rgba(248, 248, 246, 0)');
                 gradient.addColorStop(0.5, 'rgba(250, 248, 245, 0.6)');
@@ -1247,7 +1315,7 @@ export class Environment {
                 ctx.restore();
             }
 
-            // Variaciones sutiles de color por secado
+            // Subtle color variation from drying.
             ctx.globalCompositeOperation = 'soft-light';
             for (let i = 0; i < 15; i++) {
                 const x = Math.random() * size;
@@ -1277,7 +1345,7 @@ export class Environment {
             ctx.fillStyle = '#8080ff';
             ctx.fillRect(0, 0, size, size);
 
-            // Relieve suave del yeso
+            // Soft plaster relief.
             for (let i = 0; i < 60; i++) {
                 const x = Math.random() * size;
                 const y = Math.random() * size;
@@ -1296,7 +1364,7 @@ export class Environment {
             return new THREE.CanvasTexture(canvas);
         };
 
-        // Generar todas las texturas
+        // Generate every texture variant used by wall materials.
         const anisotropicLevel = this.renderer.capabilities.getMaxAnisotropy();
 
         const configureTexture = (texture) => {

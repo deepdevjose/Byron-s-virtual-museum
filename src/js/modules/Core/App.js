@@ -11,7 +11,18 @@ import { ArtworkInteraction } from '../Interaction/ArtworkInteraction.js';
 import { TourController } from '../Tour/TourController.js';
 import { createTourPathFromArtworks } from '../Tour/tourPath.js';
 
+/**
+ * Coordinates the virtual museum application lifecycle.
+ *
+ * App owns the Three.js scene, renderer, camera, module setup, global DOM
+ * overlays, guided tour state, and the animation loop. World-building and
+ * interaction details are delegated to feature modules so this class can
+ * orchestrate scene lifecycle without duplicating their implementation.
+ */
 export class App {
+    /**
+     * Initializes app-level references and runtime state.
+     */
     constructor() {
         this.scene = null;
         this.camera = null;
@@ -62,6 +73,15 @@ export class App {
         this.tourCompletionModal = null;
     }
 
+    /**
+     * Loads artwork data, builds the scene, wires modules, and starts rendering.
+     *
+     * Side effects include fetching local JSON, preloading artwork images,
+     * creating DOM overlays, appending the WebGL canvas, and registering global
+     * event listeners.
+     *
+     * @returns {Promise<void>}
+     */
     async init() {
         this.showLoader();
 
@@ -80,6 +100,12 @@ export class App {
         }
     }
 
+    /**
+     * Fetches the artwork catalog used by gallery, lighting, and tour modules.
+     *
+     * @returns {Promise<Array<Object>>} Artwork metadata from `src/data/artworks.json`.
+     * @throws {Error} When the JSON file cannot be loaded.
+     */
     async loadArtworks() {
         const response = await fetch('./src/data/artworks.json');
         if (!response.ok) {
@@ -88,6 +114,16 @@ export class App {
         return response.json();
     }
 
+    /**
+     * Preloads artwork image assets before the gallery is built.
+     *
+     * The timeout keeps startup from blocking forever on a slow or failed image,
+     * while individual load errors are tolerated so placeholder materials can
+     * still appear in the scene.
+     *
+     * @param {Array<Object>} artworks - Artwork records that may include image paths.
+     * @returns {Promise<void>}
+     */
     preloadImages(artworks) {
         const images = artworks.map((artwork) => artwork.image).filter(Boolean);
         if (images.length === 0) return Promise.resolve();
@@ -111,6 +147,13 @@ export class App {
         });
     }
 
+    /**
+     * Creates the core Three.js scene, camera, and renderer.
+     *
+     * The renderer is attached to `#canvas-container` when available and uses
+     * manual shadow-map updates because most museum geometry is static after
+     * setup.
+     */
     setupScene() {
         this.scene = new THREE.Scene();
         this.scene.fog = new THREE.FogExp2(0x1c1b18, 0.018);
@@ -133,6 +176,7 @@ export class App {
         this.renderer.setPixelRatio(CONFIG.performance.pixelRatio);
         this.renderer.shadowMap.enabled = CONFIG.shadows.enabled;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        // Keep shadow updates manual because most museum objects are static.
         this.renderer.shadowMap.autoUpdate = false;
         this.renderer.shadowMap.needsUpdate = true;
         this.renderer.physicallyCorrectLights = CONFIG.lighting.physicallyCorrect;
@@ -145,6 +189,14 @@ export class App {
         this.fpsElement = document.getElementById('fps-counter');
     }
 
+    /**
+     * Instantiates the main app modules and connects their cross-module callbacks.
+     *
+     * Side effects include adding lights, environment geometry, artwork meshes,
+     * UI panels, audio hooks, raycast targets, and guided tour stops.
+     *
+     * @returns {Promise<void>}
+     */
     async setupModules() {
         this.controls = new FirstPersonControls(this.camera, this.renderer);
         this.physics = new Physics(this.camera, this.controls);
@@ -182,11 +234,19 @@ export class App {
         this.updateShadowsIfNeeded();
     }
 
+    /**
+     * Registers global browser and application overlay events.
+     */
     setupEvents() {
         window.addEventListener('resize', () => this.onWindowResize());
         this.setupCreditsModal();
     }
 
+    /**
+     * Connects the static credits modal declared in `index.html`.
+     *
+     * The modal is marked as interactive so museum raycast clicks ignore it.
+     */
     setupCreditsModal() {
         this.creditsModal = document.getElementById('credits-modal');
         if (!this.creditsModal) return;
@@ -207,6 +267,16 @@ export class App {
         });
     }
 
+    /**
+     * Opens the credits modal and optionally schedules an automatic close.
+     *
+     * Pointer lock is released so the visitor can move the cursor over modal
+     * controls.
+     *
+     * @param {Object} [options] - Credits modal behavior.
+     * @param {number} [options.autoCloseMs] - Optional timeout before closing.
+     * @param {Function} [options.onClose] - Callback invoked after the close animation.
+     */
     openCreditsModal(options = {}) {
         if (!this.creditsModal) return;
 
@@ -225,6 +295,12 @@ export class App {
         }
     }
 
+    /**
+     * Closes the credits modal and runs the pending close callback.
+     *
+     * @param {Object} [options] - Close behavior.
+     * @param {boolean} [options.animate=true] - Whether to play the closing animation.
+     */
     closeCreditsModal(options = {}) {
         if (!this.creditsModal) return;
         clearTimeout(this.creditsAutoCloseTimer);
@@ -250,6 +326,9 @@ export class App {
         setTimeout(finishClose, 460);
     }
 
+    /**
+     * Creates the temporary modal shown when the guided tour reaches its end.
+     */
     showTourCompletionModal() {
         this.hideTourCompletionModal({ animate: false });
 
@@ -265,6 +344,13 @@ export class App {
         document.body.appendChild(this.tourCompletionModal);
     }
 
+    /**
+     * Removes the guided-tour completion modal.
+     *
+     * @param {Object} [options] - Hide behavior.
+     * @param {boolean} [options.animate=true] - Whether to play the exit animation.
+     * @returns {Promise<void>} Resolves after the modal is removed.
+     */
     hideTourCompletionModal(options = {}) {
         if (!this.tourCompletionModal) return Promise.resolve();
 
@@ -290,6 +376,16 @@ export class App {
         });
     }
 
+    /**
+     * Routes an artwork selection to the correct UI surface.
+     *
+     * Clicks during free exploration open the detail modal directly, while tour
+     * selections use the side panel so the tour controller can wait for the
+     * visitor to close the detail view.
+     *
+     * @param {Object} artwork - Gallery artwork record.
+     * @param {Object} [options] - Selection context from interaction or tour code.
+     */
     selectArtwork(artwork, options = {}) {
         if (options.source === 'click' && !this.tourController?.isActive()) {
             this.artworkPanel.hide({ resumeAmbient: false });
@@ -303,6 +399,12 @@ export class App {
         this.artworkPanel.show(artwork, options);
     }
 
+    /**
+     * Displays the startup mode chooser and locks movement until a mode is chosen.
+     *
+     * The overlay is created at runtime because its copy and behavior depend on
+     * whether the current device needs touch controls.
+     */
     showControlInstructions() {
         const isMobile = this.detectMobileDevice();
         this.startMenuActive = true;
@@ -350,11 +452,22 @@ export class App {
         });
     }
 
+    /**
+     * Detects touch-first layouts where mobile controls should be available.
+     *
+     * @returns {boolean} True for common mobile user agents or narrow viewports.
+     */
     detectMobileDevice() {
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
             || window.innerWidth <= 768;
     }
 
+    /**
+     * Creates the touch joystick, look area, and centered action button.
+     *
+     * The action button synthesizes a centered click so mobile users can select
+     * the artwork currently under the crosshair.
+     */
     createMobileControls() {
         if (document.getElementById('mobile-joystick')) return;
 
@@ -389,6 +502,16 @@ export class App {
         this.setupMobileEventListeners(joystickContainer, joystickContainer.querySelector('#joystick-handle'), lookArea);
     }
 
+    /**
+     * Registers touch handlers for movement and camera look.
+     *
+     * Separate touch identifiers let the visitor move with one finger while
+     * looking around with another.
+     *
+     * @param {HTMLElement} joystick - Joystick touch surface.
+     * @param {HTMLElement} handle - Visual joystick handle.
+     * @param {HTMLElement} lookArea - Full-screen look touch surface.
+     */
     setupMobileEventListeners(joystick, handle, lookArea) {
         let touchStartX = 0;
         let touchStartY = 0;
@@ -477,6 +600,9 @@ export class App {
         }, { passive: false });
     }
 
+    /**
+     * Starts guided tour mode and disables manual navigation.
+     */
     startGuidedTour() {
         clearTimeout(this.tourCompletionTimer);
         this.artworkPanel.hide({ resumeAmbient: false });
@@ -488,6 +614,9 @@ export class App {
         this.tourController.start();
     }
 
+    /**
+     * Restores free exploration after the guided tour is stopped.
+     */
     onTourStopped() {
         clearTimeout(this.tourCompletionTimer);
         this.hideTourCompletionModal();
@@ -496,6 +625,13 @@ export class App {
         this.controls.syncRotationFromCamera();
     }
 
+    /**
+     * Handles detail modal closure so tour or free-exploration state can resume.
+     *
+     * @param {Object} detail - Detail modal close payload from ArtworkPanel.
+     * @param {Object|null} detail.artwork - Artwork that was open.
+     * @param {string|null} detail.context - Source context for the detail modal.
+     */
     onArtworkDetailClosed(detail) {
         if (detail.context === 'tour' && this.tourController?.isActive()) {
             this.tourController.advanceAfterDetail();
@@ -507,6 +643,9 @@ export class App {
         }
     }
 
+    /**
+     * Requests pointer lock again after a free-exploration modal closes.
+     */
     restoreFreeExplorationLook() {
         if (this.detectMobileDevice() || !this.controls?.enabled || !this.renderer?.domElement) return;
         if (document.pointerLockElement === this.renderer.domElement) return;
@@ -515,6 +654,12 @@ export class App {
         lockRequest?.catch?.(() => {});
     }
 
+    /**
+     * Runs the guided tour completion sequence.
+     *
+     * The app shows a short completion modal, then opens credits, and finally
+     * returns the visitor to free exploration.
+     */
     onTourCompleted() {
         this.artworkPanel.hide({ resumeAmbient: false });
         this.controls.syncRotationFromCamera();
@@ -531,6 +676,12 @@ export class App {
         }, 2200);
     }
 
+    /**
+     * Enables manual navigation and interaction.
+     *
+     * @param {Object} [options] - Free-exploration options.
+     * @param {boolean} [options.createMobileControls] - Create touch controls when needed.
+     */
     enableFreeExploration(options = {}) {
         this.controls.setEnabled(true);
         this.controls.setMovementEnabled?.(true);
@@ -542,6 +693,12 @@ export class App {
         }
     }
 
+    /**
+     * Main animation loop.
+     *
+     * The loop updates either guided-tour interpolation or manual controls,
+     * resolves collisions, refreshes hover raycasting, and renders the scene.
+     */
     animate() {
         requestAnimationFrame(() => this.animate());
         this.updateFPS();
@@ -556,12 +713,15 @@ export class App {
             this.applyOrganicCameraMotion(deltaTime);
         }
 
-        // Update artwork hover state based on what's at screen center
+        // Hover selection is screen-centered in pointer-lock mode.
         this.artworkInteraction.updateHover();
 
         this.renderer.render(this.scene, this.camera);
     }
 
+    /**
+     * Updates the on-screen FPS counter once per second.
+     */
     updateFPS() {
         const time = performance.now();
         this.frameCount++;
@@ -574,6 +734,14 @@ export class App {
         }
     }
 
+    /**
+     * Applies subtle walking motion to the camera without changing navigation.
+     *
+     * The effect blends toward zero while idle so camera height and rotation
+     * settle naturally after the visitor stops moving.
+     *
+     * @param {number} deltaTime - Seconds elapsed since the previous frame.
+     */
     applyOrganicCameraMotion(deltaTime) {
         if (!this.headBobConfig.enabled) return;
 
@@ -628,33 +796,53 @@ export class App {
         );
     }
 
+    /**
+     * Keeps the camera projection and renderer dimensions aligned with the window.
+     */
     onWindowResize() {
         this.camera.aspect = window.innerWidth / window.innerHeight;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
+    /**
+     * Marks static shadows for a one-time refresh after scene mutations.
+     */
     updateShadowsIfNeeded() {
         if (this.renderer?.shadowMap.enabled) {
             this.renderer.shadowMap.needsUpdate = true;
         }
     }
 
+    /**
+     * Compatibility hook for older benchmark scripts.
+     *
+     * @returns {null} Manual LOD statistics are not available in the current app.
+     */
     getLODStats() {
         console.log('Manual LOD disabled. Three.js uses mipmaps automatically.');
         return null;
     }
 
+    /**
+     * Shows the loading overlay declared in `index.html`.
+     */
     showLoader() {
         const loader = document.getElementById('loader');
         if (loader) loader.style.display = 'flex';
     }
 
+    /**
+     * Hides the loading overlay after the initial scene is ready.
+     */
     hideLoader() {
         const loader = document.getElementById('loader');
         if (loader) loader.style.display = 'none';
     }
 
+    /**
+     * Replaces the loader with a fatal startup message.
+     */
     showFatalError() {
         const loader = document.getElementById('loader');
         if (!loader) return;

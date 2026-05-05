@@ -1,5 +1,10 @@
-// Benchmark LOD System - Paste in the browser console
-// Compares memory usage and switches of the biomimetic LOD system
+/**
+ * Browser-console benchmark for the experimental LOD system.
+ *
+ * Paste this script into DevTools after the museum has loaded. It samples LOD
+ * distribution for 30 seconds and estimates memory savings from theoretical
+ * texture quality levels.
+ */
 
 console.log('Byron Virtual Museum - Biomimetic LOD Benchmark');
 console.log('====================================================\n');

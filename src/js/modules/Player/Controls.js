@@ -1,7 +1,19 @@
 import * as THREE from 'three';
 import CONFIG from '../../config.js';
 
+/**
+ * First-person camera controls for free exploration.
+ *
+ * The controller combines keyboard movement, pointer-lock mouse look,
+ * fallback drag look, and externally controlled touch movement. Collision
+ * resolution is handled by Physics after this module applies the requested
+ * camera movement for the frame.
+ */
 export class FirstPersonControls {
+    /**
+     * @param {THREE.PerspectiveCamera} camera - Camera moved and rotated by the controls.
+     * @param {THREE.WebGLRenderer} renderer - Renderer whose canvas receives pointer lock.
+     */
     constructor(camera, renderer) {
         this.camera = camera;
         this.renderer = renderer;
@@ -12,36 +24,37 @@ export class FirstPersonControls {
         this.dragLookLastX = 0;
         this.dragLookLastY = 0;
 
-        /** Movement state */
-
+        /** @type {boolean} Keyboard or touch forward movement state. */
         this.moveForward = false;
         this.moveBackward = false;
         this.moveLeft = false;
         this.moveRight = false;
         this.isRunning = false;
 
-        /** Physics state */
-
+        /** Vectors reused every frame to avoid unnecessary allocations. */
         this.velocity = new THREE.Vector3();
         this.direction = new THREE.Vector3();
         this.desiredVelocity = new THREE.Vector3();
         this.horizontalSpeed = 0;
         this.speedRatio = 0;
 
-        /** Rotation state */
-
+        /** Target Euler rotation stored separately so App can add head motion offsets. */
         this.targetRotationX = 0;
-        this.targetRotationY = Math.PI; /** Look at back wall */
+        this.targetRotationY = Math.PI;
         this.camera.rotation.order = 'YXZ';
 
-
-        /** Configuration */
-
+        /** Movement and look sensitivity values from the central config. */
         this.config = CONFIG.movement;
 
         this.setupEventListeners();
     }
 
+    /**
+     * Registers keyboard, mouse, and pointer-lock events.
+     *
+     * Events are attached globally because pointer lock routes mouse movement
+     * through the document after the canvas has captured the pointer.
+     */
     setupEventListeners() {
         document.addEventListener('keydown', (e) => this.onKeyDown(e));
         document.addEventListener('keyup', (e) => this.onKeyUp(e));
@@ -58,6 +71,11 @@ export class FirstPersonControls {
         document.addEventListener('pointerlockchange', () => this.onPointerLockChange());
     }
 
+    /**
+     * Handles keyboard movement presses.
+     *
+     * @param {KeyboardEvent} event - Keyboard event from the document.
+     */
     onKeyDown(event) {
         if (!this.enabled || !this.movementEnabled) return;
 
@@ -75,6 +93,11 @@ export class FirstPersonControls {
         }
     }
 
+    /**
+     * Handles keyboard movement releases.
+     *
+     * @param {KeyboardEvent} event - Keyboard event from the document.
+     */
     onKeyUp(event) {
         if (!this.enabled || !this.movementEnabled) return;
 
@@ -92,6 +115,11 @@ export class FirstPersonControls {
         }
     }
 
+    /**
+     * Applies pointer-lock or drag-look mouse deltas to the camera rotation.
+     *
+     * @param {MouseEvent} event - Mouse movement event.
+     */
     onMouseLook(event) {
         if (!this.enabled) return;
 
@@ -106,25 +134,24 @@ export class FirstPersonControls {
             this.dragLookLastY = event.clientY;
         }
 
-        /** Update target rotation */
-
-        /** Note: In original code config was lookSpeed: 0.002 */
-
         const lookSpeed = this.config.lookSpeed;
 
         this.targetRotationY -= movementX * lookSpeed;
         this.targetRotationX -= movementY * lookSpeed;
 
-        /** Limit vertical look */
-
+        // Clamp pitch so the visitor cannot rotate beyond a natural vertical range.
         const maxVerticalAngle = Math.PI / 3;
         this.targetRotationX = Math.max(-maxVerticalAngle, Math.min(maxVerticalAngle, this.targetRotationX));
 
-        /** Apply rotation immediately for responsiveness (or smooth it in update) */
-
+        // Apply immediately; App layers optional walking motion on top later.
         this.camera.rotation.set(this.targetRotationX, this.targetRotationY, 0, 'YXZ');
     }
 
+    /**
+     * Starts drag-look fallback when pointer lock is not active.
+     *
+     * @param {MouseEvent} event - Mouse down event on the renderer canvas.
+     */
     onPointerDown(event) {
         if (!this.enabled || document.pointerLockElement === this.renderer.domElement || event.button !== 0) {
             return;
@@ -135,10 +162,16 @@ export class FirstPersonControls {
         this.dragLookLastY = event.clientY;
     }
 
+    /**
+     * Ends drag-look fallback.
+     */
     onPointerUp() {
         this.dragLookActive = false;
     }
 
+    /**
+     * Keeps the canvas cursor state aligned with pointer-lock state.
+     */
     onPointerLockChange() {
         if (document.pointerLockElement === this.renderer.domElement) {
             this.renderer.domElement.style.cursor = 'none';
@@ -147,17 +180,23 @@ export class FirstPersonControls {
         }
     }
 
+    /**
+     * Updates velocity and applies horizontal camera movement.
+     *
+     * Movement is relative to the current camera yaw and remains on the X/Z
+     * plane; the Physics module corrects boundaries and object collisions after
+     * this update.
+     *
+     * @param {number} deltaTime - Seconds elapsed since the previous frame.
+     */
     update(deltaTime) {
-        /** Delta time cap */
-
+        // Cap large frame gaps so tab stalls do not create a movement jump.
         deltaTime = Math.min(deltaTime, 0.1);
 
         if (!this.enabled || !this.movementEnabled) {
             this.velocity.set(0, 0, 0);
             return;
         }
-
-        /** Direction */
 
         this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
         this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
@@ -200,15 +239,15 @@ export class FirstPersonControls {
         this.horizontalSpeed = Math.hypot(this.velocity.x, this.velocity.z);
         this.speedRatio = currentSpeed > 0 ? THREE.MathUtils.clamp(this.horizontalSpeed / currentSpeed, 0, 1) : 0;
 
-        /** Apply Movement */
-
         const nextPos = this.velocity.clone().multiplyScalar(deltaTime);
         this.camera.position.add(nextPos);
-
-        /** Simple bounds (can be improved later with proper collision system). For now, rely on external collision check or add bounds here */
-
     }
 
+    /**
+     * Enables or disables the control system.
+     *
+     * @param {boolean} enabled - Whether look and movement input should be accepted.
+     */
     setEnabled(enabled) {
         this.enabled = enabled;
         if (!enabled) {
@@ -217,6 +256,11 @@ export class FirstPersonControls {
         }
     }
 
+    /**
+     * Enables or disables manual movement while preserving look control.
+     *
+     * @param {boolean} enabled - Whether movement input should be accepted.
+     */
     setMovementEnabled(enabled) {
         this.movementEnabled = enabled;
         if (!enabled) {
@@ -224,6 +268,11 @@ export class FirstPersonControls {
         }
     }
 
+    /**
+     * Enables or disables pointer-lock requests from the renderer canvas.
+     *
+     * @param {boolean} enabled - Whether clicking the canvas may request pointer lock.
+     */
     setPointerLockEnabled(enabled) {
         this.pointerLockEnabled = enabled;
         if (!enabled && document.pointerLockElement === this.renderer.domElement) {
@@ -231,6 +280,9 @@ export class FirstPersonControls {
         }
     }
 
+    /**
+     * Clears movement keys, run state, and smoothed velocity.
+     */
     resetMovement() {
         this.moveForward = false;
         this.moveBackward = false;
@@ -243,6 +295,13 @@ export class FirstPersonControls {
         this.speedRatio = 0;
     }
 
+    /**
+     * Copies the camera's current quaternion into the stored target rotation.
+     *
+     * Guided tour interpolation changes the camera quaternion directly, so this
+     * method prevents manual controls from snapping back to stale yaw/pitch
+     * values afterward.
+     */
     syncRotationFromCamera() {
         const euler = new THREE.Euler().setFromQuaternion(this.camera.quaternion, 'YXZ');
         this.targetRotationX = euler.x;

@@ -1,21 +1,28 @@
 import * as THREE from 'three';
 
 /**
- * Biomimetic LOD (Level of Detail) System
+ * Experimental distance-based texture LOD utility.
+ *
+ * The current gallery relies on Three.js mipmaps for artwork texture sampling,
+ * but this utility remains available for experiments and benchmark scripts that
+ * need theoretical LOD distribution statistics.
  */
 export class LODSystem {
+    /**
+     * Initializes texture loading, thresholds, quality levels, and statistics.
+     */
     constructor() {
         this.textureLoader = new THREE.TextureLoader();
-        this.loadedTextures = new Map(); // Texture cache
+        this.loadedTextures = new Map(); // Texture cache keyed by artwork and URL.
 
         /**
-         * Distance thresholds for LOD switching (biomimetic, based on human vision)
+         * Distance thresholds for theoretical LOD switching.
          * @type {{high: number, medium: number, low: number}}
          */
         this.thresholds = {
-            high: 6.0,    // Ventral pathway: maximum detail (foveal vision)
-            medium: 12.0, // Peripheral pathway: medium detail
-            low: 20.0     // Dorsal pathway: only shape and position
+            high: 6.0,    // Near artwork, maximum detail.
+            medium: 12.0, // Mid-range artwork, medium detail.
+            low: 20.0     // Distant artwork, basic detail.
         };
 
         /**
@@ -40,6 +47,7 @@ export class LODSystem {
 
     /**
      * Generates textures in multiple resolutions from an image.
+     *
      * Optimized: Only generates textures on demand.
      * @param {string} imageUrl - The image URL.
      * @param {string} artworkId - The artwork identifier.
@@ -48,7 +56,7 @@ export class LODSystem {
     async generateLODTextures(imageUrl, artworkId) {
         const cacheKey = `${artworkId}_${imageUrl}`;
 
-        // Return if already cached
+        // Return the cached texture set when available.
         if (this.loadedTextures.has(cacheKey)) {
             return this.loadedTextures.get(cacheKey);
         }
@@ -57,21 +65,20 @@ export class LODSystem {
             this.textureLoader.load(
                 imageUrl,
                 (highResTexture) => {
-                    // Configure high-resolution texture
+                    // Configure high-resolution texture for color artwork.
                     highResTexture.encoding = THREE.sRGBEncoding;
                     highResTexture.minFilter = THREE.LinearMipmapLinearFilter;
                     highResTexture.magFilter = THREE.LinearFilter;
                     highResTexture.generateMipmaps = true;
 
-                    // CRITICAL OPTIMIZATION:
-                    // Do NOT generate scaled textures at init, only when needed (lazy load for medium/low)
+                    // Avoid generating scaled textures at startup; medium and low
+                    // variants are reserved for lazy generation if re-enabled.
                     const lodTextures = {
                         high: highResTexture,
-                        medium: null, // Lazy load
-                        low: null     // Lazy load
+                        medium: null,
+                        low: null
                     };
 
-                    // Store in cache
                     this.loadedTextures.set(cacheKey, lodTextures);
                     resolve(lodTextures);
                 },
@@ -116,7 +123,7 @@ export class LODSystem {
     }
 
     /**
-     * Dorsal pathway: Quickly calculates distance (spatial processing).
+     * Calculates distance between camera and artwork.
      * @param {THREE.Vector3} cameraPosition
      * @param {THREE.Vector3} artworkPosition
      * @returns {number}
@@ -127,17 +134,16 @@ export class LODSystem {
 
     /**
      * Determines the appropriate LOD level based on distance.
-     * Emulates the change from foveal to peripheral vision.
      * @param {number} distance
      * @returns {'high'|'medium'|'low'}
      */
     determineLODLevel(distance) {
         if (distance <= this.thresholds.high) {
-            return 'high';   // Ventral pathway: maximum detail
+            return 'high';
         } else if (distance <= this.thresholds.medium) {
-            return 'medium'; // Peripheral vision: medium detail
+            return 'medium';
         } else {
-            return 'low';    // Dorsal pathway: basic shape
+            return 'low';
         }
     }
 
@@ -154,22 +160,19 @@ export class LODSystem {
         const artworkPos = new THREE.Vector3();
         artwork.group.getWorldPosition(artworkPos);
 
-        // Dorsal pathway: fast distance detection
         const distance = this.calculateDistance(cameraPosition, artworkPos);
         const newLevel = this.determineLODLevel(distance);
 
-        // Get current level
         const artworkId = artwork.config.imageUrl;
         const currentLevel = this.stats.currentLevel.get(artworkId) || 'high';
 
-        // CRITICAL OPTIMIZATION: Do NOT switch textures
-        // Three.js already uses mipmaps automatically by distance
-        // We only track the theoretical level for statistics
+        // Do not switch textures here; Three.js mipmaps already handle sampling
+        // by distance. This records theoretical levels for diagnostics only.
         if (currentLevel !== newLevel) {
             this.stats.currentLevel.set(artworkId, newLevel);
             this.stats.switches++;
 
-            // Do NOT do this (very expensive):
+            // Avoid this expensive path unless a future feature explicitly needs it:
             // artwork.mesh.material.map = texture;
             // artwork.mesh.material.needsUpdate = true;
         }
@@ -177,7 +180,7 @@ export class LODSystem {
 
     /**
      * Updates all artworks in the gallery.
-     * Parallel processing simulates peripheral vision.
+     *
      * @param {Array} artworks
      * @param {THREE.Vector3} cameraPosition
      * @param {Map<string, Object>} artworkTextures

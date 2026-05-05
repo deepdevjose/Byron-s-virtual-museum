@@ -1,5 +1,9 @@
-// Benchmark Script - Paste in the browser console
-// Compares performance with shadowMap.autoUpdate enabled/disabled
+/**
+ * Browser-console benchmark for shadow-map performance.
+ *
+ * Paste this script into DevTools after the museum has loaded. It reports
+ * renderer shadow state, renderer memory information, and a short FPS sample.
+ */
 
 console.log('Byron Virtual Museum - Shadow Optimization Benchmark');
 console.log('================================================\n');

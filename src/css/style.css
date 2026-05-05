@@ -1,4 +1,8 @@
-/** Reset and Base Configuration */
+/* ==========================================================================
+   Base
+   --------------------------------------------------------------------------
+   Global reset and viewport locking for the full-screen WebGL experience.
+   ========================================================================== */
 
 * {
     margin: 0;
@@ -16,7 +20,12 @@ html {
     font-weight: 300;
 }
 
-/** Loader */
+/* ==========================================================================
+   Loader
+   --------------------------------------------------------------------------
+   Initial blocking overlay displayed while artwork data, images, and the
+   Three.js scene are prepared.
+   ========================================================================== */
 
 #loader {
     position: fixed;
@@ -79,7 +88,11 @@ html {
     height: 100vh;
 }
 
-/** Three.js Canvas */
+/* ==========================================================================
+   Three.js Canvas
+   --------------------------------------------------------------------------
+   Full-viewport renderer host. All DOM overlays sit above this layer.
+   ========================================================================== */
 
 #canvas-container {
     width: 100%;
@@ -90,7 +103,12 @@ html {
     z-index: 1;
 }
 
-/** Navigation Crosshair */
+/* ==========================================================================
+   Navigation Crosshair
+   --------------------------------------------------------------------------
+   Center target used for pointer-lock artwork selection and mobile action
+   clicks. The interactive state is toggled by ArtworkInteraction.
+   ========================================================================== */
 
 #crosshair {
     position: fixed;
@@ -174,7 +192,11 @@ html {
     }
 }
 
-/** Museum Logo */
+/* ==========================================================================
+   Museum Logo
+   --------------------------------------------------------------------------
+   Compact brand mark that floats above the WebGL canvas.
+   ========================================================================== */
 
 #logo {
     position: absolute;
@@ -222,7 +244,11 @@ html {
     line-height: 1;
 }
 
-/** Navigation Controls */
+/* ==========================================================================
+   Navigation HUD
+   --------------------------------------------------------------------------
+   Keyboard hints and lightweight runtime diagnostics for desktop visitors.
+   ========================================================================== */
 
 #navigation-controls {
     position: absolute;
@@ -283,7 +309,7 @@ html {
     flex: 1;
 }
 
-/** SVG Icons in Keys */
+/** SVG icons in keycaps. */
 
 .key svg {
     display: block;
@@ -292,7 +318,11 @@ html {
     height: 14px;
 }
 
-/** Status Indicator */
+/* ==========================================================================
+   Optional Debug HUD
+   --------------------------------------------------------------------------
+   Legacy status widgets retained for diagnostics when matching DOM exists.
+   ========================================================================== */
 
 #status-indicator {
     position: absolute;
@@ -329,7 +359,11 @@ html {
     font-weight: 500;
 }
 
-/** Enhanced Navigation Map */
+/* ==========================================================================
+   Optional Navigation Map
+   --------------------------------------------------------------------------
+   Legacy minimap styles retained for compatibility with earlier UI markup.
+   ========================================================================== */
 
 #navigation-map {
     position: absolute;
@@ -396,7 +430,11 @@ html {
     }
 }
 
-/** Artwork Info */
+/* ==========================================================================
+   Legacy Artwork Info Panel
+   --------------------------------------------------------------------------
+   Older artwork information surface retained for compatibility.
+   ========================================================================== */
 
 .info-panel {
     position: absolute;
@@ -441,7 +479,11 @@ html {
     line-height: 1.7;
 }
 
-/** Interaction Hints */
+/* ==========================================================================
+   Interaction Hints
+   --------------------------------------------------------------------------
+   Optional floating hint chips for legacy or future interaction prompts.
+   ========================================================================== */
 
 #interaction-hints {
     position: absolute;
@@ -482,7 +524,11 @@ html {
     filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
 }
 
-/** Video Modal */
+/* ==========================================================================
+   Shared Modal Foundation
+   --------------------------------------------------------------------------
+   Backdrop, content shell, and close button used by artwork media and credits.
+   ========================================================================== */
 
 .modal {
     display: none;
@@ -543,7 +589,7 @@ html {
     border-radius: 20px;
 }
 
-/** Modal States */
+/** Modal visibility state. */
 
 .modal.show {
     display: block;
@@ -562,7 +608,7 @@ html {
     }
 }
 
-/** Additional Effects */
+/** Shared modal edge highlight. */
 
 .modal-content::before {
     content: '';
@@ -574,7 +620,12 @@ html {
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
 }
 
-/** Welcome Overlay */
+/* ==========================================================================
+   Welcome Overlay
+   --------------------------------------------------------------------------
+   Startup mode chooser that lets visitors begin free exploration, start the
+   guided tour, or view credits before controls are enabled.
+   ========================================================================== */
 
 .welcome-overlay {
     position: fixed;
@@ -661,7 +712,12 @@ html {
     color: #17130f;
 }
 
-/** Artwork Panel */
+/* ==========================================================================
+   Artwork Panel
+   --------------------------------------------------------------------------
+   Side panel populated by ArtworkPanel for metadata, audio-guide access, and
+   detail-modal entry.
+   ========================================================================== */
 
 .artwork-panel {
     position: fixed;
@@ -745,7 +801,11 @@ html {
     display: none;
 }
 
-/** Artwork Detail */
+/* ==========================================================================
+   Artwork Detail Modal
+   --------------------------------------------------------------------------
+   Media-focused modal layout for artwork images, audio cards, and videos.
+   ========================================================================== */
 
 .modal-content.artwork-detail {
     display: grid;
@@ -836,7 +896,12 @@ html {
     font-weight: 700;
 }
 
-/** Tour */
+/* ==========================================================================
+   Guided Tour
+   --------------------------------------------------------------------------
+   HUD and completion overlay shown while TourController moves the camera
+   through generated artwork stops.
+   ========================================================================== */
 
 .tour-hud {
     position: fixed;
@@ -990,7 +1055,11 @@ html {
     }
 }
 
-/** Mobile Controls */
+/* ==========================================================================
+   Mobile Controls
+   --------------------------------------------------------------------------
+   Touch joystick, full-screen look area, and centered artwork action button.
+   ========================================================================== */
 
 #mobile-joystick {
     position: fixed;
@@ -1043,13 +1112,13 @@ html {
     cursor: pointer;
 }
 
-/** Custom Cursor for Hotspots */
+/** Custom cursor for legacy hotspot elements. */
 
 .hotspot-cursor {
     cursor: pointer;
 }
 
-/** Mobile Controls */
+/** Touch-control interaction states. */
 
 #mobile-joystick {
     opacity: 0.8;
@@ -1064,7 +1133,7 @@ html {
     pointer-events: auto;
 }
 
-/** Hide Mobile Controls on Desktop */
+/** Hide mobile-only controls on desktop layouts. */
 
 @media (min-width: 769px) {
 
@@ -1075,11 +1144,15 @@ html {
     }
 }
 
-/** Enhanced Responsive */
+/* ==========================================================================
+   Responsive Layout
+   --------------------------------------------------------------------------
+   Mobile layout constraints for overlays, modals, and touch interaction.
+   ========================================================================== */
 
 @media (max-width: 768px) {
 
-    /** Prevent zoom on mobile */
+    /** Prevent accidental zoom and text selection while using touch controls. */
 
     * {
         touch-action: pan-y;
@@ -1243,7 +1316,11 @@ html {
     }
 }
 
-/** Background Particle Effects */
+/* ==========================================================================
+   Shared Animation Utilities
+   --------------------------------------------------------------------------
+   Reusable keyframes and motion helpers.
+   ========================================================================== */
 
 @keyframes float {
 
@@ -1261,7 +1338,11 @@ html {
     }
 }
 
-/** Accessibility Improvements */
+/* ==========================================================================
+   Accessibility Preferences
+   --------------------------------------------------------------------------
+   System preference overrides for reduced motion and high contrast.
+   ========================================================================== */
 
 @media (prefers-reduced-motion: reduce) {
 
@@ -1273,7 +1354,7 @@ html {
     }
 }
 
-/** High Contrast Mode */
+/** High-contrast mode overrides. */
 
 @media (prefers-contrast: high) {
 
@@ -1292,7 +1373,7 @@ html {
     }
 }
 
-/** Depth Effects */
+/** Utility depth effect. */
 
 .depth-effect {
     box-shadow:
@@ -1301,7 +1382,7 @@ html {
         inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-/** Smooth Animations for Interactive Elements */
+/** Utility transitions for generic interactive elements. */
 
 .interactive {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1312,7 +1393,12 @@ html {
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
 }
 
-/* Credits Modal */
+/* ==========================================================================
+   Credits Modal
+   --------------------------------------------------------------------------
+   Standalone credits overlay opened from the welcome menu and after guided
+   tour completion.
+   ========================================================================== */
 .credits-modal {
     display: none;
     position: fixed;

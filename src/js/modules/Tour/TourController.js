@@ -1,6 +1,24 @@
 import * as THREE from 'three';
 
+/**
+ * Drives the guided tour state machine.
+ *
+ * The controller interpolates the camera between generated stops, focuses the
+ * matching artwork, waits for the detail modal to close, and then advances to
+ * the next stop. Manual movement and pointer lock are disabled while the tour
+ * is active.
+ */
 export class TourController {
+    /**
+     * @param {THREE.PerspectiveCamera} camera - Camera moved through tour stops.
+     * @param {Object} controls - First-person controls managed during tour mode.
+     * @param {Object} [options] - Tour configuration and callbacks.
+     * @param {Array<Object>} [options.path] - Ordered tour stops.
+     * @param {Function} [options.getArtworkById] - Lookup callback for artwork ids.
+     * @param {Function} [options.onArtworkFocused] - Called after a stop movement completes.
+     * @param {Function} [options.onStop] - Called when tour mode stops manually.
+     * @param {Function} [options.onComplete] - Called after the final stop.
+     */
     constructor(camera, controls, options = {}) {
         this.camera = camera;
         this.controls = controls;
@@ -26,6 +44,9 @@ export class TourController {
         this.createHud();
     }
 
+    /**
+     * Starts the guided tour at the first stop.
+     */
     start() {
         if (this.path.length === 0) return;
 
@@ -43,6 +64,11 @@ export class TourController {
         this.showHud();
     }
 
+    /**
+     * Stops the guided tour and restores manual control.
+     *
+     * @param {string} [reason='manual'] - Stop reason passed to the app callback.
+     */
     stop(reason = 'manual') {
         if (!this.active) return;
 
@@ -56,6 +82,11 @@ export class TourController {
         this.onStop(reason);
     }
 
+    /**
+     * Advances active tour interpolation.
+     *
+     * @param {number} deltaTime - Seconds elapsed since the previous frame.
+     */
     update(deltaTime) {
         if (!this.active) return;
 
@@ -74,10 +105,16 @@ export class TourController {
         }
     }
 
+    /**
+     * @returns {boolean} True when guided tour mode is active.
+     */
     isActive() {
         return this.active;
     }
 
+    /**
+     * Captures the current camera transform and prepares interpolation to a stop.
+     */
     prepareMoveToCurrentStop() {
         const stop = this.path[this.currentIndex];
         this.state = 'moving';
@@ -90,6 +127,9 @@ export class TourController {
         this.updateHud(stop);
     }
 
+    /**
+     * Emits the current artwork focus event after camera movement finishes.
+     */
     focusCurrentArtwork() {
         const stop = this.path[this.currentIndex];
         const artwork = this.getArtworkById(stop.artworkId);
@@ -100,6 +140,9 @@ export class TourController {
         }
     }
 
+    /**
+     * Moves to the next stop after the visitor closes the current detail modal.
+     */
     advanceAfterDetail() {
         if (!this.active || this.state === 'moving') return;
 
@@ -112,6 +155,9 @@ export class TourController {
         this.prepareMoveToCurrentStop();
     }
 
+    /**
+     * Completes the tour and delegates the completion sequence to App.
+     */
     complete() {
         if (!this.active) return;
 
@@ -121,6 +167,16 @@ export class TourController {
         this.onComplete();
     }
 
+    /**
+     * Calculates the quaternion needed to look from a position toward a target.
+     *
+     * The current camera transform is restored after the calculation so this
+     * helper has no visible side effects.
+     *
+     * @param {THREE.Vector3} position - Camera position for the look calculation.
+     * @param {number[]} target - [x, y, z] point to look at.
+     * @returns {THREE.Quaternion} Target camera orientation.
+     */
     calculateLookQuaternion(position, target) {
         const originalPosition = this.camera.position.clone();
         const originalQuaternion = this.camera.quaternion.clone();
@@ -136,6 +192,9 @@ export class TourController {
         return quaternion;
     }
 
+    /**
+     * Creates the guided-tour HUD and exit handler.
+     */
     createHud() {
         this.hud = document.createElement('div');
         this.hud.id = 'tour-hud';
@@ -150,14 +209,25 @@ export class TourController {
         document.body.appendChild(this.hud);
     }
 
+    /**
+     * Shows the guided-tour HUD.
+     */
     showHud() {
         this.hud.classList.add('is-visible');
     }
 
+    /**
+     * Hides the guided-tour HUD.
+     */
     hideHud() {
         this.hud.classList.remove('is-visible');
     }
 
+    /**
+     * Updates HUD text for the current tour stop.
+     *
+     * @param {Object} stop - Current tour stop.
+     */
     updateHud(stop) {
         const text = stop.introText || 'La camara se movera a la siguiente obra.';
         this.hud.querySelector('.tour-hud__text').textContent = text;

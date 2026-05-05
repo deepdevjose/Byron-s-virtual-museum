@@ -2,53 +2,63 @@ import * as THREE from 'three';
 import CONFIG from '../../config.js';
 
 /**
- * OPTIMIZED LIGHTING SYSTEM
- * 
- * Performance optimization:
- * - Removed 16 PointLights from ceiling grid (biggest bottleneck)
- * - Kept wall spotlights and sconces for visual quality
- * - Using emissive materials for ceiling fixtures (fake lights)
+ * Builds the museum lighting system.
+ *
+ * The scene uses a small number of real lights for performance and relies on
+ * emissive fixture materials where the visual object does not need to affect
+ * illumination. Artwork spotlights and wall sconces are intentionally kept
+ * shadowless to avoid multiplying shadow-map work.
  */
-
 export class Lighting {
+    /**
+     * @param {THREE.Scene} scene - Scene that receives light objects and fixtures.
+     */
     constructor(scene) {
         this.scene = scene;
         this.spotlights = [];
         this.fixtures = [];
     }
 
+    /**
+     * Adds ambient, skylight, fill, artwork, and sconce lighting.
+     *
+     * @param {Array<Object>} [artworksData=[]] - Artwork metadata used to aim spotlights.
+     */
     setup(artworksData = []) {
-        /** Ambient Light */
+        /** Ambient light establishes the base room visibility. */
 
         const ambientLight = new THREE.AmbientLight(0x9a8d7d, 0.26);
         this.scene.add(ambientLight);
 
-        /** OPTIMIZED: Ceiling fixtures with emissive only (no PointLights) */
+        /** Ceiling fixtures use emissive materials instead of point lights. */
 
         this.createCeilingLightGrid();
 
-        /** Main Skylight */
+        /** Main skylight. */
 
         this.createSkylight();
 
-        /** Fill Lights (kept for quality) */
+        /** Fill lights. */
 
         this.createFillLights();
 
-        /** Spotlights for Artworks (RESTORED) */
+        /** Artwork spotlights. */
 
         this.createRealisticSpotlights(artworksData);
 
-        /** Wall Sconces (RESTORED) */
+        /** Wall sconces. */
 
         this.implementWallSconces();
     }
 
+    /**
+     * Creates ceiling fixtures without real point lights.
+     *
+     * The removed point lights were the most expensive part of the previous
+     * lighting setup; emissive diffusers preserve the visual cue without adding
+     * per-light shading cost.
+     */
     createCeilingLightGrid() {
-        /** OPTIMIZED: Minimal fixtures - NO PointLights, just 4 corner emissive fixtures
-         * This was the main bottleneck (16 PointLights removed)
-         */
-
         const positions = [
             [-6, 4.6, -6],
             [6, 4.6, -6],
@@ -57,7 +67,7 @@ export class Lighting {
         ];
 
         positions.forEach(([posX, height, posZ]) => {
-            /** Simple fixture with strong emissive */
+            /** Simple fixture with strong emissive material. */
 
             const fixtureGeometry = new THREE.CylinderGeometry(0.15, 0.18, 0.1, 8);
             const fixtureMaterial = new THREE.MeshStandardMaterial({
@@ -73,7 +83,7 @@ export class Lighting {
             fixture.receiveShadow = false;
             this.scene.add(fixture);
 
-            /** Bright diffuser */
+            /** Bright diffuser. */
 
             const diffuserGeometry = new THREE.CircleGeometry(0.22, 12);
             const diffuserMaterial = new THREE.MeshStandardMaterial({
@@ -91,15 +101,18 @@ export class Lighting {
         });
     }
 
+    /**
+     * Adds the primary directional light that simulates skylight.
+     */
     createSkylight() {
-        /** Main directional light with shadows */
+        /** Main directional light with shadows. */
 
         const mainSkylight = new THREE.DirectionalLight(0xffd9a0, 0.62);
         mainSkylight.position.set(2, 20, 3);
         mainSkylight.target.position.set(0, 0, 0);
         mainSkylight.castShadow = true;
 
-        /** Shadow configuration (optimized size) */
+        /** Shadow configuration uses a moderate map size for performance. */
 
         mainSkylight.shadow.mapSize.width = 1024;
         mainSkylight.shadow.mapSize.height = 1024;
@@ -116,6 +129,9 @@ export class Lighting {
         this.scene.add(mainSkylight.target);
     }
 
+    /**
+     * Adds low-intensity directional fills for softer room contrast.
+     */
     createFillLights() {
         const fills = [
             { color: 0xffd9a0, intensity: 0.16, pos: [-15, 12, 8] },
@@ -130,8 +146,11 @@ export class Lighting {
         });
     }
 
-    /** RESTORED: Original spotlights for artwork */
-
+    /**
+     * Creates a shadowless spotlight and fixture for each artwork.
+     *
+     * @param {Array<Object>} [artworksData=[]] - Artwork records with position and rotation.
+     */
     createRealisticSpotlights(artworksData = []) {
         const UNIFIED_COLOR = 0xffffff;
         const UNIFIED_INTENSITY = 22;
@@ -145,7 +164,7 @@ export class Lighting {
             const spotLight = new THREE.SpotLight(UNIFIED_COLOR, UNIFIED_INTENSITY, UNIFIED_DISTANCE, UNIFIED_ANGLE, UNIFIED_PENUMBRA, UNIFIED_DECAY);
             spotLight.position.set(...config.pos);
             spotLight.target.position.set(...config.target);
-            spotLight.castShadow = false; /** No shadows from artwork spots */
+            spotLight.castShadow = false; /** Artwork lights skip shadows to keep GPU cost stable. */
 
 
             this.scene.add(spotLight);
@@ -156,6 +175,12 @@ export class Lighting {
         });
     }
 
+    /**
+     * Computes spotlight positions from artwork wall normals.
+     *
+     * @param {Array<Object>} artworksData - Artwork records.
+     * @returns {Array<{pos: number[], target: number[]}>} Spotlight positions and targets.
+     */
     createArtworkSpotlightConfigs(artworksData) {
         if (!Array.isArray(artworksData) || artworksData.length === 0) {
             return [];
@@ -174,10 +199,15 @@ export class Lighting {
         });
     }
 
+    /**
+     * Adds the visible fixture mesh for an artwork spotlight.
+     *
+     * @param {number[]} position - [x, y, z] fixture position.
+     */
     createSpotlightFixture(position) {
         const fixtureGroup = new THREE.Group();
 
-        /** Spotlight base */
+        /** Spotlight base. */
 
         const baseGeometry = new THREE.CylinderGeometry(0.18, 0.18, 0.12, 12);
         const baseMaterial = new THREE.MeshStandardMaterial({
@@ -190,7 +220,7 @@ export class Lighting {
         base.castShadow = false;
         fixtureGroup.add(base);
 
-        /** Spotlight cone */
+        /** Spotlight cone. */
 
         const coneGeometry = new THREE.ConeGeometry(0.15, 0.35, 12);
         const coneMaterial = new THREE.MeshStandardMaterial({
@@ -204,7 +234,7 @@ export class Lighting {
         cone.castShadow = false;
         fixtureGroup.add(cone);
 
-        /** Inner reflector with emissive */
+        /** Inner reflector with emissive material. */
 
         const reflectorGeometry = new THREE.ConeGeometry(0.12, 0.25, 12);
         const reflectorMaterial = new THREE.MeshStandardMaterial({
@@ -224,20 +254,21 @@ export class Lighting {
         this.fixtures.push(fixtureGroup);
     }
 
-    /** RESTORED: Wall sconces with lights */
-
+    /**
+     * Adds wall sconces and their small shadowless spotlights.
+     */
     implementWallSconces() {
         const sconcePositions = [
-            /** Front wall */
+            /** Front wall. */
 
             [-7.5, 3.2, -13.8], [-2.5, 3.2, -13.8], [2.5, 3.2, -13.8], [7.5, 3.2, -13.8],
-            /** Left wall */
+            /** Left wall. */
 
             [-13.8, 3.2, -5], [-13.8, 3.2, 0], [-13.8, 3.2, 5],
-            /** Right wall */
+            /** Right wall. */
 
             [13.8, 3.2, -5], [13.8, 3.2, 0], [13.8, 3.2, 5],
-            /** Back wall */
+            /** Back wall. */
 
             [-6.75, 3.2, 13.8], [-2.25, 3.2, 13.8], [2.25, 3.2, 13.8], [6.75, 3.2, 13.8]
         ];
@@ -245,7 +276,7 @@ export class Lighting {
         sconcePositions.forEach(pos => {
             this.createWallSconce(pos);
 
-            /** RESTORED: Sconce light */
+            /** Sconce light. */
 
             const sconceLight = new THREE.SpotLight(0xffd9a0, 4.5, 5.8, Math.PI / 3, 0.75, 1.2);
             sconceLight.position.set(...pos);
@@ -256,10 +287,15 @@ export class Lighting {
         });
     }
 
+    /**
+     * Adds one visible wall sconce mesh.
+     *
+     * @param {number[]} position - [x, y, z] sconce position.
+     */
     createWallSconce(position) {
         const sconceGroup = new THREE.Group();
 
-        /** Sconce base */
+        /** Sconce base. */
 
         const baseGeometry = new THREE.CylinderGeometry(0.08, 0.1, 0.15, 12);
         const baseMaterial = new THREE.MeshPhysicalMaterial({
@@ -273,7 +309,7 @@ export class Lighting {
         base.castShadow = false;
         sconceGroup.add(base);
 
-        /** Sconce shade - ORIGINAL material with transmission (glass-like) */
+        /** Sconce shade with glass-like transmission. */
 
         const shadeGeometry = new THREE.SphereGeometry(0.12, 16, 16);
         const shadeMaterial = new THREE.MeshPhysicalMaterial({

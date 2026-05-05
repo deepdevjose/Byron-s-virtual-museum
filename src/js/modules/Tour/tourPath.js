@@ -1,11 +1,32 @@
+/**
+ * Tour-path helpers for wall-mounted artwork.
+ *
+ * Stops are derived from artwork metadata instead of hard-coded positions so
+ * new wall artwork can participate in the guided tour when it follows the
+ * gallery coordinate conventions.
+ */
 const WALL_POSITION = 13.7;
 const WALL_EPSILON = 0.6;
 const WALL_SPAN = 12.3;
 const DEFAULT_VIEW_DISTANCE = 5.15;
 const DEFAULT_CAMERA_HEIGHT = 1.7;
 
+/**
+ * Legacy exported path placeholder.
+ *
+ * The active app uses createTourPathFromArtworks so tour stops stay aligned
+ * with the artwork catalog.
+ */
 export const TOUR_PATH = [];
 
+/**
+ * Creates an ordered clockwise guided-tour path from artwork records.
+ *
+ * The Byron Galvez portrait is prioritized as the first stop when present.
+ *
+ * @param {Array<Object>} [artworksData=[]] - Artwork records from `artworks.json`.
+ * @returns {Array<Object>} Tour stops with cameraPosition, lookAt, and introText.
+ */
 export function createTourPathFromArtworks(artworksData = []) {
     const visibleArtworks = artworksData
         .filter(isMainGalleryArtwork)
@@ -33,6 +54,12 @@ export function createTourPathFromArtworks(artworksData = []) {
     });
 }
 
+/**
+ * Determines whether an artwork belongs to the main rectangular gallery walls.
+ *
+ * @param {Object} artwork - Artwork metadata.
+ * @returns {boolean} True when the artwork is close to a main wall span.
+ */
 function isMainGalleryArtwork(artwork) {
     if (!Array.isArray(artwork?.position)) return false;
 
@@ -43,6 +70,13 @@ function isMainGalleryArtwork(artwork) {
     return onFrontOrBackWall || onSideWall;
 }
 
+/**
+ * Gives each artwork a clockwise sorting rank around the room.
+ *
+ * @param {Object} artwork - Artwork metadata.
+ * @param {number} startX - X position used to start after the portrait.
+ * @returns {number} Clockwise ordering rank.
+ */
 function getClockwiseRank(artwork, startX) {
     const [x, , z] = artwork.position;
 
@@ -55,6 +89,12 @@ function getClockwiseRank(artwork, startX) {
     return 1000;
 }
 
+/**
+ * Computes a camera position offset from an artwork along its wall normal.
+ *
+ * @param {Object} artwork - Artwork metadata.
+ * @returns {number[]} [x, y, z] camera position for the tour stop.
+ */
 function getCameraPosition(artwork) {
     const [x, , z] = artwork.position;
     const rotationY = Array.isArray(artwork.rotation) ? artwork.rotation[1] : 0;
@@ -69,6 +109,13 @@ function getCameraPosition(artwork) {
     ];
 }
 
+/**
+ * Tests whether two scalar positions are close enough to be considered on a wall.
+ *
+ * @param {number} value - Measured coordinate.
+ * @param {number} target - Expected wall coordinate.
+ * @returns {boolean} True when within WALL_EPSILON.
+ */
 function isNear(value, target) {
     return Math.abs(value - target) <= WALL_EPSILON;
 }

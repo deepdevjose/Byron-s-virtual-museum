@@ -1,13 +1,14 @@
 import * as THREE from 'three';
 
 /**
- * Manual Frustum Culling System
-
+ * Manual frustum culling utility for diagnostics and experiments.
  *
  * Three.js already implements frustum culling automatically.
- * Use only if you need very specific manual control like me.
+ * Use this class only when a feature needs explicit visibility control
+ * or when validating custom culling math against Three.js.
  *
- * Based on plane extraction from the View-Projection matrix.
+ * The implementation extracts six frustum planes from the view-projection
+ * matrix and tests bounding spheres or boxes against those planes.
  *
  * Mathematical Foundation:
  * =======================
@@ -35,11 +36,12 @@ import * as THREE from 'three';
  *    If d > radius  → Totally inside
  *    Else           → Intersects (could be visible)
  */
-
 export class FrustumCulling {
+    /**
+     * Creates reusable planes, matrices, and statistics containers.
+     */
     constructor() {
-        // The 6 planes of the frustum
-
+        // The six planes of the camera frustum.
         this.planes = {
             left: new THREE.Plane(),
             right: new THREE.Plane(),
@@ -49,12 +51,10 @@ export class FrustumCulling {
             far: new THREE.Plane()
         };
 
-        // Native Three.js Frustum (for comparison)
-
+        // Native Three.js frustum used for comparison checks.
         this.frustum = new THREE.Frustum();
 
-        // Temporary matrix
-
+        // Reused view-projection matrix.
         this.projScreenMatrix = new THREE.Matrix4();
 
         this.stats = {
@@ -65,14 +65,14 @@ export class FrustumCulling {
     }
 
     /**
-     * Extracts the 6 frustum planes from the View-Projection matrix
-     * Pure mathematical implementation
+     * Extracts the six frustum planes from a view-projection matrix.
+     *
+     * @param {THREE.Matrix4} viewProjectionMatrix - Projection multiplied by view matrix.
      */
-
     extractPlanesFromMatrix(viewProjectionMatrix) {
         const m = viewProjectionMatrix.elements;
 
-        // Left Plane: Row 4 + Row 1
+        // Left plane: row 4 + row 1.
 
         this.planes.left.set(
             new THREE.Vector3(m[3] + m[0], m[7] + m[4], m[11] + m[8]),
@@ -80,7 +80,7 @@ export class FrustumCulling {
         );
         this.planes.left.normalize();
 
-        // Right Plane: Row 4 - Row 1
+        // Right plane: row 4 - row 1.
 
         this.planes.right.set(
             new THREE.Vector3(m[3] - m[0], m[7] - m[4], m[11] - m[8]),
@@ -88,7 +88,7 @@ export class FrustumCulling {
         );
         this.planes.right.normalize();
 
-        // Bottom Plane: Row 4 + Row 2
+        // Bottom plane: row 4 + row 2.
 
         this.planes.bottom.set(
             new THREE.Vector3(m[3] + m[1], m[7] + m[5], m[11] + m[9]),
@@ -96,7 +96,7 @@ export class FrustumCulling {
         );
         this.planes.bottom.normalize();
 
-        // Top Plane: Row 4 - Row 2
+        // Top plane: row 4 - row 2.
 
         this.planes.top.set(
             new THREE.Vector3(m[3] - m[1], m[7] - m[5], m[11] - m[9]),
@@ -104,7 +104,7 @@ export class FrustumCulling {
         );
         this.planes.top.normalize();
 
-        // Near Plane: Row 4 + Row 3
+        // Near plane: row 4 + row 3.
 
         this.planes.near.set(
             new THREE.Vector3(m[3] + m[2], m[7] + m[6], m[11] + m[10]),
@@ -112,7 +112,7 @@ export class FrustumCulling {
         );
         this.planes.near.normalize();
 
-        // Far Plane: Row 4 - Row 3
+        // Far plane: row 4 - row 3.
 
         this.planes.far.set(
             new THREE.Vector3(m[3] - m[2], m[7] - m[6], m[11] - m[10]),
@@ -122,52 +122,42 @@ export class FrustumCulling {
     }
 
     /**
-     * Sphere vs Frustum Test
-     * Returns true if the sphere is visible (totally or partially)
+     * Tests whether a sphere is at least partially inside the frustum.
      *
-     * @param {THREE.Vector3} center - Center of the sphere
-     * @param {number} radius - Radius of the sphere
-     * @returns {boolean} - true if visible, false if hidden
+     * @param {THREE.Vector3} center - Center of the sphere.
+     * @param {number} radius - Radius of the sphere.
+     * @returns {boolean} True when visible or intersecting the frustum.
      */
-
     isSphereVisible(center, radius) {
-        // Test against each plane
-
+        // Test against each plane.
         for (const plane of Object.values(this.planes)) {
-            // Signed distance from center to plane
-
+            // Signed distance from sphere center to plane.
             const distance = plane.distanceToPoint(center);
 
-            // If completely behind the plane → CULL
-
+            // A sphere fully behind any plane is outside the frustum.
             if (distance < -radius) {
                 return false;
             }
         }
 
-        // Passed all tests → Visible
-
         return true;
     }
 
     /**
-     * AABB Box vs Frustum Test
+     * Tests whether an axis-aligned bounding box is visible.
      *
-     * @param {THREE.Box3} box - Axis-aligned box
-     * @returns {boolean} - true if visible
+     * @param {THREE.Box3} box - Axis-aligned box.
+     * @returns {boolean} True when visible.
      */
-
     isBoxVisible(box) {
         for (const plane of Object.values(this.planes)) {
-            // Find the point closest to the plane
-
+            // Pick the vertex most likely to be behind this plane.
             const p = new THREE.Vector3();
             p.x = plane.normal.x > 0 ? box.max.x : box.min.x;
             p.y = plane.normal.y > 0 ? box.max.y : box.min.y;
             p.z = plane.normal.z > 0 ? box.max.z : box.min.z;
 
-            // If the closest point is behind the plane → CULL
-
+            // If that vertex is behind the plane, the box is outside.
             if (plane.distanceToPoint(p) < 0) {
                 return false;
             }
@@ -177,35 +167,32 @@ export class FrustumCulling {
     }
 
     /**
-     * Updates the frustum from the camera
+     * Updates manual and native frustums from a camera.
+     *
+     * @param {THREE.Camera} camera - Camera to evaluate.
      */
-
     updateFromCamera(camera) {
-        // Calculate View-Projection matrix
-
+        // Calculate view-projection matrix.
         this.projScreenMatrix.multiplyMatrices(
             camera.projectionMatrix,
             camera.matrixWorldInverse
         );
 
-        // Extract planes
-
         this.extractPlanesFromMatrix(this.projScreenMatrix);
 
-        // Also update native Three.js frustum for comparison
-
+        // Also update native Three.js frustum for comparison.
         this.frustum.setFromProjectionMatrix(this.projScreenMatrix);
     }
 
     /**
-     * Evaluates visibility of a list of objects
-     * Functional approach - returns new list without mutating originals
+     * Evaluates visibility for a list of gallery-like objects.
      *
-     * @param {Array} objects - List of objects with boundingSphere
-     * @param {THREE.Camera} camera - Active camera
-     * @returns {Array} - List of visible objects
+     * This method returns a new list and does not mutate object visibility.
+     *
+     * @param {Array<Object>} objects - Objects with `boundingSphere` or `group`.
+     * @param {THREE.Camera} camera - Active camera.
+     * @returns {Array<Object>} Visible objects.
      */
-
     evaluateVisibility(objects, camera) {
         this.updateFromCamera(camera);
 
@@ -213,23 +200,18 @@ export class FrustumCulling {
         let culled = 0;
 
         objects.forEach(obj => {
-            // Get center and radius of bounding sphere
-
             let center, radius;
 
             if (obj.boundingSphere) {
                 center = obj.boundingSphere.center;
                 radius = obj.boundingSphere.radius;
             } else if (obj.group) {
-                // For artwork groups
-
                 center = new THREE.Vector3();
                 obj.group.getWorldPosition(center);
-                radius = 2.0; // Approximate radius for artworks
+                radius = 2.0; // Approximate artwork display radius.
 
             } else {
-                // No sphere defined, assume visible
-
+                // If no bounds are available, keep the object visible.
                 visibleObjects.push(obj);
                 return;
             }
@@ -249,10 +231,12 @@ export class FrustumCulling {
     }
 
     /**
-     * Compares result with native Three.js frustum
-     * Useful for validating mathematical implementation
+     * Compares manual culling results with Three.js native frustum results.
+     *
+     * @param {Array<Object>} objects - Gallery-like objects with groups.
+     * @param {THREE.Camera} camera - Active camera.
+     * @returns {{manual: number, native: number, accuracy: number}} Comparison summary.
      */
-
     compareWithNative(objects, camera) {
         this.updateFromCamera(camera);
 
@@ -292,9 +276,10 @@ export class FrustumCulling {
     }
 
     /**
-     * Get statistics
+     * Gets the latest culling statistics.
+     *
+     * @returns {{totalObjects: number, visibleObjects: number, culledObjects: number}}
      */
-
     getStats() {
         return { ...this.stats };
     }
@@ -325,4 +310,3 @@ export class FrustumCulling {
  * NOTE: Three.js does this AUTOMATICALLY in renderer.render()
  * using object.frustumCulled = true (default)
  */
-

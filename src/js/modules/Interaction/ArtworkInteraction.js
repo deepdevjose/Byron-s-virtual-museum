@@ -1,13 +1,27 @@
 import * as THREE from 'three';
 
+/**
+ * Handles artwork hover and selection raycasting.
+ *
+ * Pointer-lock mode raycasts through the center of the screen so the crosshair
+ * is the selection target. Unlocked clicks raycast through the actual pointer
+ * location, which supports modal-free desktop interaction and synthesized
+ * mobile action-button clicks.
+ */
 export class ArtworkInteraction {
+    /**
+     * @param {THREE.PerspectiveCamera} camera - Active visitor camera.
+     * @param {THREE.WebGLRenderer} renderer - Renderer whose canvas can own pointer lock.
+     * @param {Function} onArtworkSelected - Callback fired when an artwork is selected.
+     * @param {Function} onHoverChanged - Callback fired when hover state changes.
+     */
     constructor(camera, renderer, onArtworkSelected, onHoverChanged) {
         this.camera = camera;
         this.renderer = renderer;
         this.onArtworkSelected = onArtworkSelected;
         this.onHoverChanged = onHoverChanged || (() => {});
         this.raycaster = new THREE.Raycaster();
-        this.pointer = new THREE.Vector2(0, 0); // Center of screen
+        this.pointer = new THREE.Vector2(0, 0); // Normalized device coordinates.
         this.artworks = [];
         this.enabled = true;
         this.hoveredArtwork = null;
@@ -16,15 +30,30 @@ export class ArtworkInteraction {
         window.addEventListener('click', (event) => this.handleClick(event));
     }
 
+    /**
+     * Replaces the list of artwork records used for raycasting.
+     *
+     * @param {Array<Object>} artworks - Gallery artwork records.
+     */
     updateTargets(artworks) {
         this.artworks = artworks || [];
     }
 
+    /**
+     * Enables or disables hover and click handling.
+     *
+     * @param {boolean} enabled - Whether artwork interaction is active.
+     */
     setEnabled(enabled) {
         this.enabled = enabled;
     }
 
-    // Called every frame to detect what artwork is in the center of the screen
+    /**
+     * Updates the artwork currently targeted by the screen-center raycast.
+     *
+     * Called every frame by App so hover state remains responsive while the
+     * visitor looks around.
+     */
     updateHover() {
         if (!this.enabled) {
             if (this.hoveredArtwork) {
@@ -33,7 +62,7 @@ export class ArtworkInteraction {
             return;
         }
 
-        // Check center of screen (raycast from center)
+        // In pointer-lock navigation, the crosshair is always screen center.
         this.pointer.set(0, 0);
         
         const meshes = this.artworks.map((artwork) => artwork.mesh).filter(Boolean);
@@ -56,23 +85,25 @@ export class ArtworkInteraction {
         }
     }
 
+    /**
+     * Applies hover state changes and updates the crosshair affordance.
+     *
+     * @param {Object|null} artwork - Artwork record being targeted, or null.
+     */
     setHoveredArtwork(artwork) {
-        // Clear previous hover
+        // Clear previous hover before enabling the new artwork highlight.
         if (this.hoveredArtwork && this.hoveredArtwork !== artwork) {
             this.onHoverChanged(this.hoveredArtwork, false);
         }
 
-        // Set new hover
         this.hoveredArtwork = artwork;
         if (artwork) {
             this.onHoverChanged(artwork, true);
-            // Update crosshair to show interactive state
             const crosshair = document.getElementById('crosshair');
             if (crosshair) {
                 crosshair.classList.add('interactive');
             }
         } else {
-            // Remove interactive state from crosshair
             const crosshair = document.getElementById('crosshair');
             if (crosshair) {
                 crosshair.classList.remove('interactive');
@@ -80,6 +111,12 @@ export class ArtworkInteraction {
         }
     }
 
+    /**
+     * Handles click selection for artwork meshes.
+     *
+     * @param {MouseEvent|Object} event - Browser click or synthesized mobile action.
+     * @returns {boolean} True when an artwork was selected.
+     */
     handleClick(event) {
         if (!this.enabled || this.isUiClick(event)) {
             return false;
@@ -108,6 +145,12 @@ export class ArtworkInteraction {
         return false;
     }
 
+    /**
+     * Detects clicks inside DOM UI so they do not also select 3D artwork.
+     *
+     * @param {Event} event - Click event.
+     * @returns {boolean} True when the click originated in an interactive UI region.
+     */
     isUiClick(event) {
         return Boolean(event.target?.closest?.('[data-ui-interactive="true"]'));
     }

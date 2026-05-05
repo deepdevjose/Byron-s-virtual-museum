@@ -1,5 +1,9 @@
-// Frustum Culling Verification - Paste in the browser console
-// Confirms that Three.js has frustum culling enabled
+/**
+ * Browser-console verification for Three.js frustum culling.
+ *
+ * Paste this script into DevTools after the museum has loaded. It walks the
+ * scene graph and reports meshes with `frustumCulled` disabled.
+ */
 
 console.log('Verifying Three.js Frustum Culling...');
 console.log('================================================\n');

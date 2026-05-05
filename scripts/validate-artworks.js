@@ -1,3 +1,11 @@
+/**
+ * Validates the artwork catalog used by the virtual museum.
+ *
+ * Run from the repository root. The script checks required metadata fields,
+ * unique ids, vector shapes, local image paths, and optional audio/video asset
+ * references. Remote media values are treated as delivery URLs and validated
+ * with the URL parser.
+ */
 const fs = require('fs');
 const path = require('path');
 
@@ -6,6 +14,11 @@ const filePath = path.join(root, 'src/data/artworks.json');
 const requiredFields = ['id', 'title', 'artist', 'year', 'technique', 'description', 'image', 'position', 'size'];
 const remoteAssetPattern = /^https?:\/\//i;
 
+/**
+ * Prints a validation error and exits with a failing status.
+ *
+ * @param {string} message - Human-readable validation failure.
+ */
 function fail(message) {
   console.error(`Artwork validation failed: ${message}`);
   process.exit(1);
@@ -68,6 +81,15 @@ artworks.forEach((artwork, index) => {
 
 console.log(`Artwork validation passed: ${artworks.length} records`);
 
+/**
+ * Validates optional audio or video fields.
+ *
+ * Local paths must exist in the repository. Remote values must be syntactically
+ * valid URLs; Cloudinary video entries in the catalog are delivery URLs.
+ *
+ * @param {Object} artwork - Artwork record being validated.
+ * @param {'audio'|'video'} field - Optional media field to validate.
+ */
 function validateAssetReference(artwork, field) {
   const value = artwork[field];
 

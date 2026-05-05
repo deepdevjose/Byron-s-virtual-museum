@@ -1,5 +1,9 @@
-// Benchmark Occlusion Culling - Paste in the browser console
-// Checks how many objects are being hidden behind walls
+/**
+ * Browser-console benchmark for occlusion culling.
+ *
+ * Paste this script into DevTools after the museum has loaded. It samples how
+ * many artworks the optional occlusion system hides while the camera rotates.
+ */
 
 console.log('Byron Virtual Museum - Occlusion Culling Benchmark');
 console.log('======================================================\n');

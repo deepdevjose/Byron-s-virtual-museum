@@ -1,3 +1,10 @@
+/**
+ * Minimal repository smoke test.
+ *
+ * This script confirms that a known JavaScript entry file exists. The project
+ * is a static browser app with no package manifest, so this check intentionally
+ * avoids invoking a bundler or dev server.
+ */
 const fs = require('fs');
 const path = require('path');
 

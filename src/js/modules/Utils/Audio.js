@@ -21,4 +21,16 @@ export class Audio {
 
         }
     }
+
+    pauseAmbient() {
+        if (this.ambientAudio && !this.ambientAudio.paused) {
+            this.ambientAudio.pause();
+        }
+    }
+
+    resumeAmbient() {
+        if (this.ambientAudio && this.ambientAudio.paused) {
+            this.ambientAudio.play().catch(() => {});
+        }
+    }
 }

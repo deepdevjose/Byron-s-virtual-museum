@@ -1,8 +1,13 @@
 export class ArtworkPanel {
-    constructor() {
+    constructor(options = {}) {
         this.panel = null;
         this.currentArtwork = null;
+        this.currentOptions = {};
         this.audioGuide = null;
+        this.detailOpen = false;
+        this.detailArtwork = null;
+        this.detailContext = null;
+        this.onDetailClosed = options.onDetailClosed || (() => {});
         this.createPanel();
         this.setupDetailModal();
     }
@@ -26,7 +31,12 @@ export class ArtworkPanel {
         `;
 
         this.panel.querySelector('.artwork-panel__close').addEventListener('click', () => this.hide());
-        this.panel.querySelector('[data-action="detail"]').addEventListener('click', () => this.openDetail());
+        this.panel.querySelector('[data-action="detail"]').addEventListener('click', () => {
+            this.openDetail(this.currentArtwork, {
+                autoplayVideo: true,
+                context: this.currentOptions.source || null
+            });
+        });
         this.panel.querySelector('[data-action="audio"]').addEventListener('click', () => this.playAudioGuide());
         document.body.appendChild(this.panel);
     }
@@ -48,16 +58,26 @@ export class ArtworkPanel {
 
         this.stopAudioGuide();
         this.currentArtwork = artwork;
+        this.currentOptions = options;
         const data = artwork.data;
         this.panel.querySelector('.artwork-panel__title').textContent = data.title;
         this.panel.querySelector('.artwork-panel__meta').textContent = `${data.artist} · ${data.year}`;
         this.panel.querySelector('.artwork-panel__technique').textContent = data.technique || 'Técnica mixta';
         this.panel.querySelector('.artwork-panel__description').textContent = data.description;
+        this.panel.classList.toggle('artwork-panel--tour', options.source === 'tour');
+
+        // Hide eyebrow if opening detail modal
+        const eyebrow = this.panel.querySelector('.artwork-panel__eyebrow');
+        if (eyebrow) {
+            eyebrow.style.display = options.openDetail ? 'none' : 'block';
+        }
 
         const audioButton = this.panel.querySelector('[data-action="audio"]');
         const detailButton = this.panel.querySelector('[data-action="detail"]');
-        audioButton.hidden = !data.audio;
-        detailButton.textContent = data.video ? 'Ver animación' : 'Ver detalle';
+        const closeButton = this.panel.querySelector('.artwork-panel__close');
+        audioButton.hidden = !data.audio || options.source === 'tour';
+        detailButton.textContent = (data.video || data.audio) ? 'Ver animación' : 'Ver detalle';
+        closeButton.hidden = Boolean(options.locked);
 
         this.panel.classList.add('is-visible');
 
@@ -70,10 +90,22 @@ export class ArtworkPanel {
         }
     }
 
-    hide() {
+    hide(options = {}) {
+        const shouldResumeAmbient = options.resumeAmbient !== false;
+        const shouldPreserveArtwork = options.preserveArtwork === true;
+
         this.panel.classList.remove('is-visible');
-        this.currentArtwork = null;
+        this.panel.classList.remove('artwork-panel--tour');
+        this.panel.querySelector('.artwork-panel__close').hidden = false;
+        if (!shouldPreserveArtwork) {
+            this.currentArtwork = null;
+            this.currentOptions = {};
+        }
         this.stopAudioGuide();
+        // Resume ambient audio when closing panel
+        if (shouldResumeAmbient && !this.detailOpen && window.app?.audio) {
+            window.app.audio.resumeAmbient();
+        }
     }
 
     openDetail(artwork = this.currentArtwork, options = {}) {
@@ -91,21 +123,19 @@ export class ArtworkPanel {
         if (!content) return;
 
         this.stopDetailMedia(modal);
+        this.hide({ preserveArtwork: true, resumeAmbient: false });
 
-        const hasVideo = Boolean(data.video);
-        const mediaMarkup = hasVideo
-            ? this.createVideoMarkup(data, options)
-            : this.createImageMarkup(data);
+        const mediaType = this.getMediaType(data);
+        const mediaMarkup = this.createMediaMarkup(data, mediaType);
 
         content.className = 'modal-content artwork-detail';
         content.setAttribute('data-ui-interactive', 'true');
         content.innerHTML = `
             <button id="close-modal" class="close-btn" type="button" data-ui-interactive="true">&times;</button>
-            <div class="artwork-detail__media-wrap${hasVideo ? ' artwork-detail__media-wrap--video' : ''}">
+            <div class="artwork-detail__media-wrap artwork-detail__media-wrap--${mediaType}">
                 ${mediaMarkup}
             </div>
             <div class="artwork-detail__body">
-                <span class="artwork-detail__eyebrow">${hasVideo ? 'Obra animada' : 'Obra seleccionada'}</span>
                 <h2>${this.escapeHtml(data.title)}</h2>
                 <p class="artwork-detail__meta">${this.escapeHtml(data.artist)} · ${this.escapeHtml(data.year)}</p>
                 <p class="artwork-detail__technique">${this.escapeHtml(data.technique || 'Técnica mixta')}</p>
@@ -114,19 +144,44 @@ export class ArtworkPanel {
         `;
 
         content.querySelector('#close-modal').addEventListener('click', () => this.closeDetail());
+        this.detailOpen = true;
+        this.detailArtwork = artwork;
+        this.detailContext = options.context || null;
         modal.classList.add('show');
+        if (window.app?.audio) {
+            window.app.audio.pauseAmbient();
+        }
+        // Re-enable cursor for interaction with video and controls
+        document.body.style.cursor = 'auto';;
 
-        const video = content.querySelector('video');
-        if (video && options.autoplayVideo !== false) {
-            video.play().catch(() => {});
+        const media = content.querySelector('video, audio');
+        if (media && options.autoplayVideo !== false) {
+            media.play().catch(() => {});
         }
     }
 
     closeDetail() {
         const modal = document.getElementById('video-modal');
+        const wasOpen = this.detailOpen;
+        const closedArtwork = this.detailArtwork;
+        const closedContext = this.detailContext;
+
         if (modal) {
             this.stopDetailMedia(modal);
             modal.classList.remove('show');
+        }
+        this.detailOpen = false;
+        this.detailArtwork = null;
+        this.detailContext = null;
+        // Resume ambient audio
+        if (window.app?.audio) {
+            window.app.audio.resumeAmbient();
+        }
+        if (wasOpen) {
+            this.onDetailClosed({
+                artwork: closedArtwork,
+                context: closedContext
+            });
         }
     }
 
@@ -157,6 +212,22 @@ export class ArtworkPanel {
         });
     }
 
+    getMediaType(data) {
+        if (data.audio) return 'audio';
+        if (data.video) return 'video';
+        return 'image';
+    }
+
+    createMediaMarkup(data, mediaType) {
+        if (mediaType === 'audio') {
+            return this.createAudioImageMarkup(data);
+        }
+        if (mediaType === 'video') {
+            return this.createVideoMarkup(data);
+        }
+        return this.createImageMarkup(data);
+    }
+
     createVideoMarkup(data) {
         return `
             <video
@@ -168,6 +239,25 @@ export class ArtworkPanel {
             >
                 <source src="${this.escapeAttribute(data.video)}" type="video/mp4">
             </video>
+        `;
+    }
+
+    createAudioImageMarkup(data) {
+        return `
+            <div class="artwork-detail__audio-card">
+                <img
+                    class="artwork-detail__image"
+                    src="${this.escapeAttribute(data.image)}"
+                    alt="${this.escapeAttribute(data.title)}"
+                >
+                <audio
+                    class="artwork-detail__audio"
+                    controls
+                    preload="metadata"
+                >
+                    <source src="${this.escapeAttribute(data.audio)}" type="audio/mpeg">
+                </audio>
+            </div>
         `;
     }
 

@@ -9,7 +9,7 @@ import { Audio } from '../Utils/Audio.js';
 import { ArtworkPanel } from '../UI/ArtworkPanel.js';
 import { ArtworkInteraction } from '../Interaction/ArtworkInteraction.js';
 import { TourController } from '../Tour/TourController.js';
-import { TOUR_PATH } from '../Tour/tourPath.js';
+import { createTourPathFromArtworks } from '../Tour/tourPath.js';
 
 export class App {
     constructor() {
@@ -53,6 +53,13 @@ export class App {
             yawRun: 0.006,
             settleSpeed: 7.5
         };
+
+        this.startMenuActive = false;
+        this.creditsModal = null;
+        this.creditsAutoCloseTimer = null;
+        this.creditsCloseCallback = null;
+        this.tourCompletionTimer = null;
+        this.tourCompletionModal = null;
     }
 
     async init() {
@@ -151,19 +158,23 @@ export class App {
         this.gallery = new Gallery(this.scene, null, this.renderer, () => this.updateShadowsIfNeeded());
         await this.gallery.setup(this.artworksData);
 
-        this.artworkPanel = new ArtworkPanel();
+        this.artworkPanel = new ArtworkPanel({
+            onDetailClosed: (detail) => this.onArtworkDetailClosed(detail)
+        });
         this.artworkInteraction = new ArtworkInteraction(
             this.camera,
             this.renderer,
-            (artwork, options) => this.selectArtwork(artwork, options)
+            (artwork, options) => this.selectArtwork(artwork, options),
+            (artwork, isHovered) => this.gallery.setArtworkHoverState(artwork, isHovered)
         );
         this.artworkInteraction.updateTargets(this.gallery.artworks);
 
         this.tourController = new TourController(this.camera, this.controls, {
-            path: TOUR_PATH,
+            path: createTourPathFromArtworks(this.artworksData),
             getArtworkById: (id) => this.gallery.getArtworkById(id),
-            onArtworkFocused: (artwork) => this.selectArtwork(artwork),
-            onStop: () => this.onTourStopped()
+            onArtworkFocused: (artwork, stop) => this.selectArtwork(artwork, { source: 'tour', stop, locked: true }),
+            onStop: (reason) => this.onTourStopped(reason),
+            onComplete: () => this.onTourCompleted()
         });
 
         this.audio = new Audio();
@@ -173,19 +184,131 @@ export class App {
 
     setupEvents() {
         window.addEventListener('resize', () => this.onWindowResize());
+        this.setupCreditsModal();
+    }
+
+    setupCreditsModal() {
+        this.creditsModal = document.getElementById('credits-modal');
+        if (!this.creditsModal) return;
+
+        const closeButton = this.creditsModal.querySelector('#close-credits');
+        closeButton?.addEventListener('click', () => this.closeCreditsModal());
+
+        this.creditsModal.addEventListener('click', (event) => {
+            if (event.target === this.creditsModal) {
+                this.closeCreditsModal();
+            }
+        });
+
         document.addEventListener('keydown', (event) => {
-            if (event.code === 'Escape' && this.tourController?.isActive()) {
-                this.tourController.stop();
+            if (event.key === 'Escape' && this.creditsModal.classList.contains('show')) {
+                this.closeCreditsModal();
             }
         });
     }
 
+    openCreditsModal(options = {}) {
+        if (!this.creditsModal) return;
+
+        if (document.pointerLockElement) {
+            document.exitPointerLock();
+        }
+
+        clearTimeout(this.creditsAutoCloseTimer);
+        this.creditsCloseCallback = options.onClose || null;
+        this.creditsModal.classList.remove('is-closing');
+        this.creditsModal.classList.add('show');
+        document.body.style.cursor = 'auto';
+
+        if (options.autoCloseMs) {
+            this.creditsAutoCloseTimer = setTimeout(() => this.closeCreditsModal(), options.autoCloseMs);
+        }
+    }
+
+    closeCreditsModal(options = {}) {
+        if (!this.creditsModal) return;
+        clearTimeout(this.creditsAutoCloseTimer);
+        this.creditsAutoCloseTimer = null;
+
+        const animate = options.animate !== false && this.creditsModal.classList.contains('show');
+
+        const closeCallback = this.creditsCloseCallback;
+        this.creditsCloseCallback = null;
+        const finishClose = () => {
+            this.creditsModal.classList.remove('show', 'is-closing');
+            if (closeCallback) {
+                closeCallback();
+            }
+        };
+
+        if (!animate) {
+            finishClose();
+            return;
+        }
+
+        this.creditsModal.classList.add('is-closing');
+        setTimeout(finishClose, 460);
+    }
+
+    showTourCompletionModal() {
+        this.hideTourCompletionModal({ animate: false });
+
+        this.tourCompletionModal = document.createElement('div');
+        this.tourCompletionModal.className = 'tour-completion-modal';
+        this.tourCompletionModal.setAttribute('data-ui-interactive', 'true');
+        this.tourCompletionModal.innerHTML = `
+            <div class="tour-completion-modal__content">
+                <span>Recorrido guiado</span>
+                <h2>El recorrido ha terminado</h2>
+            </div>
+        `;
+        document.body.appendChild(this.tourCompletionModal);
+    }
+
+    hideTourCompletionModal(options = {}) {
+        if (!this.tourCompletionModal) return Promise.resolve();
+
+        const modal = this.tourCompletionModal;
+        const finishHide = () => {
+            if (this.tourCompletionModal === modal) {
+                this.tourCompletionModal = null;
+            }
+            modal.remove();
+        };
+
+        if (options.animate === false) {
+            finishHide();
+            return Promise.resolve();
+        }
+
+        modal.classList.add('is-leaving');
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                finishHide();
+                resolve();
+            }, 460);
+        });
+    }
+
     selectArtwork(artwork, options = {}) {
+        if (options.source === 'click' && !this.tourController?.isActive()) {
+            this.artworkPanel.hide({ resumeAmbient: false });
+            this.artworkPanel.openDetail(artwork, {
+                autoplayVideo: true,
+                context: 'free'
+            });
+            return;
+        }
+
         this.artworkPanel.show(artwork, options);
     }
 
     showControlInstructions() {
         const isMobile = this.detectMobileDevice();
+        this.startMenuActive = true;
+        this.controls.setEnabled(false);
+        this.artworkInteraction?.setEnabled(false);
+
         const instructions = document.createElement('div');
         instructions.id = 'control-instructions';
         instructions.className = 'welcome-overlay';
@@ -200,22 +323,30 @@ export class App {
                 <button id="start-walking" type="button" data-ui-interactive="true">Recorrido libre</button>
                 <button id="start-tour" type="button" data-ui-interactive="true">Recorrido guiado</button>
             </div>
+            <div class="welcome-overlay__extras">
+                <button id="start-credits" type="button" data-ui-interactive="true">Créditos</button>
+            </div>
         `;
 
         document.body.appendChild(instructions);
 
         document.getElementById('start-walking')?.addEventListener('click', () => {
             instructions.remove();
-            if (isMobile) {
-                this.createMobileControls();
-            } else {
+            this.startMenuActive = false;
+            this.enableFreeExploration({ createMobileControls: true });
+            if (!isMobile) {
                 this.renderer.domElement.requestPointerLock();
             }
         });
 
         document.getElementById('start-tour')?.addEventListener('click', () => {
             instructions.remove();
+            this.startMenuActive = false;
             this.startGuidedTour();
+        });
+
+        document.getElementById('start-credits')?.addEventListener('click', () => {
+            this.openCreditsModal();
         });
     }
 
@@ -347,13 +478,68 @@ export class App {
     }
 
     startGuidedTour() {
-        this.artworkPanel.hide();
+        clearTimeout(this.tourCompletionTimer);
+        this.artworkPanel.hide({ resumeAmbient: false });
         this.controls.resetMovement();
+        this.controls.setEnabled(true);
+        this.controls.setMovementEnabled?.(false);
+        this.controls.setPointerLockEnabled?.(false);
+        this.artworkInteraction?.setEnabled(false);
         this.tourController.start();
     }
 
     onTourStopped() {
+        clearTimeout(this.tourCompletionTimer);
+        this.hideTourCompletionModal();
+        this.artworkPanel.hide({ resumeAmbient: false });
+        this.enableFreeExploration({ createMobileControls: true });
         this.controls.syncRotationFromCamera();
+    }
+
+    onArtworkDetailClosed(detail) {
+        if (detail.context === 'tour' && this.tourController?.isActive()) {
+            this.tourController.advanceAfterDetail();
+            return;
+        }
+
+        if (detail.context === 'free') {
+            this.restoreFreeExplorationLook();
+        }
+    }
+
+    restoreFreeExplorationLook() {
+        if (this.detectMobileDevice() || !this.controls?.enabled || !this.renderer?.domElement) return;
+        if (document.pointerLockElement === this.renderer.domElement) return;
+
+        const lockRequest = this.renderer.domElement.requestPointerLock();
+        lockRequest?.catch?.(() => {});
+    }
+
+    onTourCompleted() {
+        this.artworkPanel.hide({ resumeAmbient: false });
+        this.controls.syncRotationFromCamera();
+        this.controls.setMovementEnabled?.(false);
+        this.artworkInteraction?.setEnabled(false);
+        this.showTourCompletionModal();
+
+        this.tourCompletionTimer = setTimeout(async () => {
+            await this.hideTourCompletionModal();
+            this.openCreditsModal({
+                autoCloseMs: 10000,
+                onClose: () => this.enableFreeExploration({ createMobileControls: true })
+            });
+        }, 2200);
+    }
+
+    enableFreeExploration(options = {}) {
+        this.controls.setEnabled(true);
+        this.controls.setMovementEnabled?.(true);
+        this.controls.setPointerLockEnabled?.(true);
+        this.artworkInteraction?.setEnabled(true);
+
+        if (options.createMobileControls && this.detectMobileDevice()) {
+            this.createMobileControls();
+        }
     }
 
     animate() {
@@ -369,6 +555,9 @@ export class App {
             this.physics.update(deltaTime, this.gallery.decorationCollisions, this.gallery.museumObjects);
             this.applyOrganicCameraMotion(deltaTime);
         }
+
+        // Update artwork hover state based on what's at screen center
+        this.artworkInteraction.updateHover();
 
         this.renderer.render(this.scene, this.camera);
     }

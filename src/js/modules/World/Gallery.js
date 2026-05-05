@@ -30,11 +30,16 @@ export class Gallery {
             id: data.id,
             group: artworkGroup,
             mesh: null,
+            frame: null,
+            backing: null,
+            isHovered: false,
+            originalFrameColor: null,
+            originalBackingColor: null,
             data,
             config: data
         };
 
-        this.buildArtworkGroup(artworkGroup, data, data.size);
+        this.buildArtworkGroup(artworkGroup, data, data.size, null, artworkRecord);
 
         artworkGroup.position.set(...data.position);
         if (data.rotation) {
@@ -58,7 +63,7 @@ export class Gallery {
                         artworkGroup.remove(artworkGroup.children[0]);
                     }
 
-                    const mesh = this.buildArtworkGroup(artworkGroup, data, finalSize, loadedTexture);
+                    const mesh = this.buildArtworkGroup(artworkGroup, data, finalSize, loadedTexture, artworkRecord);
                     artworkRecord.mesh = mesh;
                     this.onArtworkUpdated(artworkRecord);
                     resolve(artworkRecord);
@@ -69,8 +74,8 @@ export class Gallery {
         });
     }
 
-    buildArtworkGroup(artworkGroup, data, artworkSize, loadedTexture = null) {
-        this.createFrame(artworkGroup, artworkSize, Boolean(data.featured));
+    buildArtworkGroup(artworkGroup, data, artworkSize, loadedTexture = null, artworkRecord = null) {
+        this.createFrame(artworkGroup, artworkSize, Boolean(data.featured), artworkRecord);
         const artworkMesh = this.createArtworkPlane(artworkSize, data, loadedTexture);
         artworkGroup.add(artworkMesh);
         this.createArtworkLabel(artworkGroup, data, artworkSize);
@@ -88,7 +93,7 @@ export class Gallery {
         return [maxHeight * imageAspectRatio, maxHeight];
     }
 
-    createFrame(artworkGroup, artworkSize, featured) {
+    createFrame(artworkGroup, artworkSize, featured, artworkRecord = null) {
         const frameWidth = featured ? 0.22 : 0.18;
         const outerWidth = artworkSize[0] + frameWidth * 2;
         const outerHeight = artworkSize[1] + frameWidth * 2;
@@ -119,8 +124,9 @@ export class Gallery {
         });
         frameGeometry.center();
 
+        const frameColor = featured ? 0x25201b : 0x2c2824;
         const frameMaterial = new THREE.MeshPhysicalMaterial({
-            color: featured ? 0x25201b : 0x2c2824,
+            color: frameColor,
             roughness: 0.46,
             metalness: 0.18,
             clearcoat: 0.25,
@@ -136,8 +142,9 @@ export class Gallery {
         artworkGroup.add(frame);
 
         const backingGeometry = new THREE.BoxGeometry(artworkSize[0] + 0.14, artworkSize[1] + 0.14, 0.06);
+        const backingColor = 0x1a1714;
         const backingMaterial = new THREE.MeshPhysicalMaterial({
-            color: 0x1a1714,
+            color: backingColor,
             roughness: 0.75,
             metalness: 0.05
         });
@@ -146,6 +153,14 @@ export class Gallery {
         backing.castShadow = true;
         backing.receiveShadow = true;
         artworkGroup.add(backing);
+
+        // Store references for hover effects
+        if (artworkRecord) {
+            artworkRecord.frame = frame;
+            artworkRecord.backing = backing;
+            artworkRecord.originalFrameColor = new THREE.Color(frameColor);
+            artworkRecord.originalBackingColor = new THREE.Color(backingColor);
+        }
     }
 
     createArtworkPlane(artworkSize, data, loadedTexture) {
@@ -279,6 +294,35 @@ export class Gallery {
             value = value.slice(0, -1);
         }
         return `${value.trim()}...`;
+    }
+
+    setArtworkHoverState(artwork, isHovered) {
+        if (!artwork || !artwork.frame) return;
+
+        artwork.isHovered = isHovered;
+
+        if (isHovered) {
+            // Highlight frame with a golden/warm color
+            const hoverColor = new THREE.Color(0xd4af37); // Gold color
+            artwork.frame.material.color.copy(hoverColor);
+            artwork.frame.material.metalness = 0.35;
+            artwork.frame.material.roughness = 0.3;
+            artwork.frame.material.emissive = new THREE.Color(0x4a4020);
+            artwork.frame.material.emissiveIntensity = 0.15;
+            
+            // Subtly brighten backing
+            artwork.backing.material.color.copy(new THREE.Color(0x2a2420));
+        } else {
+            // Restore original colors
+            artwork.frame.material.color.copy(artwork.originalFrameColor);
+            artwork.frame.material.metalness = 0.18;
+            artwork.frame.material.roughness = 0.46;
+            artwork.frame.material.emissive = new THREE.Color(0x000000);
+            artwork.frame.material.emissiveIntensity = 0;
+            
+            // Restore backing
+            artwork.backing.material.color.copy(artwork.originalBackingColor);
+        }
     }
 
     getArtworkById(id) {

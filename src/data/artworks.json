@@ -8,8 +8,15 @@
     "description": "Una elegante representacion del movimiento y la gracia, capturando la esencia de la danza en una composicion dinamica.",
     "image": "./src/assets/images/Bailarina - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926848/Bailarina_-_Byron_lx1i1t.mp4?_s=public-apps",
-    "position": [-11.2, 2.2, -13.7],
-    "size": [1.9, 2.35]
+    "position": [
+      -11.2,
+      2.2,
+      -13.7
+    ],
+    "size": [
+      1.9,
+      2.35
+    ]
   },
   {
     "id": "baile",
@@ -20,8 +27,15 @@
     "description": "Una escena de cuerpos en movimiento que convierte la danza en energia cromatica y ritmo visual.",
     "image": "./src/assets/images/Baile - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926857/Baile_-_Byron_hkjfnm.mp4?_s=public-apps",
-    "position": [-6.85, 2.2, -13.7],
-    "size": [2.2, 1.8]
+    "position": [
+      -6.85,
+      2.2,
+      -13.7
+    ],
+    "size": [
+      2.2,
+      1.8
+    ]
   },
   {
     "id": "maquillaje",
@@ -32,8 +46,15 @@
     "description": "Una representacion intima del arte del maquillaje, capturando la transformacion y la belleza del proceso creativo.",
     "image": "./src/assets/images/Maquillaje - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926860/Maquillaje_-_Byron_wtn3uu.mp4?_s=public-apps",
-    "position": [-2.35, 2.2, -13.7],
-    "size": [1.9, 2.35]
+    "position": [
+      -2.35,
+      2.2,
+      -13.7
+    ],
+    "size": [
+      1.9,
+      2.35
+    ]
   },
   {
     "id": "amanecer",
@@ -44,8 +65,15 @@
     "description": "Una representacion poetica del amanecer que captura la transicion entre la noche y el dia, evocando esperanza y renovacion.",
     "image": "./src/assets/images/Amanecer - Byron.jpeg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926851/Amanecer_-_Byron_zqpo89.mp4?_s=public-apps",
-    "position": [2.35, 2.25, -13.7],
-    "size": [2.6, 2.05],
+    "position": [
+      2.35,
+      2.25,
+      -13.7
+    ],
+    "size": [
+      2.6,
+      2.05
+    ],
     "featured": true
   },
   {
@@ -57,8 +85,15 @@
     "description": "Una interpretacion contemporanea del genero clasico, explorando la belleza en la simplicidad de los objetos cotidianos.",
     "image": "./src/assets/images/Naturaleza Muerta - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926869/Naturaleza_muerta_-_Byron_oy2kxd.mp4?_s=public-apps",
-    "position": [6.85, 2.2, -13.7],
-    "size": [2.2, 1.7]
+    "position": [
+      6.85,
+      2.2,
+      -13.7
+    ],
+    "size": [
+      2.2,
+      1.7
+    ]
   },
   {
     "id": "vanidad",
@@ -69,8 +104,15 @@
     "description": "Una reflexion sobre la belleza efimera y la contemplacion del yo, explorando temas de autoconocimiento.",
     "image": "./src/assets/images/Vanidad - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926870/Vanidad_-_Byron_zpl8mj.mp4?_s=public-apps",
-    "position": [11.2, 2.2, -13.7],
-    "size": [1.9, 2.35]
+    "position": [
+      11.2,
+      2.2,
+      -13.7
+    ],
+    "size": [
+      1.9,
+      2.35
+    ]
   },
   {
     "id": "flautistas",
@@ -81,9 +123,20 @@
     "description": "Una armoniosa representacion de musicos interpretando la flauta, capturando la melodia visual en cada gesto.",
     "image": "./src/assets/images/Flautista - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926855/Flautista_-_Byron_lqgf13.mp4?_s=public-apps",
-    "position": [-13.7, 2.2, -11.2],
-    "size": [2.05, 1.75],
-    "rotation": [0, 1.5707963268, 0]
+    "position": [
+      -13.7,
+      2.2,
+      -11.2
+    ],
+    "size": [
+      2.05,
+      1.75
+    ],
+    "rotation": [
+      0,
+      1.5707963268,
+      0
+    ]
   },
   {
     "id": "rocas-y-cielo",
@@ -94,9 +147,20 @@
     "description": "Un estudio de contrastes entre la solidez de la tierra y la fluidez del cielo, explorando la relacion entre lo terrenal y lo celestial.",
     "image": "./src/assets/images/Rocas y Cielo - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926877/Rocas_y_cielo_-_Byron_gnizwy.mp4?_s=public-apps",
-    "position": [-13.7, 2.2, -6.85],
-    "size": [2.35, 1.85],
-    "rotation": [0, 1.5707963268, 0]
+    "position": [
+      -13.7,
+      2.2,
+      -6.85
+    ],
+    "size": [
+      2.35,
+      1.85
+    ],
+    "rotation": [
+      0,
+      1.5707963268,
+      0
+    ]
   },
   {
     "id": "vela",
@@ -107,9 +171,20 @@
     "description": "Una exploracion de la luz y la quietud, capturando la delicada belleza de la llama en la oscuridad.",
     "image": "./src/assets/images/Vela - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926876/Vela_-_Byron_jtvnaz.mp4?_s=public-apps",
-    "position": [-13.7, 2.2, -2.35],
-    "size": [2.05, 1.75],
-    "rotation": [0, 1.5707963268, 0]
+    "position": [
+      -13.7,
+      2.2,
+      -2.35
+    ],
+    "size": [
+      2.05,
+      1.75
+    ],
+    "rotation": [
+      0,
+      1.5707963268,
+      0
+    ]
   },
   {
     "id": "frutas",
@@ -120,9 +195,20 @@
     "description": "Una naturaleza muerta vibrante que celebra la abundancia y los colores de las frutas frescas.",
     "image": "./src/assets/images/Frutas - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926860/Frutas_-_Byron_nzpsmh.mp4?_s=public-apps",
-    "position": [-13.7, 2.2, 2.35],
-    "size": [2.05, 1.75],
-    "rotation": [0, 1.5707963268, 0]
+    "position": [
+      -13.7,
+      2.2,
+      2.35
+    ],
+    "size": [
+      2.05,
+      1.75
+    ],
+    "rotation": [
+      0,
+      1.5707963268,
+      0
+    ]
   },
   {
     "id": "luz",
@@ -133,9 +219,20 @@
     "description": "Exploracion de claroscuro y comunidad; la luz aparece como centro emocional de la escena.",
     "image": "./src/assets/images/Luz - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926863/Luz_-_Byron_kqaedc.mp4?_s=public-apps",
-    "position": [-13.7, 2.2, 6.85],
-    "size": [2.25, 1.8],
-    "rotation": [0, 1.5707963268, 0]
+    "position": [
+      -13.7,
+      2.2,
+      6.85
+    ],
+    "size": [
+      2.25,
+      1.8
+    ],
+    "rotation": [
+      0,
+      1.5707963268,
+      0
+    ]
   },
   {
     "id": "mujer-veladora",
@@ -146,9 +243,20 @@
     "description": "Una escena contemplativa donde la vela marca un espacio de silencio, duelo y espiritualidad.",
     "image": "./src/assets/images/Mujer Veladora - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926871/Mujer_Veladora_-_Byron_rqayjy.mp4?_s=public-apps",
-    "position": [-13.7, 2.2, 11.2],
-    "size": [2.15, 1.7],
-    "rotation": [0, 1.5707963268, 0]
+    "position": [
+      -13.7,
+      2.2,
+      11.2
+    ],
+    "size": [
+      2.15,
+      1.7
+    ],
+    "rotation": [
+      0,
+      1.5707963268,
+      0
+    ]
   },
   {
     "id": "violoncello",
@@ -159,9 +267,20 @@
     "description": "Una celebracion del instrumento musical, capturando la elegancia y profundidad emocional del violoncello.",
     "image": "./src/assets/images/Violincello - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926880/Violincelo_-_Byron_a47xkg.mp4?_s=public-apps",
-    "position": [13.7, 2.2, -11.2],
-    "size": [1.9, 2.35],
-    "rotation": [0, -1.5707963268, 0]
+    "position": [
+      13.7,
+      2.2,
+      -11.2
+    ],
+    "size": [
+      1.9,
+      2.35
+    ],
+    "rotation": [
+      0,
+      -1.5707963268,
+      0
+    ]
   },
   {
     "id": "musicos",
@@ -172,9 +291,20 @@
     "description": "Una celebracion visual de la musica y los artistas que la crean, capturando la pasion y la emocion del arte sonoro.",
     "image": "./src/assets/images/Musicos - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926873/Musicos_-_Byron_cndmhx.mp4?_s=public-apps",
-    "position": [13.7, 2.2, -6.85],
-    "size": [2.05, 1.75],
-    "rotation": [0, -1.5707963268, 0]
+    "position": [
+      13.7,
+      2.2,
+      -6.85
+    ],
+    "size": [
+      2.05,
+      1.75
+    ],
+    "rotation": [
+      0,
+      -1.5707963268,
+      0
+    ]
   },
   {
     "id": "musicos-en-marcha",
@@ -185,9 +315,20 @@
     "description": "Una representacion dinamica de musicos en movimiento, capturando el ritmo y la energia de la marcha musical.",
     "image": "./src/assets/images/MusicosM - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926871/MusicosM_-_Byron_gse5l1.mp4?_s=public-apps",
-    "position": [13.7, 2.2, -2.35],
-    "size": [2.05, 1.75],
-    "rotation": [0, -1.5707963268, 0]
+    "position": [
+      13.7,
+      2.2,
+      -2.35
+    ],
+    "size": [
+      2.05,
+      1.75
+    ],
+    "rotation": [
+      0,
+      -1.5707963268,
+      0
+    ]
   },
   {
     "id": "compositoras",
@@ -198,9 +339,20 @@
     "description": "Composicion dedicada a la presencia femenina en la musica, con figuras que parecen emerger entre color y resonancia.",
     "image": "./src/assets/images/Compositoras - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926861/Compositoras_-_Byron_tgzgmj.mp4?_s=public-apps",
-    "position": [13.7, 2.2, 2.35],
-    "size": [2.45, 1.65],
-    "rotation": [0, -1.5707963268, 0]
+    "position": [
+      13.7,
+      2.2,
+      2.35
+    ],
+    "size": [
+      2.45,
+      1.65
+    ],
+    "rotation": [
+      0,
+      -1.5707963268,
+      0
+    ]
   },
   {
     "id": "mujeres",
@@ -211,9 +363,20 @@
     "description": "Grupo de figuras femeninas que dialogan entre sombra, color y presencia colectiva.",
     "image": "./src/assets/images/Mujeres - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926865/Mujeres_-_Byron_sgfd4t.mp4?_s=public-apps",
-    "position": [13.7, 2.2, 6.85],
-    "size": [2.2, 1.7],
-    "rotation": [0, -1.5707963268, 0]
+    "position": [
+      13.7,
+      2.2,
+      6.85
+    ],
+    "size": [
+      2.2,
+      1.7
+    ],
+    "rotation": [
+      0,
+      -1.5707963268,
+      0
+    ]
   },
   {
     "id": "veladoras",
@@ -224,9 +387,20 @@
     "description": "Una contemplacion sobre la luz sagrada de las velas, evocando espiritualidad y calidez en su resplandor.",
     "image": "./src/assets/images/Velitas - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926881/Velitas_-_Byron_s1ue7p.mp4?_s=public-apps",
-    "position": [13.7, 2.2, 11.2],
-    "size": [2.1, 1.7],
-    "rotation": [0, -1.5707963268, 0]
+    "position": [
+      13.7,
+      2.2,
+      11.2
+    ],
+    "size": [
+      2.1,
+      1.7
+    ],
+    "rotation": [
+      0,
+      -1.5707963268,
+      0
+    ]
   },
   {
     "id": "copas",
@@ -237,9 +411,20 @@
     "description": "Una representacion elegante de cristaleria, explorando la transparencia, reflejos y la belleza de los objetos cotidianos.",
     "image": "./src/assets/images/Copas - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926846/Copeo_-_Byron_raebfq.mp4?_s=public-apps",
-    "position": [-11.2, 2.2, 13.7],
-    "size": [2.1, 1.7],
-    "rotation": [0, 3.1415926536, 0]
+    "position": [
+      -11.2,
+      2.2,
+      13.7
+    ],
+    "size": [
+      2.1,
+      1.7
+    ],
+    "rotation": [
+      0,
+      3.1415926536,
+      0
+    ]
   },
   {
     "id": "escultura-de-pie",
@@ -250,9 +435,20 @@
     "description": "Una exploracion de la forma humana en movimiento, capturando la elegancia y fuerza de la figura erguida.",
     "image": "./src/assets/images/Escultura de pie - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926849/Escultura_de_pie_-_Byron_dpzf4q.mp4?_s=public-apps",
-    "position": [-6.85, 2.2, 13.7],
-    "size": [1.75, 2.35],
-    "rotation": [0, 3.1415926536, 0]
+    "position": [
+      -6.85,
+      2.2,
+      13.7
+    ],
+    "size": [
+      1.75,
+      2.35
+    ],
+    "rotation": [
+      0,
+      3.1415926536,
+      0
+    ]
   },
   {
     "id": "mosaico-homenaje-a-la-mujer",
@@ -263,9 +459,20 @@
     "description": "Un homenaje coral a la figura femenina, construido como mosaico de color, memoria y movimiento.",
     "image": "./src/assets/images/Mosaico Homenaje a la Mujer - Byron .jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926861/Mosaico_-_Byron_d3sk6j.mp4?_s=public-apps",
-    "position": [-2.35, 2.2, 13.7],
-    "size": [3.0, 1.55],
-    "rotation": [0, 3.1415926536, 0]
+    "position": [
+      -2.35,
+      2.2,
+      13.7
+    ],
+    "size": [
+      3.0,
+      1.55
+    ],
+    "rotation": [
+      0,
+      3.1415926536,
+      0
+    ]
   },
   {
     "id": "byron-galvez",
@@ -273,13 +480,24 @@
     "artist": "Byron Gálvez",
     "year": "2025",
     "technique": "Retrato",
-    "description": "El maestro detras de estas obras, capturando su esencia creativa y vision personal del mundo.",
-    "image": "./src/assets/images/Byron - Byron.jpg",
+    "description": "El maestro detras de estas obras, capturando su esencia creativa y vision personal del mundo. Escucha su voz narrando el significado detrás de su obra.",
+    "image": "./src/assets/images/Byron2.png",
     "audio": "./src/assets/audio/byron.mp3",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926853/Byron_-_Byron_he6x9i.mp4?_s=public-apps",
-    "position": [2.35, 2.25, 13.7],
-    "size": [2.1, 2.1],
-    "rotation": [0, 3.1415926536, 0],
+    "position": [
+      2.35,
+      2.2,
+      13.7
+    ],
+    "size": [
+      2.1,
+      2.1
+    ],
+    "rotation": [
+      0,
+      3.1415926536,
+      0
+    ],
     "featured": true
   },
   {
@@ -291,9 +509,20 @@
     "description": "Una contemplacion sobre el reposo y la reflexion, mostrando la serenidad en la postura contemplativa.",
     "image": "./src/assets/images/Escultura sentada - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926853/Escultura_sentada_-_Byron_tetaq4.mp4?_s=public-apps",
-    "position": [6.85, 2.2, 13.7],
-    "size": [2.0, 1.75],
-    "rotation": [0, 3.1415926536, 0]
+    "position": [
+      6.85,
+      2.2,
+      13.7
+    ],
+    "size": [
+      2.0,
+      1.75
+    ],
+    "rotation": [
+      0,
+      3.1415926536,
+      0
+    ]
   },
   {
     "id": "vela-2",
@@ -304,8 +533,139 @@
     "description": "Una segunda exploracion de la luz de la vela, con diferentes matices de sombra y calidez.",
     "image": "./src/assets/images/Vela2 - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926877/Vela2_-_Byron_vhrqfe.mp4?_s=public-apps",
-    "position": [11.2, 2.2, 13.7],
-    "size": [2.1, 1.75],
-    "rotation": [0, 3.1415926536, 0]
+    "position": [
+      11.2,
+      2.2,
+      13.7
+    ],
+    "size": [
+      2.1,
+      1.75
+    ],
+    "rotation": [
+      0,
+      3.1415926536,
+      0
+    ]
+  },
+  {
+    "id": "paisaje-nocturno",
+    "title": "Paisaje Nocturno",
+    "artist": "Byron Gálvez",
+    "year": "2024",
+    "technique": "Tecnica mixta",
+    "description": "Una meditacion sobre la belleza de la noche, donde las sombras y luces crean un dialogo visual.",
+    "image": "./src/assets/images/Luz - Byron.jpg",
+    "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926863/Luz_-_Byron_kqaedc.mp4?_s=public-apps",
+    "position": [
+      -16.85,
+      2.2,
+      -8.5
+    ],
+    "size": [
+      2.1,
+      1.8
+    ],
+    "rotation": [
+      0,
+      1.5707963268,
+      0
+    ]
+  },
+  {
+    "id": "galeria-norte-1",
+    "title": "Expresión Latente",
+    "artist": "Byron Gálvez",
+    "year": "2024",
+    "technique": "Tecnica mixta",
+    "description": "Composicion abstracta que explora la tension entre forma y vacio.",
+    "image": "./src/assets/images/Mujeres - Byron.jpg",
+    "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926865/Mujeres_-_Byron_sgfd4t.mp4?_s=public-apps",
+    "position": [
+      -16.85,
+      2.2,
+      0
+    ],
+    "size": [
+      2.0,
+      1.7
+    ],
+    "rotation": [
+      0,
+      1.5707963268,
+      0
+    ]
+  },
+  {
+    "id": "galeria-norte-2",
+    "title": "Equilibrio Frágil",
+    "artist": "Byron Gálvez",
+    "year": "2024",
+    "technique": "Tecnica mixta",
+    "description": "Exploracion de la armonia en la composicion visual.",
+    "image": "./src/assets/images/Copas - Byron.jpg",
+    "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926846/Copeo_-_Byron_raebfq.mp4?_s=public-apps",
+    "position": [
+      -16.85,
+      2.2,
+      8.5
+    ],
+    "size": [
+      2.1,
+      1.7
+    ],
+    "rotation": [
+      0,
+      1.5707963268,
+      0
+    ]
+  },
+  {
+    "id": "galeria-sur-1",
+    "title": "Reflejo Interior",
+    "artist": "Byron Gálvez",
+    "year": "2024",
+    "technique": "Tecnica mixta",
+    "description": "Un viaje hacia la introspección a traves del color y forma.",
+    "image": "./src/assets/images/Compositoras - Byron.jpg",
+    "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926861/Compositoras_-_Byron_tgzgmj.mp4?_s=public-apps",
+    "position": [
+      16.85,
+      2.2,
+      -8.5
+    ],
+    "size": [
+      2.2,
+      1.65
+    ],
+    "rotation": [
+      0,
+      -1.5707963268,
+      0
+    ]
+  },
+  {
+    "id": "galeria-sur-2",
+    "title": "Silencio Sonoro",
+    "artist": "Byron Gálvez",
+    "year": "2024",
+    "technique": "Tecnica mixta",
+    "description": "La musica capturada en el silencio de la pintura.",
+    "image": "./src/assets/images/Violincello - Byron.jpg",
+    "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926880/Violincelo_-_Byron_a47xkg.mp4?_s=public-apps",
+    "position": [
+      16.85,
+      2.2,
+      8.5
+    ],
+    "size": [
+      1.9,
+      2.35
+    ],
+    "rotation": [
+      0,
+      -1.5707963268,
+      0
+    ]
   }
 ]

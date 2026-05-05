@@ -8,6 +8,7 @@ export class TourController {
         this.getArtworkById = options.getArtworkById || (() => null);
         this.onArtworkFocused = options.onArtworkFocused || (() => {});
         this.onStop = options.onStop || (() => {});
+        this.onComplete = options.onComplete || (() => {});
 
         this.active = false;
         this.state = 'idle';
@@ -34,20 +35,25 @@ export class TourController {
 
         this.active = true;
         this.currentIndex = 0;
-        this.controls.setEnabled(false);
+        this.controls.setEnabled(true);
+        this.controls.setMovementEnabled?.(false);
+        this.controls.setPointerLockEnabled?.(false);
+        this.controls.syncRotationFromCamera?.();
         this.prepareMoveToCurrentStop();
         this.showHud();
     }
 
-    stop() {
+    stop(reason = 'manual') {
         if (!this.active) return;
 
         this.active = false;
         this.state = 'idle';
         this.controls.setEnabled(true);
+        this.controls.setMovementEnabled?.(true);
+        this.controls.setPointerLockEnabled?.(true);
         this.controls.syncRotationFromCamera();
         this.hideHud();
-        this.onStop();
+        this.onStop(reason);
     }
 
     update(deltaTime) {
@@ -63,21 +69,7 @@ export class TourController {
 
             if (t >= 1) {
                 this.focusCurrentArtwork();
-                this.state = 'holding';
                 this.elapsed = 0;
-            }
-        } else if (this.state === 'holding') {
-            const stop = this.path[this.currentIndex];
-            this.elapsed += deltaTime;
-
-            if (this.elapsed >= (stop.holdSeconds || 4)) {
-                this.currentIndex++;
-                if (this.currentIndex >= this.path.length) {
-                    this.stop();
-                    return;
-                }
-
-                this.prepareMoveToCurrentStop();
             }
         }
     }
@@ -101,9 +93,32 @@ export class TourController {
     focusCurrentArtwork() {
         const stop = this.path[this.currentIndex];
         const artwork = this.getArtworkById(stop.artworkId);
+        this.state = 'awaiting-detail';
+        this.controls.syncRotationFromCamera?.();
         if (artwork) {
             this.onArtworkFocused(artwork, stop);
         }
+    }
+
+    advanceAfterDetail() {
+        if (!this.active || this.state === 'moving') return;
+
+        this.currentIndex++;
+        if (this.currentIndex >= this.path.length) {
+            this.complete();
+            return;
+        }
+
+        this.prepareMoveToCurrentStop();
+    }
+
+    complete() {
+        if (!this.active) return;
+
+        this.active = false;
+        this.state = 'complete';
+        this.hideHud();
+        this.onComplete();
     }
 
     calculateLookQuaternion(position, target) {
@@ -129,7 +144,7 @@ export class TourController {
         this.hud.innerHTML = `
             <div class="tour-hud__label">Recorrido guiado</div>
             <div class="tour-hud__text"></div>
-            <button class="tour-hud__button" type="button" data-ui-interactive="true">Salir</button>
+            <button class="tour-hud__button" type="button" data-ui-interactive="true">Salir del recorrido</button>
         `;
         this.hud.querySelector('button').addEventListener('click', () => this.stop());
         document.body.appendChild(this.hud);

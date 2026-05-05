@@ -6,6 +6,11 @@ export class FirstPersonControls {
         this.camera = camera;
         this.renderer = renderer;
         this.enabled = true;
+        this.movementEnabled = true;
+        this.pointerLockEnabled = true;
+        this.dragLookActive = false;
+        this.dragLookLastX = 0;
+        this.dragLookLastY = 0;
 
         /** Movement state */
 
@@ -41,18 +46,20 @@ export class FirstPersonControls {
         document.addEventListener('keydown', (e) => this.onKeyDown(e));
         document.addEventListener('keyup', (e) => this.onKeyUp(e));
         document.addEventListener('mousemove', (e) => this.onMouseLook(e));
+        document.addEventListener('mouseup', () => this.onPointerUp());
 
         this.renderer.domElement.addEventListener('click', () => {
-            if (this.enabled && document.pointerLockElement !== this.renderer.domElement) {
+            if (this.enabled && this.pointerLockEnabled && document.pointerLockElement !== this.renderer.domElement) {
                 this.renderer.domElement.requestPointerLock();
             }
         });
+        this.renderer.domElement.addEventListener('mousedown', (e) => this.onPointerDown(e));
 
         document.addEventListener('pointerlockchange', () => this.onPointerLockChange());
     }
 
     onKeyDown(event) {
-        if (!this.enabled) return;
+        if (!this.enabled || !this.movementEnabled) return;
 
         switch (event.code) {
             case 'ArrowUp':
@@ -69,7 +76,7 @@ export class FirstPersonControls {
     }
 
     onKeyUp(event) {
-        if (!this.enabled) return;
+        if (!this.enabled || !this.movementEnabled) return;
 
         switch (event.code) {
             case 'ArrowUp':
@@ -86,28 +93,50 @@ export class FirstPersonControls {
     }
 
     onMouseLook(event) {
-        if (this.enabled && document.pointerLockElement === this.renderer.domElement) {
-            const movementX = event.movementX || 0;
-            const movementY = event.movementY || 0;
+        if (!this.enabled) return;
 
-            /** Update target rotation */
+        const usingPointerLock = document.pointerLockElement === this.renderer.domElement;
+        if (!usingPointerLock && !this.dragLookActive) return;
 
-            /** Note: In original code config was lookSpeed: 0.002 */
+        const movementX = usingPointerLock ? (event.movementX || 0) : event.clientX - this.dragLookLastX;
+        const movementY = usingPointerLock ? (event.movementY || 0) : event.clientY - this.dragLookLastY;
 
-            const lookSpeed = this.config.lookSpeed;
-
-            this.targetRotationY -= movementX * lookSpeed;
-            this.targetRotationX -= movementY * lookSpeed;
-
-            /** Limit vertical look */
-
-            const maxVerticalAngle = Math.PI / 3;
-            this.targetRotationX = Math.max(-maxVerticalAngle, Math.min(maxVerticalAngle, this.targetRotationX));
-
-            /** Apply rotation immediately for responsiveness (or smooth it in update) */
-
-            this.camera.rotation.set(this.targetRotationX, this.targetRotationY, 0, 'YXZ');
+        if (!usingPointerLock) {
+            this.dragLookLastX = event.clientX;
+            this.dragLookLastY = event.clientY;
         }
+
+        /** Update target rotation */
+
+        /** Note: In original code config was lookSpeed: 0.002 */
+
+        const lookSpeed = this.config.lookSpeed;
+
+        this.targetRotationY -= movementX * lookSpeed;
+        this.targetRotationX -= movementY * lookSpeed;
+
+        /** Limit vertical look */
+
+        const maxVerticalAngle = Math.PI / 3;
+        this.targetRotationX = Math.max(-maxVerticalAngle, Math.min(maxVerticalAngle, this.targetRotationX));
+
+        /** Apply rotation immediately for responsiveness (or smooth it in update) */
+
+        this.camera.rotation.set(this.targetRotationX, this.targetRotationY, 0, 'YXZ');
+    }
+
+    onPointerDown(event) {
+        if (!this.enabled || document.pointerLockElement === this.renderer.domElement || event.button !== 0) {
+            return;
+        }
+
+        this.dragLookActive = true;
+        this.dragLookLastX = event.clientX;
+        this.dragLookLastY = event.clientY;
+    }
+
+    onPointerUp() {
+        this.dragLookActive = false;
     }
 
     onPointerLockChange() {
@@ -123,7 +152,7 @@ export class FirstPersonControls {
 
         deltaTime = Math.min(deltaTime, 0.1);
 
-        if (!this.enabled) {
+        if (!this.enabled || !this.movementEnabled) {
             this.velocity.set(0, 0, 0);
             return;
         }
@@ -184,6 +213,21 @@ export class FirstPersonControls {
         this.enabled = enabled;
         if (!enabled) {
             this.resetMovement();
+            this.dragLookActive = false;
+        }
+    }
+
+    setMovementEnabled(enabled) {
+        this.movementEnabled = enabled;
+        if (!enabled) {
+            this.resetMovement();
+        }
+    }
+
+    setPointerLockEnabled(enabled) {
+        this.pointerLockEnabled = enabled;
+        if (!enabled && document.pointerLockElement === this.renderer.domElement) {
+            document.exitPointerLock();
         }
     }
 

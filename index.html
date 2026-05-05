@@ -95,6 +95,61 @@
         <audio id="ambient-audio" loop>
             <source src="src/assets/audio/ambient_sound.mp3" type="audio/mpeg">
         </audio>
+
+        <!-- Credits Modal -->
+        <div id="credits-modal" class="modal credits-modal">
+            <div class="modal-content credits-content">
+                <button id="close-credits" class="close-btn" type="button" data-ui-interactive="true">&times;</button>
+                <div class="credits-body">
+                    <div class="credits-header">
+                        <span class="credits-kicker">Museo Virtual Byron Gálvez</span>
+                        <h2>Créditos</h2>
+                        <p>
+                            Este museo virtual fue desarrollado como una experiencia inmersiva para explorar la obra de
+                            Byron Gálvez desde un entorno digital interactivo.
+                        </p>
+                    </div>
+
+                    <section class="credits-section credits-section--developer">
+                        <img class="credits-profile" src="./src/assets/credits/jose.png" alt="José Manuel Cortés Cerón" loading="lazy">
+                        <div>
+                            <h3>Desarrollo y experiencia 3D</h3>
+                            <p class="credits-name">José Manuel Cortés Cerón</p>
+                            <a class="credits-social" href="https://www.instagram.com/deepdevjose" target="_blank" rel="noopener noreferrer">
+                                Instagram @deepdevjose
+                            </a>
+                            <p>
+                                Diseño e implementación de la sala virtual, navegación en primera persona, iluminación,
+                                recorrido guiado, interacción con obras, reproducción multimedia y optimización de
+                                rendimiento.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="credits-section">
+                        <h3>Obra artística</h3>
+                        <p class="credits-name">Byron Gálvez</p>
+                    </section>
+
+                    <section class="credits-section">
+                        <h3>Tecnologías utilizadas</h3>
+                        <div class="credits-tech-list" aria-label="Tecnologías utilizadas">
+                            <span>Three.js</span>
+                            <span>WebGL</span>
+                            <span>JavaScript</span>
+                            <span>HTML</span>
+                            <span>CSS</span>
+                            <span>Cloudinary</span>
+                        </div>
+                    </section>
+
+                    <p class="credits-legal">
+                        Las obras visuales presentadas fueron integradas con autorización para fines educativos,
+                        culturales y de difusión digital.
+                    </p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Three.js and Controls -->

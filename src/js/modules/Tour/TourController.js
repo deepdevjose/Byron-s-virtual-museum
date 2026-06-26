@@ -55,6 +55,7 @@ export class TourController {
         }
 
         this.active = true;
+        document.body.classList.add('guided-tour-active');
         this.currentIndex = 0;
         this.controls.setEnabled(true);
         this.controls.setMovementEnabled?.(false);
@@ -79,6 +80,7 @@ export class TourController {
         this.controls.setPointerLockEnabled?.(true);
         this.controls.syncRotationFromCamera();
         this.hideHud();
+        document.body.classList.remove('guided-tour-active');
         this.onStop(reason);
     }
 
@@ -164,6 +166,7 @@ export class TourController {
         this.active = false;
         this.state = 'complete';
         this.hideHud();
+        document.body.classList.remove('guided-tour-active');
         this.onComplete();
     }
 
@@ -201,11 +204,31 @@ export class TourController {
         this.hud.className = 'tour-hud';
         this.hud.setAttribute('data-ui-interactive', 'true');
         this.hud.innerHTML = `
-            <div class="tour-hud__label">Recorrido guiado</div>
+            <div class="tour-hud__topbar">
+                <span>Recorrido guiado</span>
+                <button class="tour-hud__button" type="button" data-ui-interactive="true" aria-label="Salir del recorrido guiado">Salir</button>
+            </div>
+            <div class="tour-hud__room"></div>
             <div class="tour-hud__text"></div>
-            <button class="tour-hud__button" type="button" data-ui-interactive="true">Salir del recorrido</button>
+            <div class="tour-hud__sheet">
+                <div>
+                    <div class="tour-hud__label">Recorrido guiado</div>
+                    <div class="tour-hud__progress-text"></div>
+                </div>
+                <div class="tour-hud__progress" aria-hidden="true"><span></span></div>
+            </div>
+            <div class="tour-hud__curatorial"></div>
         `;
-        this.hud.querySelector('button').addEventListener('click', () => this.stop());
+        const exitTour = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation?.();
+            this.stop('manual');
+        };
+        const button = this.hud.querySelector('button');
+        button.addEventListener('pointerdown', exitTour);
+        button.addEventListener('touchstart', exitTour, { passive: false });
+        button.addEventListener('click', exitTour);
         document.body.appendChild(this.hud);
     }
 
@@ -230,6 +253,13 @@ export class TourController {
      */
     updateHud(stop) {
         const text = stop.introText || 'La camara se movera a la siguiente obra.';
+        const current = this.currentIndex + 1;
+        const total = this.path.length || 1;
+        const progress = `${current} de ${total}`;
         this.hud.querySelector('.tour-hud__text').textContent = text;
+        this.hud.querySelector('.tour-hud__room').textContent = stop.room ? `Sala ${String(current).padStart(2, '0')} · ${stop.room}` : '';
+        this.hud.querySelector('.tour-hud__progress-text').textContent = `${progress} · ${stop.title || stop.artworkId || 'Obra'}`;
+        this.hud.querySelector('.tour-hud__progress span').style.width = `${(current / total) * 100}%`;
+        this.hud.querySelector('.tour-hud__curatorial').textContent = stop.curatorialText || '';
     }
 }

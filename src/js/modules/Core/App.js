@@ -10,6 +10,7 @@ import { ArtworkPanel } from '../UI/ArtworkPanel.js';
 import { ArtworkInteraction } from '../Interaction/ArtworkInteraction.js';
 import { TourController } from '../Tour/TourController.js';
 import { createTourPathFromArtworks } from '../Tour/tourPath.js';
+import { ROOM_TEXTS } from '../Curatorial/rooms.js';
 
 /**
  * Coordinates the virtual museum application lifecycle.
@@ -73,6 +74,13 @@ export class App {
         this.creditsCloseCallback = null;
         this.tourCompletionTimer = null;
         this.tourCompletionModal = null;
+        this.roomNarrationToast = null;
+        this.proximityPhrase = null;
+        this.currentRoomIndicator = null;
+        this.currentRoom = null;
+        this.nearbyArtworkId = null;
+        this.roomNarrationTimer = null;
+        this.suppressTourExitUntil = 0;
     }
 
     /**
@@ -158,7 +166,7 @@ export class App {
      */
     setupScene() {
         this.scene = new THREE.Scene();
-        this.scene.fog = new THREE.FogExp2(0x1c1b18, 0.018);
+        this.scene.fog = new THREE.FogExp2(0x1d1c19, 0.017);
         this.clock = new THREE.Clock();
 
         this.camera = new THREE.PerspectiveCamera(
@@ -242,7 +250,52 @@ export class App {
      */
     setupEvents() {
         window.addEventListener('resize', () => this.onWindowResize());
+        this.setupGuidedTourExitFallback();
         this.setupCreditsModal();
+    }
+
+    /**
+     * Captures guided-tour exit clicks before the canvas or raycaster can handle them.
+     */
+    setupGuidedTourExitFallback() {
+        const exitFromEvent = (event) => {
+            if (performance.now() < this.suppressTourExitUntil) return;
+            if (document.body.classList.contains('artwork-detail-open')) return;
+
+            const button = event.target?.closest?.('.tour-hud__button');
+            const visibleButton = document.querySelector('.tour-hud.is-visible .tour-hud__button');
+            const buttonWasPressed = button || this.isPointInsideElement(event, visibleButton);
+            if (!buttonWasPressed) return;
+
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation?.();
+            this.tourController?.stop('manual');
+        };
+
+        document.addEventListener('pointerdown', exitFromEvent, true);
+        document.addEventListener('click', exitFromEvent, true);
+        document.addEventListener('touchstart', exitFromEvent, { capture: true, passive: false });
+    }
+
+    /**
+     * Checks pointer coordinates against an element box.
+     *
+     * @param {PointerEvent|MouseEvent|TouchEvent} event - Input event.
+     * @param {Element|null} element - Element to test.
+     * @returns {boolean} True when the event position falls inside the element.
+     */
+    isPointInsideElement(event, element) {
+        if (!element) return false;
+
+        const point = event.touches?.[0] || event.changedTouches?.[0] || event;
+        if (typeof point.clientX !== 'number' || typeof point.clientY !== 'number') return false;
+
+        const rect = element.getBoundingClientRect();
+        return point.clientX >= rect.left
+            && point.clientX <= rect.right
+            && point.clientY >= rect.top
+            && point.clientY <= rect.bottom;
     }
 
     /**
@@ -414,6 +467,7 @@ export class App {
         this.startMenuActive = true;
         this.freeExplorationActive = false;
         this.hideFreeExplorationHud();
+        this.currentRoomIndicator?.classList.remove('is-visible');
         this.controls.setEnabled(false);
         this.controls.setMovementEnabled?.(false);
         this.controls.setPointerLockEnabled?.(false);
@@ -424,13 +478,12 @@ export class App {
         instructions.className = 'welcome-overlay';
         instructions.setAttribute('data-ui-interactive', 'true');
         instructions.innerHTML = `
-            <div class="welcome-overlay__eyebrow">Museo Virtual Byron Gálvez</div>
-            <h1>Elige tu modo de exploración</h1>
-            <p>${isMobile
-                ? 'Usa el joystick para moverte y desliza la pantalla para mirar la sala.'
-                : 'Recorre la sala libremente o inicia una visita guiada por piezas clave.'}</p>
+            <div class="welcome-overlay__eyebrow">Museo virtual</div>
+            <h1>Byron Gálvez</h1>
+            <p class="welcome-overlay__subtitle">Una experiencia inmersiva de luz, textura, cuerpo y geometría.</p>
+            <p>Recorre un espacio digital dedicado al universo pictórico de Byron Gálvez.</p>
             <div class="welcome-overlay__actions">
-                <button id="start-walking" type="button" data-ui-interactive="true">Recorrido libre</button>
+                <button id="start-walking" type="button" data-ui-interactive="true">Explorar museo</button>
                 <button id="start-tour" type="button" data-ui-interactive="true">Recorrido guiado</button>
             </div>
             <div class="welcome-overlay__extras">
@@ -444,6 +497,9 @@ export class App {
             instructions.remove();
             this.startMenuActive = false;
             this.enableFreeExploration({ createMobileControls: true });
+            this.currentRoom = 'Una obra que nos permite recuperar lo sagrado';
+            this.updateCurrentRoomIndicator(this.currentRoom);
+            this.showRoomNarration('Una obra que nos permite recuperar lo sagrado');
             if (!isMobile) {
                 this.renderer.domElement.requestPointerLock();
             }
@@ -478,6 +534,33 @@ export class App {
             this.endFreeExploration();
         });
         document.body.appendChild(this.freeExplorationHud);
+        this.createCuratorialOverlays();
+    }
+
+    /**
+     * Creates lightweight text overlays for room narration and proximity phrases.
+     */
+    createCuratorialOverlays() {
+        if (!this.roomNarrationToast) {
+            this.roomNarrationToast = document.createElement('div');
+            this.roomNarrationToast.id = 'room-narration';
+            this.roomNarrationToast.className = 'room-narration';
+            document.body.appendChild(this.roomNarrationToast);
+        }
+
+        if (!this.proximityPhrase) {
+            this.proximityPhrase = document.createElement('div');
+            this.proximityPhrase.id = 'proximity-phrase';
+            this.proximityPhrase.className = 'proximity-phrase';
+            document.body.appendChild(this.proximityPhrase);
+        }
+
+        if (!this.currentRoomIndicator) {
+            this.currentRoomIndicator = document.createElement('div');
+            this.currentRoomIndicator.id = 'current-room-indicator';
+            this.currentRoomIndicator.className = 'current-room-indicator';
+            document.body.appendChild(this.currentRoomIndicator);
+        }
     }
 
     /**
@@ -502,6 +585,7 @@ export class App {
         document.getElementById('mobile-joystick')?.remove();
         document.getElementById('mobile-look-area')?.remove();
         document.getElementById('mobile-action-button')?.remove();
+        document.body.classList.remove('has-mobile-controls');
 
         const crosshair = document.getElementById('crosshair');
         if (crosshair) {
@@ -547,6 +631,8 @@ export class App {
     createMobileControls() {
         if (document.getElementById('mobile-joystick')) return;
 
+        document.body.classList.add('has-mobile-controls');
+
         const joystickContainer = document.createElement('div');
         joystickContainer.id = 'mobile-joystick';
         joystickContainer.setAttribute('data-ui-interactive', 'true');
@@ -564,6 +650,7 @@ export class App {
         actionButton.setAttribute('data-ui-interactive', 'true');
         document.body.appendChild(actionButton);
         actionButton.addEventListener('click', (event) => {
+            event.preventDefault();
             event.stopPropagation();
             this.artworkInteraction.handleClick({
                 target: this.renderer.domElement,
@@ -690,17 +777,28 @@ export class App {
         this.controls.setPointerLockEnabled?.(false);
         this.artworkInteraction?.setEnabled(false);
         this.tourController.start();
+        this.currentRoom = 'Una obra que nos permite recuperar lo sagrado';
+        this.updateCurrentRoomIndicator(this.currentRoom);
+        this.showRoomNarration('Una obra que nos permite recuperar lo sagrado');
     }
 
     /**
-     * Restores free exploration after the guided tour is stopped.
+     * Returns to the mode chooser after the guided tour is stopped manually.
      */
     onTourStopped() {
         clearTimeout(this.tourCompletionTimer);
         this.hideTourCompletionModal();
-        this.artworkPanel.hide({ resumeAmbient: false });
-        this.enableFreeExploration({ createMobileControls: true });
-        this.controls.syncRotationFromCamera();
+        this.artworkPanel.closeDetail();
+        this.artworkPanel.hide({ resumeAmbient: true });
+        this.freeExplorationActive = false;
+        this.controls.setEnabled(false);
+        this.controls.setMovementEnabled?.(false);
+        this.controls.setPointerLockEnabled?.(false);
+        this.controls.resetMovement();
+        this.artworkInteraction?.setEnabled(false);
+        this.removeMobileControls();
+        this.hideFreeExplorationHud();
+        this.showControlInstructions();
     }
 
     /**
@@ -711,6 +809,8 @@ export class App {
      * @param {string|null} detail.context - Source context for the detail modal.
      */
     onArtworkDetailClosed(detail) {
+        this.suppressTourExitUntil = performance.now() + 800;
+
         if (detail.context === 'tour' && this.tourController?.isActive()) {
             this.tourController.advanceAfterDetail();
             return;
@@ -795,8 +895,120 @@ export class App {
 
         // Hover selection is screen-centered in pointer-lock mode.
         this.artworkInteraction.updateHover();
+        this.updateCuratorialProximity(deltaTime);
 
         this.renderer.render(this.scene, this.camera);
+    }
+
+    /**
+     * Updates room narration, artwork phrase, spotlight, and ambient tone.
+     *
+     * @param {number} deltaTime - Seconds elapsed since the previous frame.
+     */
+    updateCuratorialProximity(deltaTime) {
+        if (!this.gallery?.artworks?.length || !this.camera) return;
+
+        const closest = this.findClosestArtwork();
+        const nearby = closest && closest.distance < 4.15 ? closest.artwork : null;
+        const nearbyId = nearby?.id || null;
+
+        this.lighting?.updateProximityFocus(nearbyId, deltaTime);
+        this.updateProximityPhrase(nearby);
+        this.updateAmbientTone(nearby, deltaTime);
+
+        const room = nearby?.data?.room || null;
+        if (room && room !== this.currentRoom) {
+            this.currentRoom = room;
+            this.updateCurrentRoomIndicator(room);
+            this.showRoomNarration(room);
+        }
+
+        this.nearbyArtworkId = nearbyId;
+    }
+
+    /**
+     * Finds the nearest artwork to the camera.
+     *
+     * @returns {{artwork: Object, distance: number}|null} Nearest artwork result.
+     */
+    findClosestArtwork() {
+        let closest = null;
+
+        this.gallery.artworks.forEach((artwork) => {
+            if (!artwork?.group) return;
+            const distance = this.camera.position.distanceTo(artwork.group.position);
+            if (!closest || distance < closest.distance) {
+                closest = { artwork, distance };
+            }
+        });
+
+        return closest;
+    }
+
+    /**
+     * Shows a poetic room text and lets it fade away.
+     *
+     * @param {string} room - Thematic room name.
+     */
+    showRoomNarration(room) {
+        this.createCuratorialOverlays();
+        const text = ROOM_TEXTS[room];
+        if (!text || !this.roomNarrationToast) return;
+
+        clearTimeout(this.roomNarrationTimer);
+        this.roomNarrationToast.textContent = text;
+        this.roomNarrationToast.classList.add('is-visible');
+        this.roomNarrationTimer = setTimeout(() => {
+            this.roomNarrationToast?.classList.remove('is-visible');
+        }, 5200);
+    }
+
+    /**
+     * Updates the small phrase shown near artworks during close approach.
+     *
+     * @param {Object|null} artwork - Nearby artwork record.
+     */
+    updateProximityPhrase(artwork) {
+        this.createCuratorialOverlays();
+        if (!this.proximityPhrase) return;
+
+        const hint = artwork?.data?.interactionHint || artwork?.data?.emotionalTone || '';
+        this.proximityPhrase.textContent = hint;
+        this.proximityPhrase.classList.toggle('is-visible', Boolean(hint));
+    }
+
+    /**
+     * Keeps the current thematic room visible as a lightweight museum label.
+     *
+     * @param {string} room - Current thematic room name.
+     */
+    updateCurrentRoomIndicator(room) {
+        this.createCuratorialOverlays();
+        if (!this.currentRoomIndicator) return;
+
+        this.currentRoomIndicator.replaceChildren();
+        const label = document.createElement('span');
+        label.textContent = 'Sala actual';
+        const roomName = document.createElement('strong');
+        roomName.textContent = room;
+        this.currentRoomIndicator.append(label, roomName);
+        this.currentRoomIndicator.classList.add('is-visible');
+    }
+
+    /**
+     * Slightly changes the ambient level when the visitor approaches thematic work.
+     *
+     * @param {Object|null} artwork - Nearby artwork record.
+     * @param {number} deltaTime - Seconds elapsed since the previous frame.
+     */
+    updateAmbientTone(artwork, deltaTime) {
+        const ambient = this.audio?.ambientAudio;
+        if (!ambient) return;
+
+        const themes = artwork?.data?.themes || [];
+        const target = themes.includes('light') || themes.includes('ritual') ? 0.38 : (artwork ? 0.34 : 0.3);
+        const response = 1 - Math.exp(-2.6 * deltaTime);
+        ambient.volume = THREE.MathUtils.lerp(ambient.volume, target, response);
     }
 
     /**

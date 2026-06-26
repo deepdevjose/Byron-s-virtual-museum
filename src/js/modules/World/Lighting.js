@@ -16,6 +16,7 @@ export class Lighting {
     constructor(scene) {
         this.scene = scene;
         this.spotlights = [];
+        this.spotlightByArtworkId = new Map();
         this.fixtures = [];
     }
 
@@ -27,7 +28,7 @@ export class Lighting {
     setup(artworksData = []) {
         /** Ambient light establishes the base room visibility. */
 
-        const ambientLight = new THREE.AmbientLight(0x9a8d7d, 0.26);
+        const ambientLight = new THREE.AmbientLight(0xa39686, 0.28);
         this.scene.add(ambientLight);
 
         /** Ceiling fixtures use emissive materials instead of point lights. */
@@ -153,7 +154,7 @@ export class Lighting {
      */
     createRealisticSpotlights(artworksData = []) {
         const UNIFIED_COLOR = 0xffffff;
-        const UNIFIED_INTENSITY = 22;
+        const UNIFIED_INTENSITY = 24.2;
         const UNIFIED_DISTANCE = 22;
         const UNIFIED_ANGLE = Math.PI / 6;
         const UNIFIED_PENUMBRA = 0.7;
@@ -169,7 +170,15 @@ export class Lighting {
 
             this.scene.add(spotLight);
             this.scene.add(spotLight.target);
+            spotLight.userData = {
+                artworkId: config.artworkId,
+                baseIntensity: UNIFIED_INTENSITY,
+                targetIntensity: UNIFIED_INTENSITY
+            };
             this.spotlights.push(spotLight);
+            if (config.artworkId) {
+                this.spotlightByArtworkId.set(config.artworkId, spotLight);
+            }
 
             this.createSpotlightFixture(config.pos);
         });
@@ -193,9 +202,28 @@ export class Lighting {
             const lightPosition = new THREE.Vector3(target[0], 4.4, target[2]).addScaledVector(normal, 1.7);
 
             return {
+                artworkId: artwork.id,
                 pos: [lightPosition.x, lightPosition.y, lightPosition.z],
                 target: [target[0], target[1], target[2]]
             };
+        });
+    }
+
+    /**
+     * Softly adjusts artwork spotlight intensity for proximity-based reading.
+     *
+     * @param {string|null} artworkId - Current nearby artwork id, if any.
+     * @param {number} deltaTime - Seconds elapsed since the previous frame.
+     */
+    updateProximityFocus(artworkId, deltaTime) {
+        const response = 1 - Math.exp(-5.5 * deltaTime);
+
+        this.spotlights.forEach((spotlight) => {
+            const baseIntensity = spotlight.userData.baseIntensity || 22;
+            const targetIntensity = spotlight.userData.artworkId === artworkId
+                ? baseIntensity * 1.42
+                : baseIntensity;
+            spotlight.intensity = THREE.MathUtils.lerp(spotlight.intensity, targetIntensity, response);
         });
     }
 

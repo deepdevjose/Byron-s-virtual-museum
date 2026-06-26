@@ -4,8 +4,8 @@
     "title": "Bailarina",
     "artist": "Byron Gálvez",
     "year": "2024",
-    "technique": "Tecnica mixta",
-    "description": "Una elegante representacion del movimiento y la gracia, capturando la esencia de la danza en una composicion dinamica.",
+    "technique": "Técnica mixta",
+    "description": "Una elegante representación del movimiento y la gracia, capturando la esencia de la danza en una composición dinámica.",
     "image": "./src/assets/images/Bailarina - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926848/Bailarina_-_Byron_lx1i1t.mp4?_s=public-apps",
     "position": [
@@ -16,6 +16,25 @@
     "size": [
       1.9,
       2.35
+    ],
+    "room": "Abstracción y figuración",
+    "themes": [
+      "abstracción",
+      "figuración",
+      "geometría",
+      "cuerpo"
+    ],
+    "formalReading": "La bailarina se construye con arcos de movimiento y una estructura pictorica firme, haciendo que la gracia se sienta arquitectonica y no ingravida.",
+    "symbolicReading": "La danza se vuelve un encuentro entre orden apolíneo y sensualidad dionisíaca: disciplina contenida dentro de una descarga emocional.",
+    "curatorialText": "Aquí, el cuerpo no desaparece dentro de la geometría. Es transformado por ella.",
+    "emotionalTone": "tenso, rítmico, metamórfico",
+    "interactionHint": "Acércate y deja que el marco ilumine la tensión entre figura y plano.",
+    "visualKeywords": [
+      "cuerpo",
+      "geometría",
+      "fragmento",
+      "ritmo",
+      "transformacion"
     ]
   },
   {
@@ -23,7 +42,7 @@
     "title": "Baile",
     "artist": "Byron Gálvez",
     "year": "2024",
-    "technique": "Tecnica mixta",
+    "technique": "Técnica mixta",
     "description": "Una escena de cuerpos en movimiento que convierte la danza en energia cromatica y ritmo visual.",
     "image": "./src/assets/images/Baile - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926857/Baile_-_Byron_hkjfnm.mp4?_s=public-apps",
@@ -35,6 +54,25 @@
     "size": [
       2.2,
       1.8
+    ],
+    "room": "Abstracción y figuración",
+    "themes": [
+      "abstracción",
+      "figuración",
+      "geometría",
+      "cuerpo"
+    ],
+    "formalReading": "Las figuras y los planos comparten la misma superficie. La geometría organiza la imagen, pero nunca fija del todo al cuerpo.",
+    "symbolicReading": "El cuerpo colectivo se transforma en ritmo, evocando celebracion popular mientras se disuelve en fuerza cromatica.",
+    "curatorialText": "Aquí, el cuerpo no desaparece dentro de la geometría. Es transformado por ella.",
+    "emotionalTone": "tenso, rítmico, metamórfico",
+    "interactionHint": "Acércate y deja que el marco ilumine la tensión entre figura y plano.",
+    "visualKeywords": [
+      "cuerpo",
+      "geometría",
+      "fragmento",
+      "ritmo",
+      "transformacion"
     ]
   },
   {
@@ -42,8 +80,8 @@
     "title": "Maquillaje",
     "artist": "Byron Gálvez",
     "year": "2024",
-    "technique": "Tecnica mixta",
-    "description": "Una representacion intima del arte del maquillaje, capturando la transformacion y la belleza del proceso creativo.",
+    "technique": "Técnica mixta",
+    "description": "Una representación intima del arte del maquillaje, capturando la transformacion y la belleza del proceso creativo.",
     "image": "./src/assets/images/Maquillaje - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926860/Maquillaje_-_Byron_wtn3uu.mp4?_s=public-apps",
     "position": [
@@ -54,6 +92,25 @@
     "size": [
       1.9,
       2.35
+    ],
+    "room": "Mujeres, ritual y sensualidad",
+    "themes": [
+      "figura femenina",
+      "ritual",
+      "sensualidad",
+      "presencia simbólica"
+    ],
+    "formalReading": "La figura emerge entre curvas, bloques de color y contornos cargados que equilibran ternura y fuerza formal.",
+    "symbolicReading": "El adorno aparece como transformacion: el rostro se vuelve superficie ritual, máscara, ternura y misterio.",
+    "curatorialText": "La figura femenina aparece como ternura, sensualidad, ceremonia y presencia simbólica.",
+    "emotionalTone": "tierno, sensual, ceremonial",
+    "interactionHint": "Acércate con calma: la luz trata la figura como aparicion y signo ritual.",
+    "visualKeywords": [
+      "mujer",
+      "ritual",
+      "sensualidad",
+      "ternura",
+      "misterio"
     ]
   },
   {
@@ -61,8 +118,8 @@
     "title": "Amanecer",
     "artist": "Byron Gálvez",
     "year": "2025",
-    "technique": "Tecnica mixta",
-    "description": "Una representacion poetica del amanecer que captura la transicion entre la noche y el dia, evocando esperanza y renovacion.",
+    "technique": "Técnica mixta",
+    "description": "Una representación poetica del amanecer que captura la transición entre la noche y el dia, evocando esperanza y renovación.",
     "image": "./src/assets/images/Amanecer - Byron.jpeg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926851/Amanecer_-_Byron_zqpo89.mp4?_s=public-apps",
     "position": [
@@ -74,14 +131,33 @@
       2.6,
       2.05
     ],
-    "featured": true
+    "featured": true,
+    "room": "Paisaje y espacio interior",
+    "themes": [
+      "paisaje",
+      "espacio interior",
+      "tierra",
+      "memoria"
+    ],
+    "formalReading": "La composición se abre por transiciónes tonales, usando luz y color para crear profundidad atmosférica.",
+    "symbolicReading": "El amanecer se vuelve un pasaje interior: renovación, surgimiento y lo invisible haciendose visible.",
+    "curatorialText": "El paisaje se vuelve arquitectura interior, un paso entre tierra, memoria y emoción.",
+    "emotionalTone": "amplio, meditativo, terrestre",
+    "interactionHint": "Retrocede y vuelve a acercarte: la profundidad aparece entre el paisaje y tu propio movimiento.",
+    "visualKeywords": [
+      "paisaje",
+      "horizonte",
+      "tierra",
+      "cielo",
+      "memoria"
+    ]
   },
   {
     "id": "naturaleza-muerta",
     "title": "Naturaleza Muerta",
     "artist": "Byron Gálvez",
     "year": "2024",
-    "technique": "Tecnica mixta",
+    "technique": "Técnica mixta",
     "description": "Una interpretacion contemporanea del genero clasico, explorando la belleza en la simplicidad de los objetos cotidianos.",
     "image": "./src/assets/images/Naturaleza Muerta - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926869/Naturaleza_muerta_-_Byron_oy2kxd.mp4?_s=public-apps",
@@ -93,6 +169,25 @@
     "size": [
       2.2,
       1.7
+    ],
+    "room": "Color, textura y profundidad",
+    "themes": [
+      "color",
+      "textura",
+      "profundidad",
+      "materia"
+    ],
+    "formalReading": "El color no es solo superficie; construye peso, direccion y profundidad mientras la textura mantiene la imagen tactil.",
+    "symbolicReading": "La pintura trata el color como fuerza emocional, un lenguaje estructural que lleva el mundo visible hacia la sensación interior.",
+    "curatorialText": "El color se vuelve estructura, presión y temperatura emocional; la textura mantiene la imagen cerca de la mano.",
+    "emotionalTone": "sensual, denso, vibrante",
+    "interactionHint": "Usa la lectura cercana para mirar la imagen como materia pictorica, no solo como representación.",
+    "visualKeywords": [
+      "color",
+      "materia",
+      "textura",
+      "profundidad",
+      "superficie"
     ]
   },
   {
@@ -100,7 +195,7 @@
     "title": "Vanidad",
     "artist": "Byron Gálvez",
     "year": "2024",
-    "technique": "Tecnica mixta",
+    "technique": "Técnica mixta",
     "description": "Una reflexion sobre la belleza efimera y la contemplacion del yo, explorando temas de autoconocimiento.",
     "image": "./src/assets/images/Vanidad - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926870/Vanidad_-_Byron_zpl8mj.mp4?_s=public-apps",
@@ -112,6 +207,25 @@
     "size": [
       1.9,
       2.35
+    ],
+    "room": "Mujeres, ritual y sensualidad",
+    "themes": [
+      "figura femenina",
+      "ritual",
+      "sensualidad",
+      "presencia simbólica"
+    ],
+    "formalReading": "La figura emerge entre curvas, bloques de color y contornos cargados que equilibran ternura y fuerza formal.",
+    "symbolicReading": "La presencia femenina es sensual y misteriosa, pero también ritual: un cuerpo simbólico donde intimidad y ceremonia se encuentran.",
+    "curatorialText": "La figura femenina aparece como ternura, sensualidad, ceremonia y presencia simbólica.",
+    "emotionalTone": "tierno, sensual, ceremonial",
+    "interactionHint": "Acércate con calma: la luz trata la figura como aparicion y signo ritual.",
+    "visualKeywords": [
+      "mujer",
+      "ritual",
+      "sensualidad",
+      "ternura",
+      "misterio"
     ]
   },
   {
@@ -119,8 +233,8 @@
     "title": "Flautista",
     "artist": "Byron Gálvez",
     "year": "2024",
-    "technique": "Tecnica mixta",
-    "description": "Una armoniosa representacion de musicos interpretando la flauta, capturando la melodia visual en cada gesto.",
+    "technique": "Técnica mixta",
+    "description": "Una armoniosa representación de musicos interpretando la flauta, capturando la melodia visual en cada gesto.",
     "image": "./src/assets/images/Flautista - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926855/Flautista_-_Byron_lqgf13.mp4?_s=public-apps",
     "position": [
@@ -136,6 +250,25 @@
       0,
       1.5707963268,
       0
+    ],
+    "room": "Abstracción y figuración",
+    "themes": [
+      "abstracción",
+      "figuración",
+      "geometría",
+      "cuerpo"
+    ],
+    "formalReading": "Las figuras y los planos comparten la misma superficie. La geometría organiza la imagen, pero nunca fija del todo al cuerpo.",
+    "symbolicReading": "La obra suspende la frontera entre abstracción y figuración, permitiendo que la identidad aparezca como ritmo, fragmento y transformacion.",
+    "curatorialText": "Aquí, el cuerpo no desaparece dentro de la geometría. Es transformado por ella.",
+    "emotionalTone": "tenso, rítmico, metamórfico",
+    "interactionHint": "Acércate y deja que el marco ilumine la tensión entre figura y plano.",
+    "visualKeywords": [
+      "cuerpo",
+      "geometría",
+      "fragmento",
+      "ritmo",
+      "transformacion"
     ]
   },
   {
@@ -143,8 +276,8 @@
     "title": "Rocas y Cielo",
     "artist": "Byron Gálvez",
     "year": "2023",
-    "technique": "Tecnica mixta",
-    "description": "Un estudio de contrastes entre la solidez de la tierra y la fluidez del cielo, explorando la relacion entre lo terrenal y lo celestial.",
+    "technique": "Técnica mixta",
+    "description": "Un estudio de contrastes entre la solidez de la tierra y la fluidez del cielo, explorando la relación entre lo terrenal y lo celestial.",
     "image": "./src/assets/images/Rocas y Cielo - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926877/Rocas_y_cielo_-_Byron_gnizwy.mp4?_s=public-apps",
     "position": [
@@ -160,6 +293,25 @@
       0,
       1.5707963268,
       0
+    ],
+    "room": "Paisaje y espacio interior",
+    "themes": [
+      "paisaje",
+      "espacio interior",
+      "tierra",
+      "memoria"
+    ],
+    "formalReading": "Las formas naturales se comprimen en planos, masas y horizontes que crean profundidad sin abandonar la abstracción.",
+    "symbolicReading": "El paisaje se vuelve interior: un lugar donde tierra, cielo y memoria emocional ocupan el mismo espacio pictórico.",
+    "curatorialText": "El paisaje se vuelve arquitectura interior, un paso entre tierra, memoria y emoción.",
+    "emotionalTone": "amplio, meditativo, terrestre",
+    "interactionHint": "Retrocede y vuelve a acercarte: la profundidad aparece entre el paisaje y tu propio movimiento.",
+    "visualKeywords": [
+      "paisaje",
+      "horizonte",
+      "tierra",
+      "cielo",
+      "memoria"
     ]
   },
   {
@@ -167,8 +319,8 @@
     "title": "Vela",
     "artist": "Byron Gálvez",
     "year": "2024",
-    "technique": "Tecnica mixta",
-    "description": "Una exploracion de la luz y la quietud, capturando la delicada belleza de la llama en la oscuridad.",
+    "technique": "Técnica mixta",
+    "description": "Una exploración de la luz y la quietud, capturando la delicada belleza de la llama en la oscuridad.",
     "image": "./src/assets/images/Vela - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926876/Vela_-_Byron_jtvnaz.mp4?_s=public-apps",
     "position": [
@@ -184,6 +336,25 @@
       0,
       1.5707963268,
       0
+    ],
+    "room": "Luz y lo invisible",
+    "themes": [
+      "luz",
+      "invisible",
+      "ritual",
+      "sombra"
+    ],
+    "formalReading": "La luz organiza el contraste y dirige la atención, revelando bordes, atmósferas y centros de gravedad ocultos.",
+    "symbolicReading": "La iluminacion se vuelve una forma de hacer presente lo invisible: memoria, devocion, ausencia y vida interior.",
+    "curatorialText": "La luz no es decoración aquí. Revela aquello que el ojo casi no alcanza a ver.",
+    "emotionalTone": "silencioso, luminoso, contemplativo",
+    "interactionHint": "Al acercarte, el foco se intensifica como un pequeño acto de revelacion.",
+    "visualKeywords": [
+      "luz",
+      "sombra",
+      "revelacion",
+      "devocion",
+      "invisible"
     ]
   },
   {
@@ -191,7 +362,7 @@
     "title": "Frutas",
     "artist": "Byron Gálvez",
     "year": "2024",
-    "technique": "Tecnica mixta",
+    "technique": "Técnica mixta",
     "description": "Una naturaleza muerta vibrante que celebra la abundancia y los colores de las frutas frescas.",
     "image": "./src/assets/images/Frutas - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926860/Frutas_-_Byron_nzpsmh.mp4?_s=public-apps",
@@ -208,6 +379,25 @@
       0,
       1.5707963268,
       0
+    ],
+    "room": "Color, textura y profundidad",
+    "themes": [
+      "color",
+      "textura",
+      "profundidad",
+      "materia"
+    ],
+    "formalReading": "El color no es solo superficie; construye peso, direccion y profundidad mientras la textura mantiene la imagen tactil.",
+    "symbolicReading": "La pintura trata el color como fuerza emocional, un lenguaje estructural que lleva el mundo visible hacia la sensación interior.",
+    "curatorialText": "El color se vuelve estructura, presión y temperatura emocional; la textura mantiene la imagen cerca de la mano.",
+    "emotionalTone": "sensual, denso, vibrante",
+    "interactionHint": "Usa la lectura cercana para mirar la imagen como materia pictorica, no solo como representación.",
+    "visualKeywords": [
+      "color",
+      "materia",
+      "textura",
+      "profundidad",
+      "superficie"
     ]
   },
   {
@@ -215,8 +405,8 @@
     "title": "Luz",
     "artist": "Byron Gálvez",
     "year": "2024",
-    "technique": "Tecnica mixta",
-    "description": "Exploracion de claroscuro y comunidad; la luz aparece como centro emocional de la escena.",
+    "technique": "Técnica mixta",
+    "description": "Exploración de claroscuro y comunidad; la luz aparece como centro emocional de la escena.",
     "image": "./src/assets/images/Luz - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926863/Luz_-_Byron_kqaedc.mp4?_s=public-apps",
     "position": [
@@ -232,6 +422,25 @@
       0,
       1.5707963268,
       0
+    ],
+    "room": "Luz y lo invisible",
+    "themes": [
+      "luz",
+      "invisible",
+      "ritual",
+      "sombra"
+    ],
+    "formalReading": "La imagen concentra la atención alrededor de centros iluminados y deja que la sombra cree densidad emocional.",
+    "symbolicReading": "La luz actua como testigo: vuelve visibles, por un instante, la comunidad, el silencio y el sentimiento oculto.",
+    "curatorialText": "La luz no es decoración aquí. Revela aquello que el ojo casi no alcanza a ver.",
+    "emotionalTone": "silencioso, luminoso, contemplativo",
+    "interactionHint": "Al acercarte, el foco se intensifica como un pequeño acto de revelacion.",
+    "visualKeywords": [
+      "luz",
+      "sombra",
+      "revelacion",
+      "devocion",
+      "invisible"
     ]
   },
   {
@@ -239,7 +448,7 @@
     "title": "Mujer Veladora",
     "artist": "Byron Gálvez",
     "year": "2024",
-    "technique": "Tecnica mixta",
+    "technique": "Técnica mixta",
     "description": "Una escena contemplativa donde la vela marca un espacio de silencio, duelo y espiritualidad.",
     "image": "./src/assets/images/Mujer Veladora - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926871/Mujer_Veladora_-_Byron_rqayjy.mp4?_s=public-apps",
@@ -256,6 +465,25 @@
       0,
       1.5707963268,
       0
+    ],
+    "room": "Mujeres, ritual y sensualidad",
+    "themes": [
+      "figura femenina",
+      "ritual",
+      "sensualidad",
+      "presencia simbólica"
+    ],
+    "formalReading": "La figura emerge entre curvas, bloques de color y contornos cargados que equilibran ternura y fuerza formal.",
+    "symbolicReading": "La vela y la figura femenina forman una escena devocional donde convergen ternura, pérdida y presencia ritual.",
+    "curatorialText": "La figura femenina aparece como ternura, sensualidad, ceremonia y presencia simbólica.",
+    "emotionalTone": "tierno, sensual, ceremonial",
+    "interactionHint": "Acércate con calma: la luz trata la figura como aparicion y signo ritual.",
+    "visualKeywords": [
+      "mujer",
+      "ritual",
+      "sensualidad",
+      "ternura",
+      "misterio"
     ]
   },
   {
@@ -263,8 +491,8 @@
     "title": "Violoncello",
     "artist": "Byron Gálvez",
     "year": "2024",
-    "technique": "Tecnica mixta",
-    "description": "Una celebracion del instrumento musical, capturando la elegancia y profundidad emocional del violoncello.",
+    "technique": "Técnica mixta",
+    "description": "Una celebracion del instrumento músical, capturando la elegancia y profundidad emocional del violoncello.",
     "image": "./src/assets/images/Violincello - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926880/Violincelo_-_Byron_a47xkg.mp4?_s=public-apps",
     "position": [
@@ -280,6 +508,26 @@
       0,
       -1.5707963268,
       0
+    ],
+    "room": "La tecnología como recurso curatorial",
+    "themes": [
+      "arte tecnológico",
+      "museografia",
+      "movimiento",
+      "audio",
+      "luz"
+    ],
+    "formalReading": "El marco digital, los medios animados, la distancia espacial y la interfaz forman parte del encuentro formal con la obra.",
+    "symbolicReading": "La tecnología funciona como recurso curatorial: traduce la pintura en una coreografia de luz, sonido, proximidad y atención.",
+    "curatorialText": "El código, el audio, el movimiento y la luz se vuelven recursos de interpretación, no solo herramientas de exhibición.",
+    "emotionalTone": "reflexivo, espacial, inmersivo",
+    "interactionHint": "Observa como tu distancia, tu mirada y la interfaz completan la lectura de la obra.",
+    "visualKeywords": [
+      "código",
+      "luz",
+      "audio",
+      "movimiento",
+      "espacio"
     ]
   },
   {
@@ -287,8 +535,8 @@
     "title": "Músicos",
     "artist": "Byron Gálvez",
     "year": "2023",
-    "technique": "Tecnica mixta",
-    "description": "Una celebracion visual de la musica y los artistas que la crean, capturando la pasion y la emocion del arte sonoro.",
+    "technique": "Técnica mixta",
+    "description": "Una celebracion visual de la música y los artistas que la crean, capturando la pasión y la emoción del arte sonoro.",
     "image": "./src/assets/images/Musicos - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926873/Musicos_-_Byron_cndmhx.mp4?_s=public-apps",
     "position": [
@@ -304,6 +552,26 @@
       0,
       -1.5707963268,
       0
+    ],
+    "room": "La tecnología como recurso curatorial",
+    "themes": [
+      "arte tecnológico",
+      "museografia",
+      "movimiento",
+      "audio",
+      "luz"
+    ],
+    "formalReading": "El marco digital, los medios animados, la distancia espacial y la interfaz forman parte del encuentro formal con la obra.",
+    "symbolicReading": "La tecnología funciona como recurso curatorial: traduce la pintura en una coreografia de luz, sonido, proximidad y atención.",
+    "curatorialText": "El código, el audio, el movimiento y la luz se vuelven recursos de interpretación, no solo herramientas de exhibición.",
+    "emotionalTone": "reflexivo, espacial, inmersivo",
+    "interactionHint": "Observa como tu distancia, tu mirada y la interfaz completan la lectura de la obra.",
+    "visualKeywords": [
+      "código",
+      "luz",
+      "audio",
+      "movimiento",
+      "espacio"
     ]
   },
   {
@@ -311,8 +579,8 @@
     "title": "Músicos en Marcha",
     "artist": "Byron Gálvez",
     "year": "2024",
-    "technique": "Tecnica mixta",
-    "description": "Una representacion dinamica de musicos en movimiento, capturando el ritmo y la energia de la marcha musical.",
+    "technique": "Técnica mixta",
+    "description": "Una representación dinámica de musicos en movimiento, capturando el ritmo y la energia de la marcha músical.",
     "image": "./src/assets/images/MusicosM - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926871/MusicosM_-_Byron_gse5l1.mp4?_s=public-apps",
     "position": [
@@ -328,6 +596,25 @@
       0,
       -1.5707963268,
       0
+    ],
+    "room": "Abstracción y figuración",
+    "themes": [
+      "abstracción",
+      "figuración",
+      "geometría",
+      "cuerpo"
+    ],
+    "formalReading": "Las figuras y los planos comparten la misma superficie. La geometría organiza la imagen, pero nunca fija del todo al cuerpo.",
+    "symbolicReading": "La obra suspende la frontera entre abstracción y figuración, permitiendo que la identidad aparezca como ritmo, fragmento y transformacion.",
+    "curatorialText": "Aquí, el cuerpo no desaparece dentro de la geometría. Es transformado por ella.",
+    "emotionalTone": "tenso, rítmico, metamórfico",
+    "interactionHint": "Acércate y deja que el marco ilumine la tensión entre figura y plano.",
+    "visualKeywords": [
+      "cuerpo",
+      "geometría",
+      "fragmento",
+      "ritmo",
+      "transformacion"
     ]
   },
   {
@@ -335,8 +622,8 @@
     "title": "Compositoras",
     "artist": "Byron Gálvez",
     "year": "2024",
-    "technique": "Tecnica mixta",
-    "description": "Composicion dedicada a la presencia femenina en la musica, con figuras que parecen emerger entre color y resonancia.",
+    "technique": "Técnica mixta",
+    "description": "Composicion dedicada a la presencia femenina en la música, con figuras que parecen emerger entre color y resonancia.",
     "image": "./src/assets/images/Compositoras - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926861/Compositoras_-_Byron_tgzgmj.mp4?_s=public-apps",
     "position": [
@@ -352,6 +639,25 @@
       0,
       -1.5707963268,
       0
+    ],
+    "room": "Mujeres, ritual y sensualidad",
+    "themes": [
+      "figura femenina",
+      "ritual",
+      "sensualidad",
+      "presencia simbólica"
+    ],
+    "formalReading": "La figura emerge entre curvas, bloques de color y contornos cargados que equilibran ternura y fuerza formal.",
+    "symbolicReading": "La presencia femenina es sensual y misteriosa, pero también ritual: un cuerpo simbólico donde intimidad y ceremonia se encuentran.",
+    "curatorialText": "La figura femenina aparece como ternura, sensualidad, ceremonia y presencia simbólica.",
+    "emotionalTone": "tierno, sensual, ceremonial",
+    "interactionHint": "Acércate con calma: la luz trata la figura como aparicion y signo ritual.",
+    "visualKeywords": [
+      "mujer",
+      "ritual",
+      "sensualidad",
+      "ternura",
+      "misterio"
     ]
   },
   {
@@ -359,7 +665,7 @@
     "title": "Mujeres",
     "artist": "Byron Gálvez",
     "year": "2024",
-    "technique": "Tecnica mixta",
+    "technique": "Técnica mixta",
     "description": "Grupo de figuras femeninas que dialogan entre sombra, color y presencia colectiva.",
     "image": "./src/assets/images/Mujeres - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926865/Mujeres_-_Byron_sgfd4t.mp4?_s=public-apps",
@@ -376,6 +682,25 @@
       0,
       -1.5707963268,
       0
+    ],
+    "room": "Mujeres, ritual y sensualidad",
+    "themes": [
+      "figura femenina",
+      "ritual",
+      "sensualidad",
+      "presencia simbólica"
+    ],
+    "formalReading": "La figura emerge entre curvas, bloques de color y contornos cargados que equilibran ternura y fuerza formal.",
+    "symbolicReading": "La presencia femenina es sensual y misteriosa, pero también ritual: un cuerpo simbólico donde intimidad y ceremonia se encuentran.",
+    "curatorialText": "La figura femenina aparece como ternura, sensualidad, ceremonia y presencia simbólica.",
+    "emotionalTone": "tierno, sensual, ceremonial",
+    "interactionHint": "Acércate con calma: la luz trata la figura como aparicion y signo ritual.",
+    "visualKeywords": [
+      "mujer",
+      "ritual",
+      "sensualidad",
+      "ternura",
+      "misterio"
     ]
   },
   {
@@ -383,7 +708,7 @@
     "title": "Velitas",
     "artist": "Byron Gálvez",
     "year": "2024",
-    "technique": "Tecnica mixta",
+    "technique": "Técnica mixta",
     "description": "Una contemplacion sobre la luz sagrada de las velas, evocando espiritualidad y calidez en su resplandor.",
     "image": "./src/assets/images/Velitas - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926881/Velitas_-_Byron_s1ue7p.mp4?_s=public-apps",
@@ -400,6 +725,25 @@
       0,
       -1.5707963268,
       0
+    ],
+    "room": "Luz y lo invisible",
+    "themes": [
+      "luz",
+      "invisible",
+      "ritual",
+      "sombra"
+    ],
+    "formalReading": "La luz organiza el contraste y dirige la atención, revelando bordes, atmósferas y centros de gravedad ocultos.",
+    "symbolicReading": "La iluminacion se vuelve una forma de hacer presente lo invisible: memoria, devocion, ausencia y vida interior.",
+    "curatorialText": "La luz no es decoración aquí. Revela aquello que el ojo casi no alcanza a ver.",
+    "emotionalTone": "silencioso, luminoso, contemplativo",
+    "interactionHint": "Al acercarte, el foco se intensifica como un pequeño acto de revelacion.",
+    "visualKeywords": [
+      "luz",
+      "sombra",
+      "revelacion",
+      "devocion",
+      "invisible"
     ]
   },
   {
@@ -407,8 +751,8 @@
     "title": "Copas",
     "artist": "Byron Gálvez",
     "year": "2024",
-    "technique": "Tecnica mixta",
-    "description": "Una representacion elegante de cristaleria, explorando la transparencia, reflejos y la belleza de los objetos cotidianos.",
+    "technique": "Técnica mixta",
+    "description": "Una representación elegante de cristaleria, explorando la transparencia, reflejos y la belleza de los objetos cotidianos.",
     "image": "./src/assets/images/Copas - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926846/Copeo_-_Byron_raebfq.mp4?_s=public-apps",
     "position": [
@@ -424,6 +768,25 @@
       0,
       3.1415926536,
       0
+    ],
+    "room": "Color, textura y profundidad",
+    "themes": [
+      "color",
+      "textura",
+      "profundidad",
+      "materia"
+    ],
+    "formalReading": "El color no es solo superficie; construye peso, direccion y profundidad mientras la textura mantiene la imagen tactil.",
+    "symbolicReading": "La pintura trata el color como fuerza emocional, un lenguaje estructural que lleva el mundo visible hacia la sensación interior.",
+    "curatorialText": "El color se vuelve estructura, presión y temperatura emocional; la textura mantiene la imagen cerca de la mano.",
+    "emotionalTone": "sensual, denso, vibrante",
+    "interactionHint": "Usa la lectura cercana para mirar la imagen como materia pictorica, no solo como representación.",
+    "visualKeywords": [
+      "color",
+      "materia",
+      "textura",
+      "profundidad",
+      "superficie"
     ]
   },
   {
@@ -431,8 +794,8 @@
     "title": "Escultura de Pie",
     "artist": "Byron Gálvez",
     "year": "2024",
-    "technique": "Tecnica mixta",
-    "description": "Una exploracion de la forma humana en movimiento, capturando la elegancia y fuerza de la figura erguida.",
+    "technique": "Técnica mixta",
+    "description": "Una exploración de la forma humana en movimiento, capturando la elegancia y fuerza de la figura erguida.",
     "image": "./src/assets/images/Escultura de pie - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926849/Escultura_de_pie_-_Byron_dpzf4q.mp4?_s=public-apps",
     "position": [
@@ -448,6 +811,26 @@
       0,
       3.1415926536,
       0
+    ],
+    "room": "La tecnología como recurso curatorial",
+    "themes": [
+      "arte tecnológico",
+      "museografia",
+      "movimiento",
+      "audio",
+      "luz"
+    ],
+    "formalReading": "La figura de pie invita a una lectura escultorica de masa, contorno y presencia frontal dentro del plano pictórico.",
+    "symbolicReading": "La obra recuerda que Byron Galvez también es escultor: el volumen y el cuerpo nunca están ausentes de la imagen.",
+    "curatorialText": "El código, el audio, el movimiento y la luz se vuelven recursos de interpretación, no solo herramientas de exhibición.",
+    "emotionalTone": "reflexivo, espacial, inmersivo",
+    "interactionHint": "Observa como tu distancia, tu mirada y la interfaz completan la lectura de la obra.",
+    "visualKeywords": [
+      "código",
+      "luz",
+      "audio",
+      "movimiento",
+      "espacio"
     ]
   },
   {
@@ -455,7 +838,7 @@
     "title": "Mosaico Homenaje a la Mujer",
     "artist": "Byron Gálvez",
     "year": "2024",
-    "technique": "Tecnica mixta",
+    "technique": "Técnica mixta",
     "description": "Un homenaje coral a la figura femenina, construido como mosaico de color, memoria y movimiento.",
     "image": "./src/assets/images/Mosaico Homenaje a la Mujer - Byron .jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926861/Mosaico_-_Byron_d3sk6j.mp4?_s=public-apps",
@@ -465,22 +848,41 @@
       13.7
     ],
     "size": [
-      3.0,
+      3,
       1.55
     ],
     "rotation": [
       0,
       3.1415926536,
       0
+    ],
+    "room": "Mujeres, ritual y sensualidad",
+    "themes": [
+      "figura femenina",
+      "ritual",
+      "sensualidad",
+      "presencia simbólica"
+    ],
+    "formalReading": "La estructura de mosaico convierte la multiplicidad en orden, dejando que los fragmentos de color formen una figura colectiva.",
+    "symbolicReading": "La obra honra lo femenino como muchas presencias a la vez: intima, historica, sensual y ceremonial.",
+    "curatorialText": "La figura femenina aparece como ternura, sensualidad, ceremonia y presencia simbólica.",
+    "emotionalTone": "tierno, sensual, ceremonial",
+    "interactionHint": "Acércate con calma: la luz trata la figura como aparicion y signo ritual.",
+    "visualKeywords": [
+      "mujer",
+      "ritual",
+      "sensualidad",
+      "ternura",
+      "misterio"
     ]
   },
   {
     "id": "byron-galvez",
-    "title": "Byron Gálvez",
+    "title": "El artista como umbral",
     "artist": "Byron Gálvez",
     "year": "2025",
     "technique": "Retrato",
-    "description": "El maestro detras de estas obras, capturando su esencia creativa y vision personal del mundo. Escucha su voz narrando el significado detrás de su obra.",
+    "description": "Byron Gálvez aparece como presencia de entrada: memoria, origen y voz que abre el recorrido por su universo pictórico.",
     "image": "./src/assets/images/Byron2.png",
     "audio": "./src/assets/audio/byron.mp3",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926853/Byron_-_Byron_he6x9i.mp4?_s=public-apps",
@@ -498,14 +900,34 @@
       3.1415926536,
       0
     ],
-    "featured": true
+    "featured": true,
+    "room": "Una obra que nos permite recuperar lo sagrado",
+    "themes": [
+      "sagrado",
+      "voz del artista",
+      "umbral",
+      "memoria"
+    ],
+    "formalReading": "El retrato funciona como una pieza de acceso: frontal, concentrada y sostenida por una geometría silenciosa que prepara al visitante para el campo pictórico.",
+    "symbolicReading": "La imagen del artista abre el museo como umbral. No solo presenta una biografía: introduce una forma de mirar la materia, el cuerpo, la luz y la memoria.",
+    "curatorialText": "La visita comienza con Byron Gálvez: presencia, memoria y origen.",
+    "emotionalTone": "reverente, íntimo, de umbral",
+    "interactionHint": "Acércate: la voz y la imagen del artista marcan el origen del recorrido.",
+    "audioNarration": "./src/assets/audio/byron.mp3",
+    "visualKeywords": [
+      "umbral",
+      "voz",
+      "memoria",
+      "origen",
+      "presencia"
+    ]
   },
   {
     "id": "escultura-sentada",
     "title": "Escultura Sentada",
     "artist": "Byron Gálvez",
     "year": "2024",
-    "technique": "Tecnica mixta",
+    "technique": "Técnica mixta",
     "description": "Una contemplacion sobre el reposo y la reflexion, mostrando la serenidad en la postura contemplativa.",
     "image": "./src/assets/images/Escultura sentada - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926853/Escultura_sentada_-_Byron_tetaq4.mp4?_s=public-apps",
@@ -515,13 +937,33 @@
       13.7
     ],
     "size": [
-      2.0,
+      2,
       1.75
     ],
     "rotation": [
       0,
       3.1415926536,
       0
+    ],
+    "room": "La tecnología como recurso curatorial",
+    "themes": [
+      "arte tecnológico",
+      "museografia",
+      "movimiento",
+      "audio",
+      "luz"
+    ],
+    "formalReading": "La figura sentada concentra peso y pausa, haciendo que la quietud se perciba como volumen.",
+    "symbolicReading": "La obra traduce la escultura en contemplacion, convirtiendo el reposo en arquitectura interior.",
+    "curatorialText": "El código, el audio, el movimiento y la luz se vuelven recursos de interpretación, no solo herramientas de exhibición.",
+    "emotionalTone": "reflexivo, espacial, inmersivo",
+    "interactionHint": "Observa como tu distancia, tu mirada y la interfaz completan la lectura de la obra.",
+    "visualKeywords": [
+      "código",
+      "luz",
+      "audio",
+      "movimiento",
+      "espacio"
     ]
   },
   {
@@ -529,8 +971,8 @@
     "title": "Vela 2",
     "artist": "Byron Gálvez",
     "year": "2024",
-    "technique": "Tecnica mixta",
-    "description": "Una segunda exploracion de la luz de la vela, con diferentes matices de sombra y calidez.",
+    "technique": "Técnica mixta",
+    "description": "Una segunda exploración de la luz de la vela, con diferentes matices de sombra y calidez.",
     "image": "./src/assets/images/Vela2 - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926877/Vela2_-_Byron_vhrqfe.mp4?_s=public-apps",
     "position": [
@@ -546,6 +988,25 @@
       0,
       3.1415926536,
       0
+    ],
+    "room": "Luz y lo invisible",
+    "themes": [
+      "luz",
+      "invisible",
+      "ritual",
+      "sombra"
+    ],
+    "formalReading": "La luz organiza el contraste y dirige la atención, revelando bordes, atmósferas y centros de gravedad ocultos.",
+    "symbolicReading": "La iluminacion se vuelve una forma de hacer presente lo invisible: memoria, devocion, ausencia y vida interior.",
+    "curatorialText": "La luz no es decoración aquí. Revela aquello que el ojo casi no alcanza a ver.",
+    "emotionalTone": "silencioso, luminoso, contemplativo",
+    "interactionHint": "Al acercarte, el foco se intensifica como un pequeño acto de revelacion.",
+    "visualKeywords": [
+      "luz",
+      "sombra",
+      "revelacion",
+      "devocion",
+      "invisible"
     ]
   },
   {
@@ -553,7 +1014,7 @@
     "title": "Paisaje Nocturno",
     "artist": "Byron Gálvez",
     "year": "2024",
-    "technique": "Tecnica mixta",
+    "technique": "Técnica mixta",
     "description": "Una meditacion sobre la belleza de la noche, donde las sombras y luces crean un dialogo visual.",
     "image": "./src/assets/images/Luz - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926863/Luz_-_Byron_kqaedc.mp4?_s=public-apps",
@@ -570,15 +1031,34 @@
       0,
       1.5707963268,
       0
+    ],
+    "room": "Luz y lo invisible",
+    "themes": [
+      "luz",
+      "invisible",
+      "ritual",
+      "sombra"
+    ],
+    "formalReading": "La luz organiza el contraste y dirige la atención, revelando bordes, atmósferas y centros de gravedad ocultos.",
+    "symbolicReading": "La iluminacion se vuelve una forma de hacer presente lo invisible: memoria, devocion, ausencia y vida interior.",
+    "curatorialText": "La luz no es decoración aquí. Revela aquello que el ojo casi no alcanza a ver.",
+    "emotionalTone": "silencioso, luminoso, contemplativo",
+    "interactionHint": "Al acercarte, el foco se intensifica como un pequeño acto de revelacion.",
+    "visualKeywords": [
+      "luz",
+      "sombra",
+      "revelacion",
+      "devocion",
+      "invisible"
     ]
   },
   {
-    "id": "galeria-norte-1",
+    "id": "galería-norte-1",
     "title": "Expresión Latente",
     "artist": "Byron Gálvez",
     "year": "2024",
-    "technique": "Tecnica mixta",
-    "description": "Composicion abstracta que explora la tension entre forma y vacio.",
+    "technique": "Técnica mixta",
+    "description": "Composicion abstracta que explora la tensión entre forma y vacio.",
     "image": "./src/assets/images/Mujeres - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926865/Mujeres_-_Byron_sgfd4t.mp4?_s=public-apps",
     "position": [
@@ -587,22 +1067,41 @@
       0
     ],
     "size": [
-      2.0,
+      2,
       1.7
     ],
     "rotation": [
       0,
       1.5707963268,
       0
+    ],
+    "room": "Paisaje y espacio interior",
+    "themes": [
+      "paisaje",
+      "espacio interior",
+      "tierra",
+      "memoria"
+    ],
+    "formalReading": "Las formas naturales se comprimen en planos, masas y horizontes que crean profundidad sin abandonar la abstracción.",
+    "symbolicReading": "El paisaje se vuelve interior: un lugar donde tierra, cielo y memoria emocional ocupan el mismo espacio pictórico.",
+    "curatorialText": "El paisaje se vuelve arquitectura interior, un paso entre tierra, memoria y emoción.",
+    "emotionalTone": "amplio, meditativo, terrestre",
+    "interactionHint": "Retrocede y vuelve a acercarte: la profundidad aparece entre el paisaje y tu propio movimiento.",
+    "visualKeywords": [
+      "paisaje",
+      "horizonte",
+      "tierra",
+      "cielo",
+      "memoria"
     ]
   },
   {
-    "id": "galeria-norte-2",
+    "id": "galería-norte-2",
     "title": "Equilibrio Frágil",
     "artist": "Byron Gálvez",
     "year": "2024",
-    "technique": "Tecnica mixta",
-    "description": "Exploracion de la armonia en la composicion visual.",
+    "technique": "Técnica mixta",
+    "description": "Exploración de la armonía en la composición visual.",
     "image": "./src/assets/images/Copas - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926846/Copeo_-_Byron_raebfq.mp4?_s=public-apps",
     "position": [
@@ -618,14 +1117,33 @@
       0,
       1.5707963268,
       0
+    ],
+    "room": "Color, textura y profundidad",
+    "themes": [
+      "color",
+      "textura",
+      "profundidad",
+      "materia"
+    ],
+    "formalReading": "El color no es solo superficie; construye peso, direccion y profundidad mientras la textura mantiene la imagen tactil.",
+    "symbolicReading": "La pintura trata el color como fuerza emocional, un lenguaje estructural que lleva el mundo visible hacia la sensación interior.",
+    "curatorialText": "El color se vuelve estructura, presión y temperatura emocional; la textura mantiene la imagen cerca de la mano.",
+    "emotionalTone": "sensual, denso, vibrante",
+    "interactionHint": "Usa la lectura cercana para mirar la imagen como materia pictorica, no solo como representación.",
+    "visualKeywords": [
+      "color",
+      "materia",
+      "textura",
+      "profundidad",
+      "superficie"
     ]
   },
   {
-    "id": "galeria-sur-1",
+    "id": "galería-sur-1",
     "title": "Reflejo Interior",
     "artist": "Byron Gálvez",
     "year": "2024",
-    "technique": "Tecnica mixta",
+    "technique": "Técnica mixta",
     "description": "Un viaje hacia la introspección a traves del color y forma.",
     "image": "./src/assets/images/Compositoras - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926861/Compositoras_-_Byron_tgzgmj.mp4?_s=public-apps",
@@ -642,15 +1160,35 @@
       0,
       -1.5707963268,
       0
+    ],
+    "room": "La tecnología como recurso curatorial",
+    "themes": [
+      "arte tecnológico",
+      "museografia",
+      "movimiento",
+      "audio",
+      "luz"
+    ],
+    "formalReading": "El marco digital, los medios animados, la distancia espacial y la interfaz forman parte del encuentro formal con la obra.",
+    "symbolicReading": "La tecnología funciona como recurso curatorial: traduce la pintura en una coreografia de luz, sonido, proximidad y atención.",
+    "curatorialText": "El código, el audio, el movimiento y la luz se vuelven recursos de interpretación, no solo herramientas de exhibición.",
+    "emotionalTone": "reflexivo, espacial, inmersivo",
+    "interactionHint": "Observa como tu distancia, tu mirada y la interfaz completan la lectura de la obra.",
+    "visualKeywords": [
+      "código",
+      "luz",
+      "audio",
+      "movimiento",
+      "espacio"
     ]
   },
   {
-    "id": "galeria-sur-2",
+    "id": "galería-sur-2",
     "title": "Silencio Sonoro",
     "artist": "Byron Gálvez",
     "year": "2024",
-    "technique": "Tecnica mixta",
-    "description": "La musica capturada en el silencio de la pintura.",
+    "technique": "Técnica mixta",
+    "description": "La música capturada en el silencio de la pintura.",
     "image": "./src/assets/images/Violincello - Byron.jpg",
     "video": "https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926880/Violincelo_-_Byron_a47xkg.mp4?_s=public-apps",
     "position": [
@@ -666,6 +1204,26 @@
       0,
       -1.5707963268,
       0
+    ],
+    "room": "La tecnología como recurso curatorial",
+    "themes": [
+      "arte tecnológico",
+      "museografia",
+      "movimiento",
+      "audio",
+      "luz"
+    ],
+    "formalReading": "El marco digital, los medios animados, la distancia espacial y la interfaz forman parte del encuentro formal con la obra.",
+    "symbolicReading": "La música se vuelve una vibración silenciosa dentro de la galería, donde audio, imagen y movimiento se completan entre sí.",
+    "curatorialText": "El código, el audio, el movimiento y la luz se vuelven recursos de interpretación, no solo herramientas de exhibición.",
+    "emotionalTone": "reflexivo, espacial, inmersivo",
+    "interactionHint": "Observa como tu distancia, tu mirada y la interfaz completan la lectura de la obra.",
+    "visualKeywords": [
+      "código",
+      "luz",
+      "audio",
+      "movimiento",
+      "espacio"
     ]
   }
 ]

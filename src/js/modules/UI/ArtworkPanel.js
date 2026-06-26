@@ -19,6 +19,7 @@ export class ArtworkPanel {
         this.detailOpen = false;
         this.detailArtwork = null;
         this.detailContext = null;
+        this.activeDetailTab = 'artwork';
         this.onDetailClosed = options.onDetailClosed || (() => {});
         this.createPanel();
         this.setupDetailModal();
@@ -41,7 +42,7 @@ export class ArtworkPanel {
             <p class="artwork-panel__description"></p>
             <div class="artwork-panel__actions">
                 <button class="artwork-panel__button artwork-panel__button--primary" type="button" data-action="detail" data-ui-interactive="true">Ver detalle</button>
-                <button class="artwork-panel__button" type="button" data-action="audio" data-ui-interactive="true">Audio guía</button>
+                <button class="artwork-panel__button" type="button" data-action="audio" data-ui-interactive="true">Audioguía</button>
             </div>
         `;
 
@@ -66,11 +67,15 @@ export class ArtworkPanel {
         if (!modal) return;
 
         modal.setAttribute('data-ui-interactive', 'true');
-        modal.addEventListener('click', (event) => {
+        const closeFromBackdrop = (event) => {
             if (event.target === modal) {
+                event.preventDefault();
                 this.closeDetail();
             }
-        });
+        };
+        modal.addEventListener('pointerdown', closeFromBackdrop);
+        modal.addEventListener('touchstart', closeFromBackdrop, { passive: false });
+        modal.addEventListener('click', closeFromBackdrop);
     }
 
     /**
@@ -106,7 +111,7 @@ export class ArtworkPanel {
         const detailButton = this.panel.querySelector('[data-action="detail"]');
         const closeButton = this.panel.querySelector('.artwork-panel__close');
         audioButton.hidden = !data.audio || options.source === 'tour';
-        detailButton.textContent = (data.video || data.audio) ? 'Ver animación' : 'Ver detalle';
+        detailButton.textContent = 'Ver en detalle';
         closeButton.hidden = Boolean(options.locked);
 
         this.panel.classList.add('is-visible');
@@ -184,18 +189,30 @@ export class ArtworkPanel {
                 ${mediaMarkup}
             </div>
             <div class="artwork-detail__body">
+                <div class="artwork-detail__eyebrow">${this.escapeHtml(data.room || 'Lectura de obra')}</div>
                 <h2>${this.escapeHtml(data.title)}</h2>
-                <p class="artwork-detail__meta">${this.escapeHtml(data.artist)} · ${this.escapeHtml(data.year)}</p>
-                <p class="artwork-detail__technique">${this.escapeHtml(data.technique || 'Técnica mixta')}</p>
-                <p class="artwork-detail__description">${this.escapeHtml(data.description)}</p>
+                <p class="artwork-detail__meta">${this.escapeHtml(data.artist)} · ${this.escapeHtml(data.year)} · ${this.escapeHtml(data.technique || 'Técnica mixta')}</p>
+                ${this.createTabMarkup(data)}
             </div>
         `;
 
-        content.querySelector('#close-modal').addEventListener('click', () => this.closeDetail());
+        const closeButton = content.querySelector('#close-modal');
+        const closeDetail = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation?.();
+            this.closeDetail();
+        };
+        closeButton.addEventListener('pointerdown', closeDetail);
+        closeButton.addEventListener('touchstart', closeDetail, { passive: false });
+        closeButton.addEventListener('click', closeDetail);
+        this.setupDetailTabs(content);
+        this.setupCloseReading(content);
         this.detailOpen = true;
         this.detailArtwork = artwork;
         this.detailContext = options.context || null;
         modal.classList.add('show');
+        document.body.classList.add('artwork-detail-open');
         if (window.app?.audio) {
             window.app.audio.pauseAmbient();
         }
@@ -221,6 +238,7 @@ export class ArtworkPanel {
             this.stopDetailMedia(modal);
             modal.classList.remove('show');
         }
+        document.body.classList.remove('artwork-detail-open');
         this.detailOpen = false;
         this.detailArtwork = null;
         this.detailContext = null;
@@ -317,15 +335,24 @@ export class ArtworkPanel {
      */
     createVideoMarkup(data) {
         return `
-            <video
-                class="artwork-detail__video"
-                controls
-                playsinline
-                preload="metadata"
-                poster="${this.escapeAttribute(data.image)}"
-            >
-                <source src="${this.escapeAttribute(data.video)}" type="video/mp4">
-            </video>
+            <div class="artwork-detail__media-stack">
+                <div class="artwork-detail__video-stage is-active" data-media-stage="video">
+                    <video
+                        class="artwork-detail__video"
+                        controls
+                        playsinline
+                        preload="metadata"
+                        poster="${this.escapeAttribute(data.image)}"
+                    >
+                        <source src="${this.escapeAttribute(data.video)}" type="video/mp4">
+                    </video>
+                </div>
+                <div class="artwork-detail__texture-stage" data-media-stage="texture">
+                    ${this.createZoomableImageMarkup(data)}
+                    ${this.createCloseReadingControls()}
+                </div>
+                ${this.createMediaModeToggle('video')}
+            </div>
         `;
     }
 
@@ -338,11 +365,7 @@ export class ArtworkPanel {
     createAudioImageMarkup(data) {
         return `
             <div class="artwork-detail__audio-card">
-                <img
-                    class="artwork-detail__image"
-                    src="${this.escapeAttribute(data.image)}"
-                    alt="${this.escapeAttribute(data.title)}"
-                >
+                ${this.createDisplayImageMarkup(data)}
                 <audio
                     class="artwork-detail__audio"
                     controls
@@ -362,11 +385,317 @@ export class ArtworkPanel {
      */
     createImageMarkup(data) {
         return `
+            <div class="artwork-detail__media-stack">
+                <div class="artwork-detail__image-stage is-active" data-media-stage="artwork">
+                    ${this.createDisplayImageMarkup(data)}
+                </div>
+                <div class="artwork-detail__texture-stage artwork-detail__texture-stage--single" data-media-stage="texture">
+                    ${this.createZoomableImageMarkup(data)}
+                    ${this.createCloseReadingControls()}
+                </div>
+                ${this.createMediaModeToggle('artwork')}
+            </div>
+        `;
+    }
+
+    /**
+     * Creates the primary non-zoomed artwork image shown before texture mode.
+     *
+     * @param {Object} data - Artwork metadata with image and title.
+     * @returns {string} Image markup.
+     */
+    createDisplayImageMarkup(data) {
+        return `
             <img
                 class="artwork-detail__image"
                 src="${this.escapeAttribute(data.image)}"
                 alt="${this.escapeAttribute(data.title)}"
+                draggable="false"
             >
+        `;
+    }
+
+    /**
+     * Creates a compact media mode switch for animation/artwork and texture.
+     *
+     * @param {'video'|'artwork'} activeMode - Initial active media mode.
+     * @returns {string} Segmented mode control markup.
+     */
+    createMediaModeToggle(activeMode) {
+        const primaryLabel = activeMode === 'video' ? 'Animación' : 'Obra';
+        return `
+            <div class="artwork-detail__media-toggle" role="group" aria-label="Modo de visualización" data-ui-interactive="true">
+                <button
+                    class="${activeMode === 'texture' ? '' : 'is-active'}"
+                    type="button"
+                    data-action="set-media-mode"
+                    data-mode="${this.escapeAttribute(activeMode)}"
+                >${primaryLabel}</button>
+                <button
+                    type="button"
+                    data-action="set-media-mode"
+                    data-mode="texture"
+                >Textura</button>
+            </div>
+        `;
+    }
+
+    /**
+     * Creates the zoomable image viewport used by texture inspection.
+     *
+     * @param {Object} data - Artwork metadata with image and title.
+     * @returns {string} Zoomable image markup.
+     */
+    createZoomableImageMarkup(data) {
+        return `
+            <div class="artwork-detail__zoom-viewport" data-action="zoom-viewport">
+                <img
+                    class="artwork-detail__image artwork-detail__image--zoomable"
+                    src="${this.escapeAttribute(data.image)}"
+                    alt="${this.escapeAttribute(data.title)}"
+                    draggable="false"
+                >
+            </div>
+        `;
+    }
+
+    /**
+     * Builds the compact tabbed reading areas for the artwork modal.
+     *
+     * @param {Object} data - Artwork metadata with optional curatorial fields.
+     * @returns {string} Safe tab markup.
+     */
+    createTabMarkup(data) {
+        const tabs = [
+            {
+                id: 'artwork',
+                label: 'Obra',
+                text: data.curatorialText || data.description,
+                extra: this.createKeywordMarkup(data.visualKeywords)
+            },
+            {
+                id: 'formal',
+                label: 'Formal',
+                text: data.formalReading || 'Observa cómo la composición, el ritmo, el color y la tensión de la superficie organizan la imagen.'
+            },
+            {
+                id: 'symbolic',
+                label: 'Simbólica',
+                text: data.symbolicReading || 'La obra abre un espacio simbólico entre cuerpo, memoria, ritual y paisaje interior.'
+            },
+            {
+                id: 'tech',
+                label: 'Experiencia',
+                text: data.interactionHint || 'Acércate a la obra: la luz, el sonido y la distancia de la cámara forman parte de la lectura.'
+            }
+        ];
+
+        const buttons = tabs.map((tab, index) => `
+            <button
+                class="artwork-detail__tab${index === 0 ? ' is-active' : ''}"
+                type="button"
+                data-tab="${this.escapeAttribute(tab.id)}"
+                data-ui-interactive="true"
+            >${this.escapeHtml(tab.label)}</button>
+        `).join('');
+
+        const panels = tabs.map((tab, index) => `
+            <section class="artwork-detail__panel${index === 0 ? ' is-active' : ''}" data-panel="${this.escapeAttribute(tab.id)}">
+                <p>${this.escapeHtml(tab.text)}</p>
+                ${tab.extra || ''}
+            </section>
+        `).join('');
+
+        return `
+            <div class="artwork-detail__tabs" role="tablist">
+                ${buttons}
+            </div>
+            <div class="artwork-detail__panels">
+                ${panels}
+            </div>
+        `;
+    }
+
+    /**
+     * Creates visual keyword chips for the artwork tab.
+     *
+     * @param {string[]} keywords - Optional artwork keywords.
+     * @returns {string} Keyword markup.
+     */
+    createKeywordMarkup(keywords = []) {
+        if (!Array.isArray(keywords) || keywords.length === 0) return '';
+
+        return `
+            <div class="artwork-detail__keywords">
+                ${keywords.slice(0, 5).map((keyword) => `<span>${this.escapeHtml(keyword)}</span>`).join('')}
+            </div>
+        `;
+    }
+
+    /**
+     * Enables tab switching inside an open detail modal.
+     *
+     * @param {HTMLElement} content - Detail modal content element.
+     */
+    setupDetailTabs(content) {
+        content.querySelectorAll('.artwork-detail__tab').forEach((button) => {
+            button.addEventListener('click', () => {
+                const tabId = button.dataset.tab;
+                content.querySelectorAll('.artwork-detail__tab').forEach((item) => {
+                    item.classList.toggle('is-active', item === button);
+                });
+                content.querySelectorAll('.artwork-detail__panel').forEach((panel) => {
+                    panel.classList.toggle('is-active', panel.dataset.panel === tabId);
+                });
+            });
+        });
+    }
+
+    /**
+     * Adds lightweight texture/close-reading zoom controls for artwork images.
+     *
+     * @param {HTMLElement} content - Detail modal content element.
+     */
+    setupCloseReading(content) {
+        const image = content.querySelector('.artwork-detail__image--zoomable');
+        const viewport = content.querySelector('[data-action="zoom-viewport"]');
+        const range = content.querySelector('[data-action="close-reading-range"]');
+        const reset = content.querySelector('[data-action="close-reading-reset"]');
+        const toggle = content.querySelector('[data-action="toggle-close-reading"]');
+        const modeButtons = content.querySelectorAll('[data-action="set-media-mode"]');
+        const videoStage = content.querySelector('[data-media-stage="video"]');
+        const artworkStage = content.querySelector('[data-media-stage="artwork"]');
+        const textureStage = content.querySelector('[data-media-stage="texture"]');
+
+        if (!image || !range || !viewport) return;
+
+        const zoomState = {
+            scale: Number(range.value) || 1,
+            x: 0,
+            y: 0,
+            dragging: false,
+            startX: 0,
+            startY: 0,
+            originX: 50,
+            originY: 50
+        };
+
+        const clampPan = () => {
+            const maxX = Math.max(0, (image.clientWidth * (zoomState.scale - 1)) / 2);
+            const maxY = Math.max(0, (image.clientHeight * (zoomState.scale - 1)) / 2);
+            zoomState.x = Math.max(-maxX, Math.min(maxX, zoomState.x));
+            zoomState.y = Math.max(-maxY, Math.min(maxY, zoomState.y));
+        };
+
+        const updateZoom = () => {
+            zoomState.scale = Number(range.value) || 1;
+            if (zoomState.scale <= 1) {
+                zoomState.x = 0;
+                zoomState.y = 0;
+            }
+            clampPan();
+            image.style.transformOrigin = `${zoomState.originX}% ${zoomState.originY}%`;
+            image.style.transform = `translate(${zoomState.x}px, ${zoomState.y}px) scale(${zoomState.scale})`;
+            viewport.classList.toggle('is-zoomed', zoomState.scale > 1);
+        };
+
+        toggle?.addEventListener('click', () => {
+            const textureActive = !textureStage?.classList.contains('is-active');
+            textureStage?.classList.toggle('is-active', textureActive);
+            videoStage?.classList.toggle('is-active', !textureActive);
+            artworkStage?.classList.toggle('is-active', !textureActive);
+            toggle.textContent = textureActive ? 'Volver a la animación' : 'Explorar textura';
+            content.querySelectorAll('video').forEach((video) => video.pause());
+            requestAnimationFrame(updateZoom);
+        });
+
+        modeButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const mode = button.dataset.mode;
+                const textureActive = mode === 'texture';
+                textureStage?.classList.toggle('is-active', textureActive);
+                videoStage?.classList.toggle('is-active', mode === 'video');
+                artworkStage?.classList.toggle('is-active', mode === 'artwork');
+                content.querySelector('.artwork-detail__media-stack')?.classList.toggle('is-texture-active', textureActive);
+                modeButtons.forEach((item) => item.classList.toggle('is-active', item === button));
+                if (textureActive) {
+                    content.querySelectorAll('video').forEach((video) => video.pause());
+                }
+                requestAnimationFrame(updateZoom);
+            });
+        });
+
+        range.addEventListener('input', updateZoom);
+        reset?.addEventListener('click', () => {
+            range.value = '1';
+            zoomState.originX = 50;
+            zoomState.originY = 50;
+            updateZoom();
+        });
+        viewport.addEventListener('pointermove', (event) => {
+            if (!zoomState.dragging) {
+                const rect = viewport.getBoundingClientRect();
+                zoomState.originX = ((event.clientX - rect.left) / rect.width) * 100;
+                zoomState.originY = ((event.clientY - rect.top) / rect.height) * 100;
+                updateZoom();
+                return;
+            }
+
+            zoomState.x = event.clientX - zoomState.startX;
+            zoomState.y = event.clientY - zoomState.startY;
+            updateZoom();
+        });
+        viewport.addEventListener('pointerdown', (event) => {
+            if (zoomState.scale <= 1) return;
+
+            zoomState.dragging = true;
+            zoomState.startX = event.clientX - zoomState.x;
+            zoomState.startY = event.clientY - zoomState.y;
+            viewport.setPointerCapture?.(event.pointerId);
+            viewport.classList.add('is-dragging');
+        });
+        viewport.addEventListener('pointerup', (event) => {
+            zoomState.dragging = false;
+            viewport.releasePointerCapture?.(event.pointerId);
+            viewport.classList.remove('is-dragging');
+        });
+        viewport.addEventListener('pointerleave', () => {
+            zoomState.dragging = false;
+            viewport.classList.remove('is-dragging');
+        });
+        viewport.addEventListener('wheel', (event) => {
+            event.preventDefault();
+            const rect = viewport.getBoundingClientRect();
+            zoomState.originX = ((event.clientX - rect.left) / rect.width) * 100;
+            zoomState.originY = ((event.clientY - rect.top) / rect.height) * 100;
+            const direction = event.deltaY > 0 ? -1 : 1;
+            const nextScale = Math.max(1, Math.min(2.4, zoomState.scale + direction * 0.12));
+            range.value = String(nextScale.toFixed(2));
+            updateZoom();
+        }, { passive: false });
+        updateZoom();
+    }
+
+    /**
+     * Creates close-reading controls for static artwork images.
+     *
+     * @returns {string} Close-reading control markup.
+     */
+    createCloseReadingControls() {
+        return `
+            <div class="artwork-detail__close-reading" data-ui-interactive="true">
+                <span>Explorar superficie</span>
+                <input
+                    type="range"
+                    min="1"
+                    max="2.4"
+                    step="0.05"
+                    value="1"
+                    data-action="close-reading-range"
+                    aria-label="Acercamiento a la textura de la obra"
+                >
+                <button type="button" data-action="close-reading-reset" data-ui-interactive="true">Restablecer vista</button>
+            </div>
         `;
     }
 

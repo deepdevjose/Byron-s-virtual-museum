@@ -1,3 +1,5 @@
+import { ROOM_TEXTS, getRoomRank } from '../Curatorial/rooms.js';
+
 /**
  * Tour-path helpers for wall-mounted artwork.
  *
@@ -38,6 +40,8 @@ export function createTourPathFromArtworks(artworksData = []) {
     visibleArtworks.sort((left, right) => {
         if (left.id === 'byron-galvez') return -1;
         if (right.id === 'byron-galvez') return 1;
+        const roomRank = getRoomRank(left.room) - getRoomRank(right.room);
+        if (roomRank !== 0) return roomRank;
         return getClockwiseRank(left, byronX) - getClockwiseRank(right, byronX);
     });
 
@@ -47,9 +51,12 @@ export function createTourPathFromArtworks(artworksData = []) {
 
         return {
             artworkId: artwork.id,
+            title: artwork.title,
             cameraPosition,
             lookAt,
-            introText: `${index + 1} de ${visibleArtworks.length} · ${artwork.title}`
+            room: artwork.room || 'La tecnología como recurso curatorial',
+            introText: `${index + 1} de ${visibleArtworks.length} · ${artwork.title}`,
+            curatorialText: artwork.curatorialText || ROOM_TEXTS[artwork.room] || ROOM_TEXTS['La tecnología como recurso curatorial']
         };
     });
 }

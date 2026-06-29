@@ -12,7 +12,7 @@ Building a Web-Based Virtual Museum with Three.js: Architecture, Interaction, an
 
 ## Abstract Draft
 
-This article will describe the design and implementation of a browser-based virtual museum dedicated to Byron Galvez. The project uses Three.js, WebGL, JavaScript, HTML, and CSS to create a navigable 3D gallery with artwork interaction, modal-based media presentation, a guided tour mode, and performance-aware rendering choices. The implementation demonstrates how cultural content can be structured as metadata, displayed as framed 3D artworks, and connected to externally hosted animated videos through Cloudinary delivery URLs. The article will also discuss limitations, testing needs, and future work required for a more complete production-ready museum experience.
+This article describes the design and implementation of a browser-based virtual museum dedicated to Byron Galvez. The project uses Three.js, WebGL, JavaScript ES modules, HTML, CSS, JSON metadata, local image/audio assets, and Cloudinary video delivery to create a navigable 3D gallery with artwork interaction, modal-based media presentation, texture close-reading, mobile controls, and a metadata-generated guided tour. The current repository contains 29 artwork records, 7 curatorial rooms, 24 generated guided-tour stops, 17 JavaScript modules, 6,364 JavaScript source lines, and 2,559 CSS lines. The case study shows how a static web application can coordinate spatial rendering, curatorial metadata, interaction design, and media delivery without a backend.
 
 ## Research Question
 
@@ -20,11 +20,12 @@ How can a lightweight static web application combine real-time 3D rendering, mus
 
 ## Main Contributions
 
-- A modular Three.js architecture for a single-room virtual museum.
-- A data-driven artwork catalog connected to 3D placement, labels, interaction, and modal content.
-- A guided tour controller that derives camera stops from artwork positions.
-- A practical media strategy that keeps heavy videos outside the Git repository.
-- A documentation system that supports maintenance, portfolio review, and future article writing.
+- A modular Three.js architecture for a static single-room virtual museum.
+- A JSON artwork model connected to 3D placement, labels, lighting, raycasting, modal content, media, and guided-tour generation.
+- A guided tour controller that derives 24 camera stops from wall-mounted artwork positions.
+- A lazy media strategy that keeps 29 videos outside Git while preserving artwork-level video playback.
+- A performance-aware rendering strategy: capped pixel ratio, manual shadows, bounded raycasting, lazy video creation, approximate 2D physics.
+- A technical documentation system with architecture diagrams, state diagrams, validation matrices, repository metrics, asset inventory, and engineering decisions.
 
 ## Proposed Article Structure
 
@@ -51,9 +52,11 @@ Three.js, WebGL, virtual museum, digital gallery, cultural heritage, interactive
 - Cloudinary video loading flow.
 - Guided tour state flow.
 - Technology stack table.
+- Repository metrics table.
 - Performance metrics table.
 - Testing checklist.
 - Asset optimization table.
+- Engineering decision record.
 
 ## Pending Measurement Or Validation
 
@@ -63,3 +66,16 @@ Three.js, WebGL, virtual museum, digital gallery, cultural heritage, interactive
 - Guided tour completion testing across all artwork records.
 - Accessibility review for keyboard, screen reader, motion, and media alternatives.
 - Cross-browser validation in Chrome, Firefox, Safari, and mobile browsers.
+
+## Documentation Map
+
+- Architecture: [`04-system-architecture.md`](04-system-architecture.md)
+- Implementation: [`06-implementation.md`](06-implementation.md)
+- Artwork model: [`07-gallery-and-artwork-model.md`](07-gallery-and-artwork-model.md)
+- Video delivery: [`08-cloudinary-video-integration.md`](08-cloudinary-video-integration.md)
+- Guided tour: [`10-guided-tour.md`](10-guided-tour.md)
+- Performance: [`11-performance-optimization.md`](11-performance-optimization.md)
+- Testing: [`12-testing-and-validation.md`](12-testing-and-validation.md)
+- Results: [`13-results.md`](13-results.md)
+- Decisions: [`18-engineering-decisions.md`](18-engineering-decisions.md)
+- Metrics: [`tables/repository-metrics.md`](tables/repository-metrics.md)

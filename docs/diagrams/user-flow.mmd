@@ -1,13 +1,31 @@
 flowchart TD
-    Start[User enters museum] --> Welcome[Welcome overlay]
-    Welcome --> Free[Free exploration]
-    Welcome --> Guided[Guided tour]
-    Free --> Aim[Look at artwork]
-    Aim --> Select[Select artwork]
-    Guided --> TourStop[Camera moves to artwork stop]
-    TourStop --> Select
-    Select --> Modal[Artwork modal or media detail]
-    Modal --> Close[Close modal]
-    Close --> Continue[Continue exploration or tour]
-    Continue --> Credits[Credits modal]
-    Credits --> End[Session continues or ends]
+    Entry["Open static site over HTTP"] --> Loader["Loader\nfetch catalog + preload images"]
+    Loader --> Welcome["Welcome overlay\nmode choice"]
+
+    Welcome --> Free["Free exploration"]
+    Welcome --> Guided["Guided tour"]
+    Welcome --> Credits["Credits modal"]
+
+    Free --> FreeControls["Desktop: WASD, shift, pointer lock\nMobile: joystick, look area, Ver button"]
+    FreeControls --> Aim["Aim at artwork"]
+    Aim --> Hover{"Raycast hit?"}
+    Hover -- No --> FreeControls
+    Hover -- Yes --> Select["Click/tap selection"]
+    Select --> Detail["Artwork detail modal\nimage, audio, video, texture zoom"]
+    Detail --> CloseDetail["Close modal"]
+    CloseDetail --> Suppress["Suppress artwork selection for 800ms"]
+    Suppress --> FreeControls
+    Free --> ExitFree["Cerrar recorrido"]
+    ExitFree --> Welcome
+
+    Guided --> Route["Generate 24 tour stops\nfrom wall-mounted catalog records"]
+    Route --> Move["Camera interpolation\nposition lerp + quaternion slerp"]
+    Move --> Stop["Artwork focus stop"]
+    Stop --> Detail
+    CloseDetail --> ContinueTour{"More stops?"}
+    ContinueTour -- Yes --> Move
+    ContinueTour -- No --> Completion["Completion modal"]
+    Completion --> Credits
+
+    Credits --> Continue["Close credits"]
+    Continue --> Welcome

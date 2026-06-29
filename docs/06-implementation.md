@@ -1,74 +1,259 @@
 # Implementation
 
-## Technologies Used
+## Scope
 
-The app uses Three.js r128 through an import map, WebGL rendering, JavaScript ES modules, HTML, CSS, JSON artwork data, and Cloudinary delivery URLs for remote video media.
+This document describes the current implementation of the virtual museum as code, not as a future design. Every section maps to files under `src/` and to behavior currently present in the repository.
 
-## Initialization
+The app is a static ES-module browser application using Three.js r128 through an import map. There is no bundler, no framework runtime, and no server-side rendering. Runtime state lives in browser memory, primarily inside `Core/App.js` and the feature modules it composes.
 
-`src/js/main.js` waits for `DOMContentLoaded`, creates an `App` instance, assigns it to `window.app`, and calls `init()`. `window.app` is useful for diagnostics and the browser-console benchmark scripts.
+## Entrypoint And Bootstrap
 
-`App.init()` loads artwork data, preloads images, sets up the scene, creates modules, registers events, hides the loader, shows the welcome overlay, and starts animation.
+`index.html` provides:
 
-## Animation And Render Loop
+- the full-screen container and `#canvas-container`;
+- static loader and modal roots;
+- ambient audio element;
+- credits modal markup;
+- import map for Three.js;
+- module entry script pointing at `src/js/main.js`.
 
-`App.animate()` uses `requestAnimationFrame`. Each frame:
+`src/js/main.js` is intentionally small. It waits for `DOMContentLoaded`, constructs `new App()`, assigns it to `window.app`, and calls `app.init()`. Exposing the app globally is useful for console diagnostics, because scripts in `scripts/` can inspect renderer state, culling experiments, and performance data.
 
-- Updates the FPS counter.
-- Reads a capped delta time from `THREE.Clock`.
-- Updates guided tour interpolation when tour mode is active.
-- Otherwise updates controls, physics, and organic camera motion.
-- Updates artwork hover raycasting.
-- Renders the scene with `renderer.render(scene, camera)`.
+## Configuration Surface
 
-## User Input
+`src/js/config.js` centralizes runtime constants:
 
-Desktop input is handled by `src/js/modules/Player/Controls.js`:
+| Area | Values |
+|---|---|
+| Camera | FOV `60`, near `0.1`, far `200`, start `[0, 1.7, -8]`, initial yaw `Math.PI` |
+| Movement | walk `3.35`, run `5.65`, look speed `0.002`, smoothing `0.18`, acceleration `8.5`, deceleration `7.2` |
+| Shadows | enabled, `PCFSoftShadowMap`, map size `1024` |
+| Lighting | physically correct lights, exposure `0.75`, shadow bias `-0.0001` |
+| Performance | `maxLights: 20`, `antialias: false`, pixel ratio cap `min(devicePixelRatio, 2)` |
 
-- WASD and arrow keys move the visitor.
-- Shift toggles running.
-- Pointer lock provides mouse look.
-- Drag-look works as a fallback when pointer lock is not active.
+The config is not a full dependency-injection system; it is a shared constants file. Modules still own domain-specific decisions where those decisions are tightly coupled to geometry or UI behavior.
 
-Mobile controls are created by `App.createMobileControls()` when needed. The joystick updates movement flags on the same controls object, and the look area updates camera rotation from touch movement.
+## Initialization Sequence
 
-## Scene Construction
+`App.init()` performs asynchronous startup:
 
-The scene is assembled through modules:
+1. `showLoader()` displays the blocking loader.
+2. `loadArtworks()` fetches `./src/data/artworks.json`.
+3. `preloadImages()` loads image assets with a timeout fallback.
+4. `setupScene()` creates scene, fog, clock, camera, renderer, tone mapping, output encoding, manual shadow mode, and canvas attachment.
+5. `setupModules()` instantiates controls, physics, lighting, environment, gallery, UI, interaction, tour, and audio.
+6. `setupEvents()` attaches global resize and modal handlers.
+7. Loader is hidden, welcome overlay appears, and `animate()` starts.
 
-- `Environment.setup()` creates architecture and procedural materials.
-- `Lighting.setup()` adds real and emissive lighting elements.
-- `Gallery.setup()` creates artwork groups, then decorative objects.
-- `Physics.update()` keeps the visitor inside room bounds and away from objects.
+The startup order matters: `Gallery` must exist before `ArtworkInteraction.updateTargets()`, and `TourController` needs the gallery lookup function plus a route generated from the loaded catalog.
 
-## UI Overlays
+## Render Loop
 
-Most UI is HTML/CSS above the WebGL canvas:
+`App.animate()` is the real-time heartbeat. It calls itself through `requestAnimationFrame`, obtains delta time from `THREE.Clock`, caps unstable frame deltas, and then branches by navigation mode.
 
-- Loader and static modal containers are in `index.html`.
-- Welcome overlay is created by `App.showControlInstructions()`.
-- Artwork panel and detail modal content are managed by `ArtworkPanel`.
-- Credits modal is static HTML connected by `App.setupCreditsModal()`.
-- Guided tour HUD is created by `TourController.createHud()`.
+Frame responsibilities:
 
-DOM elements that should not trigger 3D artwork selection use `data-ui-interactive="true"`.
+1. Update FPS display once per second.
+2. If guided tour is active, update `TourController`.
+3. Otherwise update first-person controls, physics, and subtle camera motion.
+4. Update proximity-based room text, artwork phrase, and ambient tone.
+5. Update artwork hover raycast.
+6. Render scene through `renderer.render(scene, camera)`.
 
-## Modal Triggering
+The loop is intentionally centralized. Modules expose simple `update()` or event-oriented methods instead of owning their own animation loops.
 
-Artwork selection starts in `ArtworkInteraction.handleClick()`. In free exploration, selected artwork opens the detail modal directly. In guided tour mode, the side panel is shown with locked close behavior so the tour can advance after the detail view closes.
+## Renderer And Viewport Handling
 
-## Code Organization
+`setupScene()` creates `THREE.WebGLRenderer` with:
+
+- `powerPreference: "high-performance"`;
+- antialias disabled;
+- pixel ratio capped by config;
+- sRGB output encoding;
+- ACES filmic tone mapping;
+- exposure from config;
+- manual shadow-map updates.
+
+`onWindowResize()` reads the actual `#canvas-container` dimensions through `getViewportSize()`, updates camera aspect, and calls `renderer.setSize(width, height, false)`. This is important on desktop systems where browser zoom, OS scaling, safe areas, or container sizing can diverge from `window.innerWidth` and `window.innerHeight`.
+
+## World Implementation
+
+`World/Environment.js` builds the spatial shell:
+
+- floor plane with procedural material;
+- four perimeter walls around a 28 x 28 scene-unit room;
+- ceiling, skylight, beams, pillars, and baseboards;
+- chandelier and decorative glass/metal components;
+- procedural diffuse and normal textures generated by canvas.
+
+The wall shell defines the visual museum, while `World/Physics.js` defines the walkable limits. Current bounds are:
 
 ```text
-src/js/main.js                    JavaScript entry point
-src/js/config.js                  Shared configuration
-src/js/modules/Core/App.js        App lifecycle and orchestration
-src/js/modules/World/             Environment, gallery, lighting, physics
-src/js/modules/Player/            First-person controls
-src/js/modules/Interaction/       Artwork raycasting
-src/js/modules/UI/                Artwork panel and detail modal
-src/js/modules/Tour/              Guided tour controller and path generation
-src/js/modules/Utils/             Audio and experimental performance utilities
+x: -13.2 to 13.2
+z: -13.4 to 11
+player radius: 0.5
 ```
 
-No source behavior was changed to create this documentation.
+The front z-limit is intentionally inside the physical wall to keep the camera away from edge cases near the entrance wall and UI-controlled spawn space.
+
+## Gallery Implementation
+
+`World/Gallery.js` converts each artwork record into a `THREE.Group`. The group includes:
+
+- extruded frame geometry;
+- backing board;
+- image plane or fallback material;
+- generated wall label using `THREE.CanvasTexture`;
+- metadata in `mesh.userData`;
+- hover-state material references.
+
+Image loading is two-stage. First, the artwork is rendered with configured size and fallback material. Then `THREE.TextureLoader` loads the image, calculates source aspect ratio, fits the final plane inside the configured size, clears the temporary group children, and rebuilds the final group with the loaded texture. This avoids startup blankness and keeps artworks proportional to their real images.
+
+Decorative objects are also created in `Gallery`: central table, benches, podiums, and freestanding wall segments. These produce approximate collision records so the physics system can remain cheap.
+
+## Lighting Implementation
+
+`World/Lighting.js` combines mood and performance constraints:
+
+- one ambient light establishes base visibility;
+- one main directional skylight casts shadows;
+- fill directional lights support readable surfaces without expensive shadow maps;
+- per-artwork spotlights are shadowless;
+- wall sconces add local visual richness without multiplying shadow cost.
+
+This is a hybrid art-gallery lighting model. It avoids physically exhaustive lighting in favor of stable performance and curatorial focus.
+
+## Controls Implementation
+
+Desktop controls support:
+
+- WASD and arrow movement;
+- Shift running;
+- pointer-lock mouse look;
+- drag-look fallback;
+- smoothed acceleration/deceleration;
+- yaw/pitch stored in target rotations to avoid snapping.
+
+Mobile controls are created dynamically only when free exploration starts on a mobile/narrow viewport. The app adds:
+
+- a joystick surface;
+- a full-screen look area;
+- a circular "Ver" action button.
+
+The mobile action synthesizes a centered interaction using the renderer canvas bounding rectangle, keeping mobile selection semantically equivalent to pointer-lock crosshair selection.
+
+## Collision Implementation
+
+Physics is intentionally approximate and 2D. The camera moves on the horizontal X/Z plane; collisions clamp room bounds and push the player out of circular obstacle regions. Velocity is damped after collision to prevent repeated penetration and fast sliding.
+
+This choice avoids heavyweight physics dependencies. It is appropriate because the museum has no rigid-body simulation, jumping, gravity gameplay, stacking, or dynamic object interaction.
+
+## Artwork Interaction Implementation
+
+`Interaction/ArtworkInteraction.js` owns raycasting. It receives gallery artwork records and extracts their clickable meshes.
+
+Hover:
+
+- every frame, raycast from center `(0, 0)`;
+- if an artwork is hit, call `Gallery.setArtworkHoverState()`;
+- update crosshair interactive state.
+
+Selection:
+
+- ignore if interaction is disabled;
+- ignore DOM clicks inside `[data-ui-interactive="true"]`;
+- ignore during post-modal suppression window;
+- use screen center for pointer lock;
+- otherwise normalize event coordinates against `renderer.domElement.getBoundingClientRect()`;
+- call `App.selectArtwork()`.
+
+The post-modal suppression window is currently 800 ms. It prevents the close button click from reopening the same painting when the camera is still aimed at the artwork.
+
+## Artwork UI And Media Implementation
+
+`UI/ArtworkPanel.js` creates the side panel dynamically and reuses the static `#video-modal` root for detail content. The detail modal supports:
+
+- image view;
+- audio card;
+- video element with native controls;
+- tabbed readings;
+- texture/close-reading mode with zoom and pan;
+- modal close by close button and backdrop.
+
+Media type precedence is currently:
+
+1. `audio`;
+2. `video`;
+3. `image`.
+
+This means the Byron portrait record can prefer audio narration even when it also has a video URL.
+
+On modal open, pointer lock exits so the visitor can interact with media controls. On close, media is paused and rewound, ambient audio resumes, and `App.onArtworkDetailClosed()` decides whether free exploration or guided tour should continue.
+
+## Guided Tour Implementation
+
+`Tour/tourPath.js` generates the route from the catalog. Main-wall detection uses:
+
+```text
+wall position: +/-13.7
+epsilon: 0.6
+wall span: 12.3
+default view distance: 5.15
+default camera height: 1.7
+```
+
+The current catalog produces 24 stops. Stops are sorted by room rank, then by clockwise wall order, with `byron-galvez` prioritized first.
+
+`Tour/TourController.js` handles camera movement:
+
+- captures current camera position/quaternion;
+- computes target position from the stop;
+- computes target quaternion with `camera.lookAt()`;
+- interpolates with position lerp and quaternion slerp;
+- uses smoothstep easing `t * t * (3 - 2 * t)`;
+- movement duration is 2.6 seconds;
+- waits for detail modal closure before advancing.
+
+Manual movement and pointer lock are disabled during guided tour movement and stop inspection.
+
+## Responsive UI Implementation
+
+`src/css/style.css` is intentionally large because UI is implemented in DOM/CSS rather than a component framework. It covers:
+
+- fixed WebGL viewport;
+- loader;
+- navigation HUD;
+- free exploration controls;
+- artwork panel;
+- full-screen artwork modal;
+- guided tour HUD;
+- mobile joystick/action controls;
+- credits modal;
+- reduced-motion and high-contrast preferences.
+
+Recent viewport hardening uses `100dvh` with `100vh` fallback and compact desktop-height breakpoints. This matters for Windows laptops or browsers with zoom/scaling where controls and artwork modals can otherwise appear oversized.
+
+## Error And Degradation Behavior
+
+The app is fault-tolerant in limited but important ways:
+
+- catalog fetch failure triggers fatal error UI;
+- image preload has timeout fallback;
+- individual texture-load failures resolve without blocking the gallery;
+- media playback attempts catch autoplay rejection;
+- pointer-lock requests catch promise rejection;
+- video elements are only created on demand.
+
+The app does not currently implement centralized error telemetry, retry policy, offline mode, or automated browser recovery.
+
+## Implementation Tradeoffs
+
+| Decision | Benefit | Cost |
+|---|---|---|
+| Static ES modules, no bundler | Simple deployment and inspection | No tree-shaking, no transpilation, no integrated test runner |
+| HTML/CSS UI over WebGL | Native controls, better responsive modals | Larger CSS surface, split interaction model |
+| JSON-driven artwork placement | Easy content extension, tour generation | Requires strict schema validation |
+| Lightweight 2D physics | Fast and maintainable | Approximate collisions only |
+| Manual shadow updates | Lower steady-state GPU cost | Must mark shadows dirty after scene mutations |
+| Cloudinary lazy video creation | Lower startup network cost | Media cleanup should be hardened further |
+

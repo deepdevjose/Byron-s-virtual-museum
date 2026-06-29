@@ -152,7 +152,9 @@ Byron-s-virtual-museum/
 - [`docs/15-limitations.md`](docs/15-limitations.md)
 - [`docs/16-future-work.md`](docs/16-future-work.md)
 - [`docs/17-maintenance-guide.md`](docs/17-maintenance-guide.md)
+- [`docs/18-engineering-decisions.md`](docs/18-engineering-decisions.md)
 - [`docs/code-documentation.md`](docs/code-documentation.md)
+- [`docs/tables/repository-metrics.md`](docs/tables/repository-metrics.md)
 
 ## Videos En Cloudinary
 

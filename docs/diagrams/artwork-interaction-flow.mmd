@@ -1,14 +1,39 @@
-flowchart TD
-    Look[Visitor aims camera] --> Raycast[ArtworkInteraction raycasts]
-    Raycast --> Hit{Artwork mesh hit?}
-    Hit -- No --> Clear[Clear hover state]
-    Hit -- Yes --> Hover[Set artwork hover]
-    Hover --> Crosshair[Show interactive crosshair]
-    Crosshair --> Click{Visitor clicks or taps action}
-    Click -- No --> Continue[Continue exploration]
-    Click -- Yes --> Select[App.selectArtwork]
-    Select --> Context{Free exploration or tour?}
-    Context -- Free --> Detail[Open detail modal]
-    Context -- Tour --> Panel[Show locked tour panel]
-    Panel --> Detail
-    Detail --> Media[Image, audio, or video content]
+sequenceDiagram
+    autonumber
+    actor Visitor
+    participant Controls as Player/Controls.js
+    participant App as Core/App.js
+    participant Interaction as ArtworkInteraction.js
+    participant Gallery as Gallery.js
+    participant Panel as ArtworkPanel.js
+    participant Media as Browser media element
+
+    Visitor->>Controls: Look around or drag/touch look
+    Controls->>App: Camera transform changes
+    App->>Interaction: updateHover() each frame
+    Interaction->>Interaction: Raycast from screen center
+    alt Artwork mesh hit
+        Interaction->>Gallery: setArtworkHoverState(artwork, true)
+        Gallery-->>Visitor: Frame highlight and interactive crosshair
+    else No artwork hit
+        Interaction->>Gallery: clear previous hover
+    end
+
+    Visitor->>Interaction: Click canvas or tap mobile "Ver"
+    Interaction->>Interaction: Reject if disabled, UI click, or suppressed after modal close
+    Interaction->>Interaction: Raycast using canvas bounding rect
+    alt Hit selected artwork
+        Interaction->>App: selectArtwork(artwork, {source: "click", openDetail: true})
+        App->>Panel: openDetail(artwork, {context: "free"})
+        Panel->>Controls: Exit pointer lock if active
+        Panel->>Media: Lazy-create image/audio/video markup
+        Media-->>Visitor: Native controls or zoomable image shown
+    else No hit
+        Interaction-->>Visitor: Continue exploration
+    end
+
+    Visitor->>Panel: Close detail modal
+    Panel->>Media: pause(), currentTime = 0
+    Panel->>App: onDetailClosed({context: "free"})
+    App->>Interaction: suppressSelection(800ms)
+    App->>Controls: Restore pointer lock after short delay on desktop

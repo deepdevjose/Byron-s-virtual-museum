@@ -1,83 +1,145 @@
 # Cloudinary Video Integration
 
-## Why Videos Should Stay Outside Git
+## Motivation
 
-Animated artwork videos can be large and can quickly inflate Git history. Keeping them outside the repository makes cloning, reviewing, and deploying the project easier. The repository should store source code, metadata, images, and lightweight audio assets, while large videos are delivered from an external media service.
+Artwork videos are intentionally kept outside the repository. The project is deployed as static files, so committing large MP4 files would increase clone time, repository history size, review friction, and GitHub Pages delivery weight. Cloudinary is used as an external media delivery layer while the repository retains only URLs in `src/data/artworks.json`.
 
-## Why Cloudinary
+## Current Inventory
 
-Cloudinary provides hosted media delivery, transformation URLs, and CDN-backed distribution. In this project, artwork records already contain Cloudinary video delivery URLs in `src/data/artworks.json`.
+| Metric | Value |
+|---|---:|
+| Artwork records | 29 |
+| Records with `video` URL | 29 |
+| Records using Cloudinary URL | 29 |
+| Local committed video files | 0 |
+| Records with local audio guide | 1 |
 
-## Current Implementation Status
+## Runtime Flow
 
-Cloudinary integration is partially implemented:
+The application does not instantiate video elements during startup. It only fetches the JSON catalog and preloads local images. Video markup is created lazily inside `ArtworkPanel.openDetail()` when the visitor opens an artwork whose selected media type is video.
 
-- Implemented: Artwork records include Cloudinary video delivery URLs.
-- Implemented: `ArtworkPanel.createVideoMarkup()` can create a video element using an artwork's `video` URL.
-- Implemented: Video markup is created only when the detail modal opens.
-- Pending hardening: URL transformation standardization with `q_auto,f_auto,w_1280`.
-- Pending hardening: On modal close, remove media `src` values and call `load()` after pausing. The current code pauses and rewinds media but does not remove the source.
+Current media priority:
 
-## Collection URL Versus Delivery URL
+1. audio;
+2. video;
+3. image.
 
-A Cloudinary collection or management URL is used to browse or manage assets. It is not the URL that should be placed in an HTML video element.
+This priority means an artwork with both `audio` and `video` is presented as an audio-card first.
 
-A Cloudinary delivery URL points directly to an optimized asset representation and can be used in a `<source src="...">` element.
+## Implementation Details
 
-## Recommended Transformation Pattern
+`ArtworkPanel.createVideoMarkup(data)` creates:
 
-Use Cloudinary transformations to reduce bandwidth and let Cloudinary choose efficient quality and format where supported:
+```html
+<video
+  class="artwork-detail__video"
+  controls
+  playsinline
+  preload="metadata"
+  poster="local artwork image"
+>
+  <source src="Cloudinary MP4 URL" type="video/mp4">
+</video>
+```
+
+Design consequences:
+
+- `preload="metadata"` avoids eager full download.
+- `playsinline` improves mobile behavior.
+- poster uses the local artwork image, avoiding an extra thumbnail asset.
+- native controls reduce custom media-control complexity.
+- Cloudinary traffic begins only when the modal injects the video node.
+
+## Lifecycle
+
+Diagram source: [`diagrams/cloudinary-video-flow.mmd`](diagrams/cloudinary-video-flow.mmd).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Catalog as artworks.json
+    participant App as Core/App.js
+    participant Panel as ArtworkPanel.js
+    participant DOM as Detail modal DOM
+    participant CDN as Cloudinary CDN
+    participant Browser as Browser media pipeline
+
+    App->>Catalog: Fetch catalog during init()
+    Catalog-->>App: 29 records with video URLs
+    App->>Panel: User selects artwork
+    Panel->>Panel: getMediaType(data)\naudio takes precedence over video
+    alt Media type is video
+        Panel->>DOM: Inject <video preload="metadata" poster=image>
+        DOM->>CDN: Request MP4 metadata when element is created
+        CDN-->>Browser: Stream metadata and media bytes on demand
+        Browser-->>DOM: Native controls, play/pause/seek
+    else Media type is image or audio
+        Panel->>DOM: Inject image or audio-card markup
+    end
+    Panel->>Browser: Attempt play() when autoplayVideo enabled
+    Browser-->>Panel: Resolve or reject according to browser autoplay policy
+    Panel->>DOM: Close modal
+    Panel->>Browser: pause(), currentTime = 0
+```
+
+## Current Cleanup
+
+`ArtworkPanel.stopDetailMedia(modal)` currently:
+
+- pauses each `video` and `audio`;
+- resets `currentTime` to `0`.
+
+This is correct for user-visible state. It is not the strongest possible memory/network cleanup because the media source remains attached until the modal content is replaced or garbage-collected.
+
+Recommended hardening:
+
+```js
+media.pause();
+media.removeAttribute('src');
+media.querySelectorAll('source').forEach((source) => source.removeAttribute('src'));
+media.load();
+```
+
+This would be most valuable on mobile devices and long sessions with many modal openings.
+
+## Cloudinary URL Strategy
+
+The current catalog stores direct MP4 delivery URLs. A stronger delivery strategy would standardize transformations, for example:
 
 ```text
 q_auto,f_auto,w_1280
 ```
 
-Original delivery URL:
+Recommended policy:
 
-```text
-https://res.cloudinary.com/dk6fga5vq/video/upload/v1777926881/Velitas_-_Byron_s1ue7p.mp4
-```
+| Use case | Suggested transformation | Rationale |
+|---|---|---|
+| Desktop modal | `q_auto,f_auto,w_1280` | Strong quality/performance balance |
+| Mobile modal | `q_auto,f_auto,w_854` | Lower bandwidth and decode cost |
+| Thumbnail/poster | local artwork image or generated JPG/WebP | Avoid video metadata fetch for poster |
+| Slow network fallback | image-only mode | Preserve curatorial access without video |
 
-Optimized delivery URL:
+## Measurement Plan
 
-```text
-https://res.cloudinary.com/dk6fga5vq/video/upload/q_auto,f_auto,w_1280/v1777926881/Velitas_-_Byron_s1ue7p.mp4
-```
+Video integration should be evaluated with repeatable metrics:
 
-## Lazy Loading Strategy
+| Metric | How to measure | Target |
+|---|---|---|
+| Time to metadata | Modal open to `loadedmetadata` | Under 1.5s on stable broadband |
+| Time to first frame | Modal open to `loadeddata` or first visual frame | Under 2.5s on stable broadband |
+| Bytes transferred before play | DevTools Network | Metadata only before user playback |
+| Memory after close | Browser task manager or performance panel | No unbounded growth after repeated opens |
+| Mobile playback | Manual QA on iOS/Android | Inline playback works, controls usable |
 
-Videos should not be loaded during initial scene startup. The recommended pattern is:
+## Risks
 
-1. Store the delivery URL in artwork metadata.
-2. Open the artwork detail modal.
-3. Create or assign the video source at that moment.
-4. Use `preload="metadata"` unless full preloading is intentionally needed.
+- Remote URL availability is outside repository control.
+- Browser autoplay policies may reject `play()` despite user intent.
+- Unoptimized MP4 dimensions may increase decode cost.
+- Cloudinary transformations are not yet normalized in the catalog.
+- Current cleanup pauses media but does not explicitly detach sources.
 
-The current implementation follows the main lazy-loading idea by injecting video markup only when the modal opens.
+## Engineering Decision
 
-## Cleanup Strategy
+Keeping videos remote and lazy-created is the correct architecture for this static museum. The next engineering step is not to move videos into the repo; it is to formalize URL transformations, add stronger cleanup, and add network/media timing checks to manual QA.
 
-When closing the modal, recommended cleanup is:
-
-1. Pause the video.
-2. Reset playback time.
-3. Remove the `src` attribute from `<source>` or `<video>`.
-4. Call `video.load()` so the browser releases the media resource.
-
-The current implementation pauses and rewinds media. Removing `src` and calling `load()` is documented as future hardening.
-
-## Flow Diagram
-
-Diagram source: [`diagrams/cloudinary-video-flow.mmd`](diagrams/cloudinary-video-flow.mmd).
-
-```mermaid
-flowchart TD
-    Data[Artwork video URL in artworks.json] --> Select[Visitor selects artwork]
-    Select --> Modal[ArtworkPanel opens detail modal]
-    Modal --> Create[Create video markup]
-    Create --> Delivery[Browser requests Cloudinary delivery URL]
-    Delivery --> Playback[Visitor plays or views video]
-    Playback --> Close[Visitor closes modal]
-    Close --> CurrentCleanup[Current: pause and rewind]
-    Close --> Recommended[Recommended: remove src and call load]
-```

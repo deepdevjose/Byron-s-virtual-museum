@@ -92,7 +92,7 @@ comments close to the related object and describe who consumes the setting.
 records should follow this schema:
 
 - `id`: unique stable artwork id.
-- `title`, `artist`, `year`, `technique`, `description`: display metadata.
+- `title`, `artist`, `year`, `technique`, `description`: artwork metadata. Wall labels currently show title, artist, technique, and description; `year` remains available for panel and modal metadata.
 - `image`: local image path used by the gallery, labels, and modal poster.
 - `video`: optional remote video delivery URL, usually Cloudinary.
 - `audio`: optional local or remote audio guide URL.

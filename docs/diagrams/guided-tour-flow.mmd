@@ -1,9 +1,21 @@
 stateDiagram-v2
-    [*] --> Idle
-    Idle --> Moving: start()
-    Moving --> AwaitingDetail: camera reaches stop
-    AwaitingDetail --> Moving: detail closes and stops remain
-    AwaitingDetail --> Complete: final detail closes
-    Moving --> Idle: stop()
-    AwaitingDetail --> Idle: stop()
-    Complete --> FreeExploration: credits close
+    [*] --> Inactive
+
+    Inactive --> Starting: App.startGuidedTour()
+    Starting --> Moving: TourController.start()\npath length > 0
+    Starting --> Inactive: empty path
+
+    Moving --> Moving: update(deltaTime)\nlerp position + slerp quaternion\nsmoothstep easing, 2.6s
+    Moving --> AwaitingDetail: t >= 1\nfocusCurrentArtwork()
+
+    AwaitingDetail --> AwaitingDetail: detail modal open\nmanual movement disabled
+    AwaitingDetail --> Moving: close detail\nadvanceAfterDetail()\nmore stops remain
+    AwaitingDetail --> Completing: close final detail\ncurrentIndex >= path.length
+
+    Moving --> Stopping: user clicks Salir
+    AwaitingDetail --> Stopping: user clicks Salir
+    Stopping --> Inactive: App.onTourStopped()\nclose detail, hide HUD, show welcome
+
+    Completing --> CreditsSequence: App.onTourCompleted()\ncompletion modal + credits
+    CreditsSequence --> FreeExploration: credits close\nenableFreeExploration()
+    FreeExploration --> Inactive: close free exploration

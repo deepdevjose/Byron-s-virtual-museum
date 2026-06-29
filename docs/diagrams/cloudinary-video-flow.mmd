@@ -1,9 +1,26 @@
-flowchart TD
-    Data[Artwork video URL in artworks.json] --> Select[Visitor selects artwork]
-    Select --> Modal[ArtworkPanel opens detail modal]
-    Modal --> Create[Create video markup]
-    Create --> Delivery[Browser requests Cloudinary delivery URL]
-    Delivery --> Playback[Visitor plays or views video]
-    Playback --> Close[Visitor closes modal]
-    Close --> CurrentCleanup[Current cleanup: pause and rewind]
-    Close --> Recommended[Recommended cleanup: remove src and call load]
+sequenceDiagram
+    autonumber
+    participant Catalog as artworks.json
+    participant App as Core/App.js
+    participant Panel as ArtworkPanel.js
+    participant DOM as Detail modal DOM
+    participant CDN as Cloudinary CDN
+    participant Browser as Browser media pipeline
+
+    App->>Catalog: Fetch catalog during init()
+    Catalog-->>App: 29 records with video URLs
+    App->>Panel: User selects artwork
+    Panel->>Panel: getMediaType(data)\naudio takes precedence over video
+    alt Media type is video
+        Panel->>DOM: Inject <video preload="metadata" poster=image>
+        DOM->>CDN: Request MP4 metadata when element is created
+        CDN-->>Browser: Stream metadata and media bytes on demand
+        Browser-->>DOM: Native controls, play/pause/seek
+    else Media type is image or audio
+        Panel->>DOM: Inject image or audio-card markup
+    end
+    Panel->>Browser: Attempt play() when autoplayVideo enabled
+    Browser-->>Panel: Resolve or reject according to browser autoplay policy
+    Panel->>DOM: Close modal
+    Panel->>Browser: pause(), currentTime = 0
+    Note over Panel,Browser: Recommended hardening: remove src values and call load() to release network/media buffers.

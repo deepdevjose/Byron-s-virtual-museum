@@ -1,22 +1,80 @@
-flowchart TD
-    HTML[index.html] --> Main[src/js/main.js]
-    Main --> App[Core/App.js]
-    Config[src/js/config.js] --> App
-    Data[src/data/artworks.json] --> App
-    App --> Scene[THREE.Scene]
-    App --> Camera[PerspectiveCamera]
-    App --> Renderer[WebGLRenderer]
-    App --> Controls[Player/Controls.js]
-    App --> Physics[World/Physics.js]
-    App --> Lighting[World/Lighting.js]
-    App --> Environment[World/Environment.js]
-    App --> Gallery[World/Gallery.js]
-    App --> Interaction[Interaction/ArtworkInteraction.js]
-    App --> Panel[UI/ArtworkPanel.js]
-    App --> Tour[Tour/TourController.js]
-    App --> Audio[Utils/Audio.js]
-    Gallery --> Artworks[Artwork meshes and labels]
-    Interaction --> Artworks
-    Panel --> Modal[Artwork detail modal]
-    Data --> Cloudinary[Cloudinary video delivery URLs]
-    Cloudinary --> Modal
+flowchart TB
+    subgraph Browser["Browser runtime"]
+        HTML["index.html\nDOM shell, import map, modal roots"]
+        CSS["src/css/style.css\nHUD, responsive overlays, modal layout"]
+        Main["src/js/main.js\nDOMContentLoaded bootstrap"]
+    end
+
+    subgraph Core["Application core"]
+        App["Core/App.js\nlifecycle, render loop, mode orchestration"]
+        Config["config.js\ncamera, movement, render, light tuning"]
+        Catalog["src/data/artworks.json\n29 artwork records"]
+    end
+
+    subgraph Three["Three.js scene graph"]
+        Scene["THREE.Scene\nfog, static world, dynamic camera"]
+        Camera["PerspectiveCamera\nFOV 60, eye height 1.7"]
+        Renderer["WebGLRenderer\nsRGB, ACES, manual shadows"]
+        Environment["World/Environment.js\nwalls, floor, ceiling, procedural textures"]
+        Gallery["World/Gallery.js\nartwork groups, frames, labels, decor"]
+        Lighting["World/Lighting.js\nambient, skylight, fills, spotlights"]
+        Physics["World/Physics.js\n2D X/Z collision constraints"]
+    end
+
+    subgraph Interaction["Interaction layer"]
+        Controls["Player/Controls.js\nkeyboard, pointer lock, drag look, touch state"]
+        Raycaster["Interaction/ArtworkInteraction.js\nhover and selection raycasts"]
+        Audio["Utils/Audio.js\nambient audio gating"]
+    end
+
+    subgraph UI["HTML overlay layer"]
+        ArtworkPanel["UI/ArtworkPanel.js\nside panel, detail modal, media lifecycle"]
+        Tour["Tour/TourController.js\nstate machine and HUD"]
+        TourPath["Tour/tourPath.js\nmetadata-driven route generation"]
+        Credits["credits modal\nstatic HTML + App handlers"]
+        HUD["free/tour/room/proximity overlays"]
+    end
+
+    subgraph External["External media"]
+        Images["Local artwork images\n27 files, 9.96 MB"]
+        Cloudinary["Cloudinary videos\n29 remote MP4 URLs"]
+        LocalAudio["Local audio\n2 files, 4.51 MB"]
+    end
+
+    HTML --> Main --> App
+    CSS --> HTML
+    Config --> App
+    Catalog --> App
+    Catalog --> Gallery
+    Catalog --> Lighting
+    Catalog --> TourPath
+    App --> Scene
+    App --> Camera
+    App --> Renderer
+    App --> Controls
+    App --> Physics
+    App --> Environment
+    App --> Gallery
+    App --> Lighting
+    App --> Raycaster
+    App --> ArtworkPanel
+    App --> Tour
+    App --> Audio
+    App --> Credits
+    App --> HUD
+    Environment --> Scene
+    Gallery --> Scene
+    Lighting --> Scene
+    Gallery --> RayTargets["Artwork meshes\nraycast targets"]
+    Raycaster --> RayTargets
+    Raycaster --> ArtworkPanel
+    Controls --> Camera
+    Physics --> Camera
+    TourPath --> Tour
+    Tour --> Camera
+    Tour --> ArtworkPanel
+    Images --> Gallery
+    Images --> ArtworkPanel
+    Cloudinary --> ArtworkPanel
+    LocalAudio --> Audio
+    LocalAudio --> ArtworkPanel

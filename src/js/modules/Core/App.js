@@ -171,7 +171,7 @@ export class App {
 
         this.camera = new THREE.PerspectiveCamera(
             CONFIG.camera.fov,
-            window.innerWidth / window.innerHeight,
+            this.getViewportSize().width / this.getViewportSize().height,
             CONFIG.camera.near,
             CONFIG.camera.far
         );
@@ -182,7 +182,6 @@ export class App {
             antialias: CONFIG.performance.antialias,
             powerPreference: 'high-performance'
         });
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.setPixelRatio(CONFIG.performance.pixelRatio);
         this.renderer.shadowMap.enabled = CONFIG.shadows.enabled;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -196,6 +195,7 @@ export class App {
 
         const container = document.getElementById('canvas-container');
         (container || document.body).appendChild(this.renderer.domElement);
+        this.onWindowResize();
         this.fpsElement = document.getElementById('fps-counter');
     }
 
@@ -652,10 +652,11 @@ export class App {
         actionButton.addEventListener('click', (event) => {
             event.preventDefault();
             event.stopPropagation();
+            const rect = this.renderer.domElement.getBoundingClientRect();
             this.artworkInteraction.handleClick({
                 target: this.renderer.domElement,
-                clientX: window.innerWidth / 2,
-                clientY: window.innerHeight / 2
+                clientX: rect.left + rect.width / 2,
+                clientY: rect.top + rect.height / 2
             });
         });
 
@@ -810,6 +811,7 @@ export class App {
      */
     onArtworkDetailClosed(detail) {
         this.suppressTourExitUntil = performance.now() + 800;
+        this.artworkInteraction?.suppressSelection(800);
 
         if (detail.context === 'tour' && this.tourController?.isActive()) {
             this.tourController.advanceAfterDetail();
@@ -828,8 +830,13 @@ export class App {
         if (this.detectMobileDevice() || !this.controls?.enabled || !this.renderer?.domElement) return;
         if (document.pointerLockElement === this.renderer.domElement) return;
 
-        const lockRequest = this.renderer.domElement.requestPointerLock();
-        lockRequest?.catch?.(() => {});
+        window.setTimeout(() => {
+            if (!this.controls?.enabled || document.body.classList.contains('artwork-detail-open')) return;
+            if (document.pointerLockElement === this.renderer.domElement) return;
+
+            const lockRequest = this.renderer.domElement.requestPointerLock();
+            lockRequest?.catch?.(() => {});
+        }, 120);
     }
 
     /**
@@ -1092,9 +1099,23 @@ export class App {
      * Keeps the camera projection and renderer dimensions aligned with the window.
      */
     onWindowResize() {
-        this.camera.aspect = window.innerWidth / window.innerHeight;
+        const { width, height } = this.getViewportSize();
+        this.camera.aspect = width / height;
         this.camera.updateProjectionMatrix();
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.setSize(width, height, false);
+    }
+
+    /**
+     * Reads the rendered canvas host size instead of assuming the browser
+     * viewport exactly matches the WebGL container.
+     *
+     * @returns {{width: number, height: number}} Current render size.
+     */
+    getViewportSize() {
+        const container = document.getElementById('canvas-container');
+        const width = Math.max(1, Math.floor(container?.clientWidth || window.innerWidth));
+        const height = Math.max(1, Math.floor(container?.clientHeight || window.innerHeight));
+        return { width, height };
     }
 
     /**

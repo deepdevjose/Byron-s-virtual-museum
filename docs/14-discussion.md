@@ -1,13 +1,67 @@
 # Discussion
 
-The project demonstrates that a virtual museum can be built with a lightweight static web architecture while still offering spatial navigation, artwork interaction, guided viewing, and multimedia presentation. Three.js provides the real-time rendering layer, while HTML and CSS handle accessible, familiar UI surfaces such as modals, buttons, and native media controls.
+## Engineering Interpretation
 
-From an engineering perspective, the most important value is modular separation. `App` coordinates lifecycle, while world, controls, interaction, UI, tour, audio, and utility modules each own focused responsibilities. This makes the project easier to explain, maintain, and extend.
+The project demonstrates that a static web architecture can support a technically credible virtual museum when responsibilities are separated carefully. The strongest design decision is the use of `artworks.json` as a domain model that coordinates multiple subsystems: spatial placement, image textures, wall labels, lighting, raycasting, modal readings, media playback, proximity text, and guided-tour stops.
 
-From a UX and museographic perspective, the project recognizes that a virtual museum is not only a 3D room. It also needs orientation, pacing, metadata, interaction feedback, credits, and media behavior that supports rather than distracts from the artwork. The welcome overlay, guided tour, artwork panel, and modal system all help structure the visitor experience.
+This is more than a content file. It is the museum's technical-curatorial contract.
 
-The web technology stack has clear tradeoffs. A static app is easy to host and share, but browser performance varies by device and GPU. WebGL gives broad reach, but large textures, video playback, and lighting can still create performance pressure. The lack of a build system keeps the project approachable, but it also means there is no bundling, dependency management, or production optimization pipeline in the current repository.
+## Static Architecture Tradeoff
 
-Cloudinary delivery is a practical choice for animated artwork videos because it keeps heavy media out of Git and can support URL-based optimization. The tradeoff is that video playback depends on external hosting availability, network conditions, and correct delivery URLs.
+The static deployment model is appropriate for cultural dissemination because it lowers operational complexity. A visitor only needs a browser; a maintainer only needs static hosting. This makes the project portable and resilient against backend maintenance failure.
 
-The quality of a virtual museum depends on both technical architecture and curatorial experience. Rendering, input, and media systems must be reliable, but the experience also needs thoughtful artwork order, labels, credits, pacing, accessibility, and context. Future work should treat engineering and curation as connected parts of the same visitor experience.
+The cost is engineering discipline. Without a backend, build system, type system, or automated browser runner, correctness depends on:
+
+- consistent JSON schema;
+- standalone validators;
+- manual browser QA;
+- documentation that records architectural intent.
+
+The current documentation now compensates for that by making metrics, flows, and decisions explicit.
+
+## WebGL And DOM Hybrid
+
+The hybrid model is effective: Three.js handles embodied spatial experience, while HTML/CSS handles text-heavy and interaction-heavy UI. This division is technically sound because modals, native media controls, tabbed readings, credits, and responsive controls are better served by the DOM.
+
+The main integration risk is event leakage between DOM and WebGL. The project addresses this with `data-ui-interactive="true"` and post-modal selection suppression. That recent fix is important because it shows the project has moved beyond naive canvas interaction.
+
+## Data-Driven Tour
+
+Generating the guided tour from artwork metadata is a strong maintainability decision. A separate hand-authored route would drift from the catalog; deriving stops from wall positions keeps spatial and curatorial data aligned.
+
+The tradeoff is that spatial metadata must be accurate. A wrong rotation or wall coordinate is not only a visual placement issue; it can produce a bad camera stop, lighting direction, or tour sequence. This is why future validation should include spatial sanity checks.
+
+## Performance Posture
+
+The project applies sensible first-order optimizations:
+
+- bounded raycasting against artwork meshes only;
+- lazy video creation;
+- manual shadow updates;
+- capped pixel ratio;
+- approximate 2D collision instead of a physics engine;
+- no global video preload.
+
+However, the project should not claim performance results until measured across devices. The correct research framing is: the architecture is performance-aware, and the next step is empirical measurement.
+
+## Museographic Interpretation
+
+Technically, the museum is a 3D room. Curatorially, it is an interpretive system. The project succeeds when navigation, light, media, text, pacing, and artwork order reinforce the reading of Byron Galvez's work rather than competing with it.
+
+The guided tour, proximity phrases, room narration, and close-reading texture mode are important because they move the project beyond a simple 3D image wall. They create a structured encounter with the artwork.
+
+## Threats To Validity
+
+| Threat | Impact |
+|---|---|
+| Single-project case study | Findings may not generalize to larger museums |
+| No formal user study | UX quality is based on inspection, not visitor data |
+| Pending performance measurements | Optimization claims are architectural, not empirical |
+| Static catalog | No evidence yet for large-scale content-management workflow |
+| External media dependency | Video behavior depends on Cloudinary and network conditions |
+| Limited accessibility validation | Experience may exclude some visitors until remediated |
+
+## Research Contribution
+
+The project is strongest as an engineering case study for small-to-medium virtual exhibitions: it shows how to coordinate WebGL rendering, artwork metadata, DOM UI, remote media, and guided navigation in a static deployment model. Its value is not that every feature is production-perfect, but that the architecture is explainable, extensible, and grounded in actual running code.
+

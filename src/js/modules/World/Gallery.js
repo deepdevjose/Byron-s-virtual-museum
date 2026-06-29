@@ -310,7 +310,7 @@ export class Gallery {
 
         ctx.fillStyle = '#5e5449';
         ctx.font = '400 34px Inter, Arial, sans-serif';
-        ctx.fillText(`${data.artist} · ${data.year}`, 88, 236);
+        ctx.fillText(data.artist, 88, 236);
 
         ctx.fillStyle = '#7b7064';
         ctx.font = '500 28px Inter, Arial, sans-serif';

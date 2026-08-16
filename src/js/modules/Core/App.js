@@ -715,12 +715,59 @@ export class App {
         let joystickActive = false;
         let lookTouchId = null;
         let moveTouchId = null;
+        const maxJoystickDistance = 38;
+        const maxLookDelta = 48;
+        const mobileLookSpeed = CONFIG.movement.lookSpeed * 1.55;
+
+        const getTouches = (touchList) => Array.from(touchList || []);
+        const isInsideJoystick = (touch) => {
+            if (!touch) return false;
+
+            const rect = joystick.getBoundingClientRect();
+            return touch.clientX >= rect.left && touch.clientX <= rect.right
+                && touch.clientY >= rect.top && touch.clientY <= rect.bottom;
+        };
+        const findTouchById = (touchList, identifier) => getTouches(touchList)
+            .find((touch) => touch.identifier === identifier) || null;
+        const findChangedTouch = (event, predicate = () => true) => getTouches(event.changedTouches)
+            .find(predicate) || null;
+        const resetJoystick = () => {
+            joystickActive = false;
+            moveTouchId = null;
+            handle.style.transform = 'translate(0, 0)';
+            this.controls.resetMovement();
+        };
+        const updateJoystickFromTouch = (touch) => {
+            const rect = joystick.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            const deltaX = touch.clientX - centerX;
+            const deltaY = touch.clientY - centerY;
+            const distance = Math.min(Math.hypot(deltaX, deltaY), maxJoystickDistance);
+            const angle = Math.atan2(deltaY, deltaX);
+
+            handle.style.transform = `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px)`;
+
+            this.controls.moveForward = deltaY / maxJoystickDistance < -0.28;
+            this.controls.moveBackward = deltaY / maxJoystickDistance > 0.28;
+            this.controls.moveLeft = deltaX / maxJoystickDistance < -0.28;
+            this.controls.moveRight = deltaX / maxJoystickDistance > 0.28;
+        };
+        const clearLookTouch = () => {
+            lookTouchId = null;
+        };
 
         joystick.addEventListener('touchstart', (event) => {
             event.preventDefault();
             event.stopPropagation();
-            moveTouchId = event.touches[0].identifier;
+            if (moveTouchId !== null) return;
+
+            const touch = findChangedTouch(event, isInsideJoystick) || findChangedTouch(event);
+            if (!touch) return;
+
+            moveTouchId = touch.identifier;
             joystickActive = true;
+            updateJoystickFromTouch(touch);
         }, { passive: false });
 
         joystick.addEventListener('touchmove', (event) => {
@@ -728,62 +775,55 @@ export class App {
             event.stopPropagation();
             if (!joystickActive) return;
 
-            const touch = Array.from(event.touches).find((item) => item.identifier === moveTouchId);
-            if (!touch) return;
+            const touch = findTouchById(event.touches, moveTouchId);
+            if (!touch) {
+                resetJoystick();
+                return;
+            }
 
-            const rect = joystick.getBoundingClientRect();
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
-            const deltaX = touch.clientX - centerX;
-            const deltaY = touch.clientY - centerY;
-            const maxDistance = 38;
-            const distance = Math.min(Math.hypot(deltaX, deltaY), maxDistance);
-            const angle = Math.atan2(deltaY, deltaX);
-
-            handle.style.transform = `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px)`;
-
-            this.controls.moveForward = deltaY / maxDistance < -0.28;
-            this.controls.moveBackward = deltaY / maxDistance > 0.28;
-            this.controls.moveLeft = deltaX / maxDistance < -0.28;
-            this.controls.moveRight = deltaX / maxDistance > 0.28;
+            updateJoystickFromTouch(touch);
         }, { passive: false });
 
-        joystick.addEventListener('touchend', (event) => {
+        const finishJoystickTouch = (event) => {
+            event.preventDefault();
             event.stopPropagation();
-            const touch = Array.from(event.changedTouches).find((item) => item.identifier === moveTouchId);
+            const touch = findChangedTouch(event, (item) => item.identifier === moveTouchId);
             if (!touch) return;
 
-            joystickActive = false;
-            moveTouchId = null;
-            handle.style.transform = 'translate(0, 0)';
-            this.controls.resetMovement();
-        }, { passive: false });
+            resetJoystick();
+        };
+
+        joystick.addEventListener('touchend', finishJoystickTouch, { passive: false });
+        joystick.addEventListener('touchcancel', finishJoystickTouch, { passive: false });
 
         lookArea.addEventListener('touchstart', (event) => {
             if (lookTouchId !== null) return;
 
-            const touch = event.touches[0];
-            const rect = joystick.getBoundingClientRect();
-            const isOverJoystick = touch.clientX >= rect.left && touch.clientX <= rect.right
-                && touch.clientY >= rect.top && touch.clientY <= rect.bottom;
-            if (isOverJoystick) return;
+            const touch = findChangedTouch(event, (item) => !isInsideJoystick(item));
+            if (!touch) return;
 
             event.preventDefault();
+            event.stopPropagation();
             lookTouchId = touch.identifier;
             touchStartX = touch.clientX;
             touchStartY = touch.clientY;
         }, { passive: false });
 
         lookArea.addEventListener('touchmove', (event) => {
-            const touch = Array.from(event.touches).find((item) => item.identifier === lookTouchId);
-            if (!touch || !this.controls.enabled) return;
+            const touch = findTouchById(event.touches, lookTouchId);
+            if (!touch) {
+                clearLookTouch();
+                return;
+            }
+            if (!this.controls.enabled) return;
 
             event.preventDefault();
-            const deltaX = touch.clientX - touchStartX;
-            const deltaY = touch.clientY - touchStartY;
+            event.stopPropagation();
+            const deltaX = THREE.MathUtils.clamp(touch.clientX - touchStartX, -maxLookDelta, maxLookDelta);
+            const deltaY = THREE.MathUtils.clamp(touch.clientY - touchStartY, -maxLookDelta, maxLookDelta);
 
-            this.controls.targetRotationY -= deltaX * 0.005;
-            this.controls.targetRotationX -= deltaY * 0.005;
+            this.controls.targetRotationY -= deltaX * mobileLookSpeed;
+            this.controls.targetRotationX -= deltaY * mobileLookSpeed;
             this.controls.targetRotationX = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, this.controls.targetRotationX));
             this.camera.rotation.set(this.controls.targetRotationX, this.controls.targetRotationY, 0, 'YXZ');
 
@@ -791,10 +831,17 @@ export class App {
             touchStartY = touch.clientY;
         }, { passive: false });
 
-        lookArea.addEventListener('touchend', (event) => {
-            const touch = Array.from(event.changedTouches).find((item) => item.identifier === lookTouchId);
-            if (touch) lookTouchId = null;
-        }, { passive: false });
+        const finishLookTouch = (event) => {
+            const touch = findChangedTouch(event, (item) => item.identifier === lookTouchId);
+            if (!touch) return;
+
+            event.preventDefault();
+            event.stopPropagation();
+            clearLookTouch();
+        };
+
+        lookArea.addEventListener('touchend', finishLookTouch, { passive: false });
+        lookArea.addEventListener('touchcancel', finishLookTouch, { passive: false });
     }
 
     /**

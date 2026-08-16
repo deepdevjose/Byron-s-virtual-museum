@@ -106,3 +106,89 @@ test('mobile viewport exposes touch controls during free exploration', async ({ 
     expect(mobileRenderStats.shadows).toBe(false);
     expect(mobileRenderStats.spotlights).toBeLessThanOrEqual(6);
 });
+
+test('mobile multitouch keeps movement and look independent', async ({ page, isMobile }) => {
+    test.skip(!isMobile, 'Multitouch controls are only expected in mobile project.');
+
+    await page.locator('#start-walking').click();
+    await expect(page.locator('#mobile-joystick')).toBeVisible();
+
+    const stats = await page.evaluate(() => {
+        const joystick = document.getElementById('mobile-joystick');
+        const lookArea = document.getElementById('mobile-look-area');
+        const rect = joystick.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const lookX = Math.min(window.innerWidth - 96, rect.right + 260);
+        const lookY = Math.max(160, window.innerHeight * 0.36);
+
+        const makeTouch = (identifier, target, clientX, clientY) => ({
+            identifier,
+            target,
+            clientX,
+            clientY,
+            pageX: clientX,
+            pageY: clientY,
+            screenX: clientX,
+            screenY: clientY,
+        });
+        const dispatchTouch = (target, type, touches, targetTouches, changedTouches) => {
+            const event = new window.Event(type, { bubbles: true, cancelable: true });
+            Object.defineProperties(event, {
+                touches: { value: touches },
+                targetTouches: { value: targetTouches },
+                changedTouches: { value: changedTouches },
+            });
+            target.dispatchEvent(event);
+        };
+        const movementActive = () => window.app.controls.moveForward
+            || window.app.controls.moveBackward
+            || window.app.controls.moveLeft
+            || window.app.controls.moveRight;
+
+        const moveStart = makeTouch(11, joystick, centerX, centerY);
+        const moveForward = makeTouch(11, joystick, centerX, centerY - 36);
+        dispatchTouch(joystick, 'touchstart', [moveStart], [moveStart], [moveStart]);
+        dispatchTouch(joystick, 'touchmove', [moveForward], [moveForward], [moveForward]);
+
+        const yawBefore = window.app.controls.targetRotationY;
+        const lookStart = makeTouch(22, lookArea, lookX, lookY);
+        const lookMoved = makeTouch(22, lookArea, lookX + 90, lookY + 14);
+        dispatchTouch(lookArea, 'touchstart', [moveForward, lookStart], [lookStart], [lookStart]);
+        dispatchTouch(lookArea, 'touchmove', [moveForward, lookMoved], [lookMoved], [lookMoved]);
+
+        const moveContinuesWhileLooking = window.app.controls.moveForward;
+        const yawDelta = Math.abs(window.app.controls.targetRotationY - yawBefore);
+        dispatchTouch(lookArea, 'touchend', [moveForward], [], [lookMoved]);
+        const moveContinuesAfterLookEnds = window.app.controls.moveForward;
+        dispatchTouch(joystick, 'touchend', [], [], [moveForward]);
+        const movementResetAfterMoveEnds = !movementActive();
+
+        const lookStartFirst = makeTouch(33, lookArea, lookX, lookY);
+        const moveStartSecond = makeTouch(44, joystick, centerX, centerY);
+        const moveRightSecond = makeTouch(44, joystick, centerX + 38, centerY);
+        dispatchTouch(lookArea, 'touchstart', [lookStartFirst], [lookStartFirst], [lookStartFirst]);
+        dispatchTouch(joystick, 'touchstart', [lookStartFirst, moveStartSecond], [moveStartSecond], [moveStartSecond]);
+        dispatchTouch(joystick, 'touchmove', [lookStartFirst, moveRightSecond], [moveRightSecond], [moveRightSecond]);
+        const joystickStartsWhileLooking = window.app.controls.moveRight;
+        dispatchTouch(joystick, 'touchend', [lookStartFirst], [], [moveRightSecond]);
+        const joystickResetsBeforeLookEnds = !movementActive();
+        dispatchTouch(lookArea, 'touchend', [], [], [lookStartFirst]);
+
+        return {
+            moveContinuesWhileLooking,
+            yawDelta,
+            moveContinuesAfterLookEnds,
+            movementResetAfterMoveEnds,
+            joystickStartsWhileLooking,
+            joystickResetsBeforeLookEnds,
+        };
+    });
+
+    expect(stats.moveContinuesWhileLooking).toBe(true);
+    expect(stats.yawDelta).toBeGreaterThan(0.1);
+    expect(stats.moveContinuesAfterLookEnds).toBe(true);
+    expect(stats.movementResetAfterMoveEnds).toBe(true);
+    expect(stats.joystickStartsWhileLooking).toBe(true);
+    expect(stats.joystickResetsBeforeLookEnds).toBe(true);
+});

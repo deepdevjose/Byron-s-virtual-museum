@@ -2454,9 +2454,16 @@ body.guided-tour-active #logo {
     font-size: 13px !important;
 }
 
+.credits-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    margin-bottom: 12px;
+}
+
 .credits-social {
     display: inline-flex;
-    margin-bottom: 12px;
+    margin-bottom: 0;
     color: #d7b36a;
     font-size: 12px;
     font-weight: 600;

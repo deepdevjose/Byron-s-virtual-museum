@@ -45,6 +45,11 @@ export class App {
         this.tourController = null;
 
         this.artworksData = [];
+        this.renderProfile = {
+            mobileSafe: false,
+            pixelRatio: CONFIG.performance.pixelRatio,
+            shadows: CONFIG.shadows.enabled
+        };
         this.walkingTime = 0;
         this.cameraMotionState = {
             phase: 0,
@@ -168,6 +173,7 @@ export class App {
         this.scene = new THREE.Scene();
         this.scene.fog = new THREE.FogExp2(0x1d1c19, 0.017);
         this.clock = new THREE.Clock();
+        this.renderProfile = this.createRenderProfile();
 
         this.camera = new THREE.PerspectiveCamera(
             CONFIG.camera.fov,
@@ -182,8 +188,8 @@ export class App {
             antialias: CONFIG.performance.antialias,
             powerPreference: 'high-performance'
         });
-        this.renderer.setPixelRatio(CONFIG.performance.pixelRatio);
-        this.renderer.shadowMap.enabled = CONFIG.shadows.enabled;
+        this.renderer.setPixelRatio(this.renderProfile.pixelRatio);
+        this.renderer.shadowMap.enabled = this.renderProfile.shadows;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         // Keep shadow updates manual because most museum objects are static.
         this.renderer.shadowMap.autoUpdate = false;
@@ -211,7 +217,7 @@ export class App {
         this.controls = new FirstPersonControls(this.camera, this.renderer);
         this.physics = new Physics(this.camera, this.controls);
 
-        this.lighting = new Lighting(this.scene);
+        this.lighting = new Lighting(this.scene, this.renderer);
         this.lighting.setup(this.artworksData);
 
         this.environment = new Environment(this.scene, this.renderer);
@@ -620,6 +626,33 @@ export class App {
     detectMobileDevice() {
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
             || window.innerWidth <= 768;
+    }
+
+    /**
+     * Keeps mobile WebGL shaders inside safer GPU limits.
+     *
+     * Android browsers can expose fewer fragment uniforms than desktop GPUs,
+     * so the mobile profile lowers pixel/shadow cost before materials compile.
+     *
+     * @returns {{mobileSafe: boolean, pixelRatio: number, shadows: boolean}} Renderer profile.
+     */
+    createRenderProfile() {
+        const mobileSafe = this.detectMobileDevice()
+            || (navigator.maxTouchPoints > 0 && window.innerWidth <= 1024);
+
+        if (!mobileSafe) {
+            return {
+                mobileSafe: false,
+                pixelRatio: CONFIG.performance.pixelRatio,
+                shadows: CONFIG.shadows.enabled
+            };
+        }
+
+        return {
+            mobileSafe: true,
+            pixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
+            shadows: false
+        };
     }
 
     /**

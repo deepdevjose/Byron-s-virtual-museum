@@ -86,4 +86,23 @@ test('mobile viewport exposes touch controls during free exploration', async ({ 
     await expect(page.locator('#mobile-joystick')).toBeVisible();
     await expect(page.locator('#mobile-look-area')).toBeVisible();
     await expect(page.locator('#mobile-action-button')).toBeVisible();
+
+    const mobileRenderStats = await page.evaluate(() => {
+        const lightTypes = [];
+        window.app.scene.traverse((object) => {
+            if (object.isLight) lightTypes.push(object.type);
+        });
+
+        return {
+            profile: window.app.renderProfile.mobileSafe,
+            lightProfile: window.app.lighting.lightProfile.name,
+            shadows: window.app.renderer.shadowMap.enabled,
+            spotlights: lightTypes.filter((type) => type === 'SpotLight').length,
+        };
+    });
+
+    expect(mobileRenderStats.profile).toBe(true);
+    expect(mobileRenderStats.lightProfile).toBe('mobile-safe');
+    expect(mobileRenderStats.shadows).toBe(false);
+    expect(mobileRenderStats.spotlights).toBeLessThanOrEqual(6);
 });

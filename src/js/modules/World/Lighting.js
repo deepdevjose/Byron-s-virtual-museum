@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import CONFIG from '../../config.js';
 
 /**
  * Builds the museum lighting system.
@@ -12,12 +11,15 @@ import CONFIG from '../../config.js';
 export class Lighting {
     /**
      * @param {THREE.Scene} scene - Scene that receives light objects and fixtures.
+     * @param {THREE.WebGLRenderer|null} renderer - Renderer used for GPU capability checks.
      */
-    constructor(scene) {
+    constructor(scene, renderer = null) {
         this.scene = scene;
+        this.renderer = renderer;
         this.spotlights = [];
         this.spotlightByArtworkId = new Map();
         this.fixtures = [];
+        this.lightProfile = this.createLightProfile();
     }
 
     /**
@@ -28,7 +30,7 @@ export class Lighting {
     setup(artworksData = []) {
         /** Ambient light establishes the base room visibility. */
 
-        const ambientLight = new THREE.AmbientLight(0xa39686, 0.28);
+        const ambientLight = new THREE.AmbientLight(0xa39686, this.lightProfile.ambientIntensity);
         this.scene.add(ambientLight);
 
         /** Ceiling fixtures use emissive materials instead of point lights. */
@@ -108,10 +110,10 @@ export class Lighting {
     createSkylight() {
         /** Main directional light with shadows. */
 
-        const mainSkylight = new THREE.DirectionalLight(0xffd9a0, 0.62);
+        const mainSkylight = new THREE.DirectionalLight(0xffd9a0, this.lightProfile.skylightIntensity);
         mainSkylight.position.set(2, 20, 3);
         mainSkylight.target.position.set(0, 0, 0);
-        mainSkylight.castShadow = true;
+        mainSkylight.castShadow = this.lightProfile.enableShadows;
 
         /** Shadow configuration uses a moderate map size for performance. */
 
@@ -140,7 +142,14 @@ export class Lighting {
             { color: 0xffefd5, intensity: 0.12, pos: [0, 15, 10] }
         ];
 
-        fills.forEach(fill => {
+        const activeFills = fills
+            .slice(0, this.lightProfile.fillLightLimit)
+            .map((fill) => ({
+                ...fill,
+                intensity: fill.intensity * this.lightProfile.fillIntensityScale
+            }));
+
+        activeFills.forEach(fill => {
             const light = new THREE.DirectionalLight(fill.color, fill.intensity);
             light.position.set(...fill.pos);
             this.scene.add(light);
@@ -195,7 +204,9 @@ export class Lighting {
             return [];
         }
 
-        return artworksData.map((artwork) => {
+        const spotlightTargets = this.selectArtworkSpotlightTargets(artworksData);
+
+        return spotlightTargets.map((artwork) => {
             const target = artwork.position || [0, 2.2, 0];
             const rotationY = Array.isArray(artwork.rotation) ? artwork.rotation[1] : 0;
             const normal = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), rotationY);
@@ -301,8 +312,13 @@ export class Lighting {
             [-6.75, 3.2, 13.8], [-2.25, 3.2, 13.8], [2.25, 3.2, 13.8], [6.75, 3.2, 13.8]
         ];
 
-        sconcePositions.forEach(pos => {
+        let activeSconceLights = 0;
+
+        sconcePositions.forEach((pos, index) => {
             this.createWallSconce(pos);
+
+            if (activeSconceLights >= this.lightProfile.sconceLightLimit) return;
+            if (this.lightProfile.sconceLightLimit > 0 && index % this.lightProfile.sconceLightStride !== 0) return;
 
             /** Sconce light. */
 
@@ -312,7 +328,98 @@ export class Lighting {
             sconceLight.castShadow = false;
             this.scene.add(sconceLight);
             this.scene.add(sconceLight.target);
+            activeSconceLights++;
         });
+    }
+
+    /**
+     * Builds a real-light budget that avoids mobile shader uniform overflows.
+     *
+     * @returns {Object} Lighting profile for the current renderer/device.
+     */
+    createLightProfile() {
+        const capabilities = this.renderer?.capabilities || {};
+        const maxFragmentUniforms = capabilities.maxFragmentUniforms || 1024;
+        const mobileLike = this.isMobileLikeDevice() || maxFragmentUniforms <= 512;
+
+        if (!mobileLike) {
+            return {
+                name: 'desktop',
+                ambientIntensity: 0.28,
+                skylightIntensity: 0.62,
+                fillLightLimit: 3,
+                fillIntensityScale: 1,
+                artworkSpotlightLimit: Infinity,
+                sconceLightLimit: Infinity,
+                sconceLightStride: 1,
+                enableShadows: true
+            };
+        }
+
+        return {
+            name: 'mobile-safe',
+            ambientIntensity: 0.55,
+            skylightIntensity: 0.82,
+            fillLightLimit: 2,
+            fillIntensityScale: 1.45,
+            artworkSpotlightLimit: 6,
+            sconceLightLimit: 0,
+            sconceLightStride: 1,
+            enableShadows: false
+        };
+    }
+
+    /**
+     * Detects touch/narrow layouts that need a conservative shader budget.
+     *
+     * @returns {boolean} True when the device should use the mobile-safe profile.
+     */
+    isMobileLikeDevice() {
+        if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+
+        const mobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const narrowViewport = window.innerWidth <= 768;
+        const touchTablet = navigator.maxTouchPoints > 0 && window.innerWidth <= 1024;
+
+        return mobileUserAgent || narrowViewport || touchTablet;
+    }
+
+    /**
+     * Selects a small, well-distributed set of artworks for real spotlights.
+     *
+     * @param {Array<Object>} artworksData - Full artwork catalog.
+     * @returns {Array<Object>} Artworks that receive real spotlights.
+     */
+    selectArtworkSpotlightTargets(artworksData) {
+        const limit = this.lightProfile.artworkSpotlightLimit;
+        if (!Number.isFinite(limit) || artworksData.length <= limit) {
+            return artworksData;
+        }
+
+        const selected = new Map();
+        const addArtwork = (artwork) => {
+            if (artwork && selected.size < limit) {
+                selected.set(artwork.id, artwork);
+            }
+        };
+
+        artworksData
+            .filter((artwork) => artwork.featured || artwork.id === 'byron-galvez')
+            .forEach(addArtwork);
+
+        const slots = Math.max(1, limit - selected.size);
+        const lastIndex = artworksData.length - 1;
+        for (let slot = 0; slot < slots; slot++) {
+            const index = slots === 1 ? Math.round(lastIndex / 2) : Math.round((slot * lastIndex) / (slots - 1));
+            addArtwork(artworksData[index]);
+        }
+
+        for (const artwork of artworksData) {
+            if (selected.size >= limit) break;
+            addArtwork(artwork);
+        }
+
+        return [...selected.values()].sort((left, right) => artworksData.indexOf(left) - artworksData.indexOf(right));
     }
 
     /**

@@ -1,5 +1,7 @@
 # Byron Gálvez Virtual Museum
 
+![CI](https://github.com/deepdevjose/Byron-s-virtual-museum/actions/workflows/ci.yml/badge.svg)
+
 Byron Gálvez Virtual Museum es una experiencia de museografía digital y arte tecnológico dedicada al universo pictórico de Byron Gálvez. El proyecto utiliza código, espacio WebGL, luz, audio, movimiento, proximidad e interfaz como recursos de mediación, no solo como infraestructura técnica.
 
 La experiencia conserva la forma de una galería 3D navegable, pero su propósito es interpretativo: explorar el color como fuerza emocional, la textura como materia pictórica, la geometría como tensión, el cuerpo como presencia simbólica y la luz como una forma de revelar lo invisible.
@@ -59,12 +61,19 @@ Consulta [`docs/tables/technologies.md`](docs/tables/technologies.md) para ver l
 
 ## Instalación
 
-Este es un proyecto web estático. No requiere `package.json` ni instalación con npm.
+Este es un proyecto web estático. No requiere backend, bundler ni proceso de build para ejecutarse.
+
+La instalación con npm es únicamente para herramientas de desarrollo, validación, formato, linting y pruebas de navegador:
+
+```bash
+npm install
+npx playwright install
+```
 
 Clona el repositorio y levanta un servidor HTTP local desde la raíz:
 
 ```bash
-python3 -m http.server 8000
+npm run dev
 ```
 
 Abre:
@@ -78,21 +87,28 @@ Se recomienda usar servidor HTTP porque la aplicación carga `src/data/artworks.
 ## Comandos De Desarrollo
 
 ```bash
-python3 -m http.server 8000
+npm run dev
+npm run validate
+npm run lint
+npm run format
+npm run test:e2e
+npm test
 ```
 
 ## Build
 
-No hay proceso de build configurado. El proyecto está diseñado para ejecutarse como archivos estáticos.
+No hay proceso de build configurado. El proyecto está diseñado para ejecutarse como archivos estáticos; npm solo administra herramientas de desarrollo.
 
 ## Validación
 
 ```bash
-node scripts/smoke-test.js
-node scripts/validate-artworks.js
+npm run validate
+npm test
 ```
 
-También hay scripts de benchmark y verificación en `scripts/` para uso desde consola del navegador.
+La integración continua ejecuta validación de catálogo, sintaxis JavaScript, smoke test estático, ESLint, Prettier y pruebas Playwright en cada push o pull request.
+
+También hay scripts de benchmark y verificación en `scripts/` para uso desde consola del navegador. Las plantillas para registrar resultados formales están en [`docs/benchmarks/performance-report.md`](docs/benchmarks/performance-report.md).
 
 ## Estructura Del Proyecto
 
@@ -100,8 +116,15 @@ También hay scripts de benchmark y verificación en `scripts/` para uso desde c
 Byron-s-virtual-museum/
 ├── index.html
 ├── README.md
+├── package.json
+├── playwright.config.js
+├── .github/
+│   └── workflows/
+│       └── ci.yml
 ├── docs/
+│   └── benchmarks/
 ├── scripts/
+│   ├── check-js-syntax.js
 │   ├── benchmark-lod.js
 │   ├── benchmark-occlusion.js
 │   ├── benchmark-shadows.js
@@ -155,6 +178,7 @@ Byron-s-virtual-museum/
 - [`docs/18-engineering-decisions.md`](docs/18-engineering-decisions.md)
 - [`docs/code-documentation.md`](docs/code-documentation.md)
 - [`docs/tables/repository-metrics.md`](docs/tables/repository-metrics.md)
+- [`docs/benchmarks/performance-report.md`](docs/benchmarks/performance-report.md)
 
 ## Videos En Cloudinary
 
@@ -201,4 +225,4 @@ Las obras visuales presentadas pertenecen a sus autores o titulares de derechos.
 
 ## Licencia
 
-El repositorio no incluye un archivo de licencia abierta. Hasta que se agregue una licencia, la reutilización, redistribución y explotación comercial deben considerarse restringidas.
+El código fuente y la documentación del proyecto se publican bajo licencia MIT. Las obras, imágenes, audio, video y materiales culturales no están cubiertos por esa licencia; consulta [`LICENSE`](LICENSE) y [`NOTICE.md`](NOTICE.md).

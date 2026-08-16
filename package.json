@@ -1,0 +1,39 @@
+{
+  "name": "byron-s-virtual-museum",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static WebGL museum experience dedicated to the work of Byron Galvez.",
+  "type": "module",
+  "scripts": {
+    "dev": "http-server . -p 8000 -c-1",
+    "validate": "node scripts/validate-artworks.js && node scripts/check-js-syntax.js && node scripts/smoke-test.js",
+    "lint": "eslint .",
+    "format": "prettier --check README.md CHANGELOG.md NOTICE.md .github/workflows/ci.yml eslint.config.js playwright.config.js scripts/check-js-syntax.js scripts/smoke-test.js scripts/validate-artworks.js tests/e2e/museum.spec.js docs/12-testing-and-validation.md docs/tables/performance-metrics.md docs/benchmarks/performance-report.md docs/benchmarks/*.json",
+    "format:write": "prettier --write README.md CHANGELOG.md NOTICE.md .github/workflows/ci.yml eslint.config.js playwright.config.js scripts/check-js-syntax.js scripts/smoke-test.js scripts/validate-artworks.js tests/e2e/museum.spec.js docs/12-testing-and-validation.md docs/tables/performance-metrics.md docs/benchmarks/performance-report.md docs/benchmarks/*.json",
+    "test:e2e": "playwright test",
+    "test": "npm run validate && npm run lint && npm run test:e2e"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deepdevjose/Byron-s-virtual-museum.git"
+  },
+  "keywords": [
+    "webgl",
+    "threejs",
+    "museum",
+    "digital-curatorship"
+  ],
+  "author": "Jose Manuel Cortes Ceron",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/deepdevjose/Byron-s-virtual-museum/issues"
+  },
+  "homepage": "https://github.com/deepdevjose/Byron-s-virtual-museum#readme",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.62.1",
+    "eslint": "^10.8.1",
+    "http-server": "^14.1.1",
+    "prettier": "^3.9.6"
+  }
+}

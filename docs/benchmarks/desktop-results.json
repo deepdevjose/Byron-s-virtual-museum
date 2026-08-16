@@ -1,0 +1,21 @@
+{
+    "status": "pending-measurement",
+    "environment": {
+        "date": null,
+        "commit": null,
+        "device": null,
+        "browser": null,
+        "viewport": null
+    },
+    "metrics": {
+        "averageFps": null,
+        "onePercentLowFps": null,
+        "drawCalls": null,
+        "geometries": null,
+        "textures": null,
+        "coldStartupMs": null,
+        "loaderVisibleMs": null,
+        "artworkModalOpenMs": null,
+        "videoMetadataMs": null
+    }
+}

@@ -789,9 +789,13 @@ body.guided-tour-active #logo {
     min-width: 0;
     min-height: 34px;
     padding: 0 12px;
-    pointer-events: auto;
+    pointer-events: none;
     white-space: nowrap;
     font-size: 12px;
+}
+
+.free-exploration-hud.is-visible .free-exploration-hud__button {
+    pointer-events: auto;
 }
 
 /* ==========================================================================
